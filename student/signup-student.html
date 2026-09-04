@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ข้อมูลไม่ถูกบันทึกที่ไหน
+  หน้านี้ = นักเรียนสมัครเอง (อายุ 16 ปีขึ้นไป) · ต่ำกว่า 16 ให้ผู้ปกครองสมัครที่ signup-parent.html
+  Owner เคาะ 2026-08-11: แยกหน้าผู้ปกครองกับนักเรียนออกจากกัน เพราะรวมกันแล้วผู้เรียนที่โตแล้วตกใจ+ปิดหนี
+  อายุ 16-19 ยังต้องให้ผู้ปกครองยืนยัน 1 ครั้ง (PDPA ม.20 + ป.พ.พ. เรื่องผู้เยาว์ทำสัญญา) แต่ไม่มีหมวด "ข้อมูลผู้ปกครอง" ให้ตกใจ
+  ระบบดีไซน์: design.md + tokens.css (ห้ามสร้างสีหรือฟอนต์ใหม่ในไฟล์นี้)
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่อาจมีเงื่อนไขของผู้เรียน) หลุดไปกับ Referer ตอนโหลดฟอนต์/ลิงก์ออกนอกเว็บ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>นักเรียนสมัครหาครู — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<style>
+/* Hallmark · genre: modern-minimal · macrostructure: Narrative Workflow · design-system: design.md · designed-as-app
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none
+ * ขั้น 2 — ใช้ระบบเดียวกับ signup-teacher.html ทุกอย่าง (class name เดิม ห้ามคิดใหม่)
+ * ต่างจากหน้าครูแค่: 6 หัวข้อแทน 8 · มีบล็อก "ผู้เรียน" ที่เพิ่มได้หลายคน
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* 🔴 แก้ 2026-08-12 (รอบ 3): กล่อง OTP (137px) และกล่องแดง "อายุต่ำกว่า 16" (225px) โผล่ตั้งแต่เปิดหน้า
+   ทั้งที่ใส่ hidden ไว้ในแท็ก — กล่องแดงเด้งใส่ทุกคนที่เข้ามาสมัคร ทั้งที่ควรขึ้นเฉพาะคนอายุ <16
+   สาเหตุ: [hidden] = display:none ที่ "ชั้นของเบราว์เซอร์" -> คลาสของเราที่เขียน display:flex ทับมันเสมอ
+   (เจอตอนวัด DOM หน้าค้นหาครู แล้ว grep ย้อนกลับมาเจอที่นี่ — วัดจริงในเบราว์เซอร์แล้ว) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);color:var(--color-ink);
+  line-height:1.65;font-size:16px;overflow-x:clip;background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.sec-num,.chip{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:780px;margin:0 auto;padding:0 var(--space-5)}
+
+.page-shell{display:flex;flex-direction:column;min-height:100vh}
+.content-col{flex:1;min-width:0}
+@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+
+.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
+  color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.sidenav-num{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;color:var(--color-muted);min-width:20px;font-variant-numeric:tabular-nums}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a.active .sidenav-num{color:var(--color-accent-deep)}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+
+.hero-band{position:relative;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.intro{padding:var(--space-16) 0 var(--space-12)}
+.intro .eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);margin-bottom:var(--space-5);
+}
+.intro h1{font-size:var(--text-display-s);line-height:1.15;max-width:16ch}
+.intro h1 .underline{position:relative;white-space:nowrap}
+.intro h1 .underline::after{content:"";position:absolute;left:0;right:0;bottom:-.06em;height:3px;background:var(--color-accent);border-radius:2px}
+.intro p{margin-top:var(--space-5);color:var(--color-ink-2);font-size:var(--text-lg);max-width:48ch;line-height:1.6}
+
+form{padding:var(--space-12) 0 var(--space-16)}
+/* 🔴 ห้ามใส่ z-index กลับเข้ามาใน .section (Owner เจอเอง 2026-08-17 · แก้พร้อมกัน 4 ไฟล์)
+   position:relative + z-index = การ์ดแต่ละใบสร้าง "ชั้นของตัวเอง" ขึ้นมา
+   → รายการวิชาที่ดรอปลงมาถูกขังอยู่ในชั้นของการ์ดใบนั้น การ์ดใบถัดไปจึงทับลงมาบนมัน
+   position:relative อย่างเดียวพอสำหรับเส้นตกแต่ง ::before — ไม่ต้องมี z-index */
+.section{
+  position:relative;background:var(--color-surface);
+  border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+  padding:var(--space-8);margin-bottom:var(--space-6);
+  box-shadow:var(--shadow-raise);scroll-margin-top:var(--space-16);
+}
+@media (min-width:900px){
+  .section::before{content:"";position:absolute;left:-1px;top:var(--space-10);bottom:var(--space-8);width:2px;background:var(--color-accent-soft);border-radius:2px}
+}
+@media (max-width:560px){.section{padding:var(--space-6) var(--space-4);border-radius:var(--radius-md)}}
+.sec-head{margin-bottom:var(--space-6)}
+.sec-num{
+  display:inline-flex;align-items:center;gap:6px;height:26px;font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:0 10px;border-radius:var(--radius-sm);margin-bottom:var(--space-3);font-variant-numeric:tabular-nums;
+}
+.sec-head h2{font-size:var(--text-xl);line-height:1.25}
+.sec-head p{color:var(--color-ink-2);font-size:var(--text-base);margin-top:var(--space-2);max-width:60ch}
+
+.grid{display:grid;gap:var(--space-5)}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+@media (max-width:560px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:var(--text-sm);font-weight:600;color:var(--color-ink)}
+.field .req{color:var(--color-error);margin-left:2px}
+.field .helper{font-size:var(--text-sm);color:var(--color-ink-2);min-height:1lh}
+.field .helper.err{color:var(--color-error);font-weight:600}
+
+input[type=text],input[type=number],input[type=tel],select,textarea{
+  height:var(--control-h);font:inherit;font-size:var(--text-base);color:var(--color-ink);
+  background:var(--color-surface);border:1px solid var(--color-rule-2);
+  outline:2px solid transparent;outline-offset:1px;border-radius:var(--radius-md);
+  padding:0 14px;width:100%;
+  transition:background-color var(--dur-short) var(--ease-out),border-color var(--dur-short) var(--ease-out);
+}
+textarea{height:auto;min-height:6.5rem;padding:12px 14px;resize:vertical;line-height:1.6}
+input:hover,select:hover,textarea:hover{border-color:var(--color-ink-2)}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--color-focus);border-color:var(--color-focus)}
+input::placeholder,textarea::placeholder{color:var(--color-muted)}
+input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--color-error);background:var(--color-error-soft)}
+input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
+
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  position:relative;flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 16px;white-space:nowrap;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);
+  background:var(--color-surface);font-size:var(--text-sm);font-weight:600;color:var(--color-ink);
+  cursor:pointer;user-select:none;transition:background-color var(--dur-short) var(--ease-out);
+}
+.chip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.chip:has(input:checked){background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.chip:hover{background:var(--color-paper-2)}.chip:has(input:checked):hover{background:var(--color-accent)}}
+
+.timegrid{border:1px solid var(--color-rule);border-radius:var(--radius-md);overflow:hidden}
+.timegrid-row{display:grid;grid-template-columns:64px repeat(4,1fr);align-items:center;border-top:1px solid var(--color-rule)}
+.timegrid-row:first-child{border-top:none;background:var(--color-paper-2)}
+.timegrid-row:first-child .tg-cell{
+  display:block !important;font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+  color:var(--color-ink);padding:10px 4px;text-align:center;line-height:1.4;
+}
+.timegrid-row:first-child .tg-cell small{display:block;font-family:var(--font-sans);font-weight:400;font-size:11px;color:var(--color-ink-2);margin-top:2px}
+@media (max-width:560px){.timegrid-row:first-child .tg-cell small{font-size:9.5px}}
+.tg-day{font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;padding:10px 8px}
+.tg-cell{padding:8px;display:flex;justify-content:center}
+.tg-check{position:relative;width:100%;max-width:56px;height:44px;display:flex;align-items:center;justify-content:center}
+.tg-check input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}
+.tg-check-box{width:28px;height:28px;pointer-events:none;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);background:var(--color-surface);transition:background-color var(--dur-short) var(--ease-out)}
+.tg-check:has(input:checked) .tg-check-box{background:var(--color-accent);border-color:var(--color-accent)}
+.tg-check:has(input:focus-visible) .tg-check-box{outline:2px solid var(--color-focus);outline-offset:2px}
+@media (max-width:560px){
+  .timegrid-row{grid-template-columns:40px repeat(4,1fr)}
+  .tg-day{font-size:12px;padding:8px 2px}
+  .tg-cell{padding:4px 2px}
+}
+
+.tagbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--color-rule-2);border-radius:var(--radius-md);background:var(--color-surface);padding:8px 10px;min-height:var(--control-h)}
+.tagbox:has(#subject-input:focus-visible){outline:2px solid var(--color-focus);outline-offset:1px;border-color:var(--color-focus)}
+.tagbox[aria-invalid=true]{border-color:var(--color-error);background:var(--color-error-soft)}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--color-accent-soft);color:var(--color-ink);font-size:var(--text-sm);font-weight:600;padding:6px 8px 6px 12px;border-radius:var(--radius-sm)}
+.tag button{width:22px;height:22px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--color-ink-2);font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tag button:hover{background:var(--color-surface);color:var(--color-ink)}
+.tag button:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px}
+#subject-input{flex:1;min-width:120px;border:none;height:32px;padding:0;background:transparent;outline:none}
+
+.suggest-panel{
+  position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:var(--z-dropdown);
+  max-height:min(70vh, 560px);overflow-y:auto;background:var(--color-surface);
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);box-shadow:var(--shadow-lift);padding:var(--space-2) 0;
+}
+.suggest-group + .suggest-group{border-top:1px solid var(--color-rule);margin-top:4px;padding-top:6px}
+.suggest-group-label{
+  margin:2px var(--space-3) 6px;padding:5px 10px;font-family:var(--font-display);
+  font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);border-radius:var(--radius-sm);
+}
+.suggest-item{display:block;width:100%;text-align:left;border:none;background:transparent;cursor:pointer;padding:11px var(--space-4);font:inherit;font-size:var(--text-base);color:var(--color-ink)}
+.suggest-item:hover,.suggest-item.is-active{background:var(--color-accent-soft)}
+.suggest-empty{padding:var(--space-3) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+
+/* ---- บล็อกผู้เรียน (เพิ่มได้หลายคน) ---- */
+.learner{border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--space-6);margin-bottom:var(--space-4);background:var(--color-surface-2)}
+.learner-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-5)}
+.learner-head h3{font-size:var(--text-lg)}
+.learner-remove{
+  min-height:44px;padding:0 14px;border-radius:var(--radius-md);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink-2);cursor:pointer;font:inherit;font-size:var(--text-sm);font-weight:600;
+}
+.learner-remove:hover{background:var(--color-error-soft);color:var(--color-error);border-color:var(--color-error)}
+.learner-remove:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+@media (max-width:560px){.learner{padding:var(--space-4)}}
+
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover{background:var(--color-paper-2)}
+.btn-secondary[disabled]{opacity:.55;cursor:not-allowed}
+.btn-add{background:transparent;color:var(--color-accent-deep);border:1px dashed var(--color-rule-2);width:100%;font-weight:600}
+.btn-add:hover{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+
+/* .otp-row: ปุ่มต้องเรียงชิดก้น "ช่องกรอก" ไม่ใช่ชิดก้น "ข้อความช่วยเหลือ"
+   -> ดึง .helper ออกจาก flow ด้วย absolute ไม่งั้นความสูงของ helper จะดันปุ่มตกลงไปข้างล่าง
+   (บั๊กจริงที่ Owner จับได้ 2026-08-11 — ปุ่ม "ส่งรหัส"/"ยืนยัน" ลอยต่ำกว่าช่อง) */
+.otp-row{display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--space-6)}
+.otp-row .field{flex:1;min-width:180px;position:relative}
+.otp-row .field .helper{position:absolute;top:calc(100% + 4px);left:0;width:100%;min-height:0}
+.otp-status{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:600;color:var(--color-ok);background:var(--color-ok-soft);padding:6px 12px;border-radius:var(--radius-sm);margin-top:var(--space-2)}
+.badge-note{
+  display:flex;gap:var(--space-4);align-items:flex-start;background:var(--color-paper-2);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);margin-top:var(--space-5);font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.badge-note .badge-icon{width:32px;height:32px;border-radius:50%;background:var(--color-ok);color:var(--color-surface);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.badge-note strong{display:block;font-family:var(--font-display);margin-bottom:4px}
+
+.agree{display:flex;gap:12px;align-items:flex-start}
+.agree + .agree{margin-top:var(--space-4)}
+.agree input{width:22px;height:22px;flex-shrink:0;margin-top:2px;accent-color:var(--color-accent)}
+.agree input:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.agree label{font-size:var(--text-sm);color:var(--color-ink);line-height:1.6}
+.agree a{color:var(--color-accent-deep);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.submit-row{margin-top:var(--space-8);display:flex;flex-direction:column;gap:var(--space-3);align-items:flex-start}
+
+.success{display:none;padding:var(--space-2xl) 0;text-align:center}
+.success .badge-icon{width:64px;height:64px;font-size:28px;margin:0 auto var(--space-5);border-radius:50%;background:var(--color-ok);color:var(--color-surface);display:flex;align-items:center;justify-content:center;font-weight:700}
+.success h2{font-size:var(--text-2xl)}
+.success p{color:var(--color-ink-2);margin-top:var(--space-3);max-width:44ch;margin-left:auto;margin-right:auto}
+.success .btn{margin-top:var(--space-6)}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-6) 0 var(--space-8);font-size:var(--text-sm);color:var(--color-ink-2)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+  <header class="mobile-header">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="../index.html">กลับหน้าแรก</a>
+  </header>
+
+  <aside class="sidebar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="../index.html">กลับหน้าแรก</a>
+    <nav class="sidenav" aria-label="หัวข้อในแบบฟอร์ม">
+      <a href="#sec1"><span class="sidenav-num">1</span>ข้อมูลของคุณ</a>
+      <a href="#sec2"><span class="sidenav-num">2</span>สิ่งที่อยากเรียน</a>
+      <a href="#sec3"><span class="sidenav-num">3</span>เวลา สถานที่ งบ</a>
+      <a href="#sec4"><span class="sidenav-num">4</span>ยืนยันเบอร์</a>
+      <a href="#sec5"><span class="sidenav-num">5</span>ข้อตกลง</a>
+    </nav>
+  </aside>
+
+  <div class="content-col">
+    <div class="hero-band">
+      <div class="wrap">
+        <div class="intro">
+          <span class="eyebrow">สำหรับนักเรียน · 5 ขั้นตอน ราว 4 นาที</span>
+          <h1>หา<span class="underline">ครูที่ใช่</span>ด้วยตัวเอง</h1>
+          <p>เลือกครูเอง จองเอง คุมตารางเรียนเอง<br>
+            <span style="font-size:var(--text-sm)">อายุต่ำกว่า 16 ปี ให้ผู้ปกครองสมัครให้ที่ <a href="signup-parent.html" style="color:var(--color-accent-deep);font-weight:600">หน้าสมัครสำหรับผู้ปกครอง</a></span></p>
+        </div>
+      </div>
+    </div>
+
+    <form id="student-form" novalidate>
+      <div class="wrap">
+
+        <section class="section" id="sec1">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 1</span>
+            <h2>ข้อมูลของคุณ</h2>
+            <p>ชื่อเล่นคือชื่อที่ครูจะเห็น ส่วนชื่อจริงเก็บไว้หลังบ้าน ไม่แสดงในโปรไฟล์</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="s-nick">ชื่อเล่น <span class="req">*</span></label>
+              <input type="text" id="s-nick" name="nickname" required placeholder="พลอย">
+              <div class="helper" data-for="s-nick"></div>
+            </div>
+            <div class="field">
+              <label for="s-age">อายุ <span class="req">*</span></label>
+              <input type="number" id="s-age" name="age" required min="10" max="99" placeholder="17">
+              <div class="helper" data-for="s-age">สมัครเองได้ตั้งแต่อายุ 16 ปีขึ้นไป</div>
+            </div>
+            <div class="field">
+              <label for="s-first">ชื่อจริง <span class="req">*</span></label>
+              <input type="text" id="s-first" name="first_name" required placeholder="สมหญิง" autocomplete="given-name">
+              <div class="helper" data-for="s-first"></div>
+            </div>
+            <div class="field">
+              <label for="s-last">นามสกุล <span class="req">*</span></label>
+              <input type="text" id="s-last" name="last_name" required placeholder="ใจดี" autocomplete="family-name">
+              <div class="helper" data-for="s-last"></div>
+            </div>
+            <div class="field">
+              <label for="s-grade">ระดับชั้น <span class="req">*</span></label>
+              <select id="s-grade" name="grade" required><option value="">— เลือก —</option></select>
+              <div class="helper" data-for="s-grade">เรียนหลักสูตรนานาชาติ เลือกชั้นเทียบเท่า เช่น Grade 10 = ม.4</div>
+            </div>
+            <div class="field">
+              <label for="s-sex">เพศ</label>
+              <select id="s-sex" name="sex"><option value="">ไม่ระบุ</option><option>หญิง</option><option>ชาย</option><option>อื่น ๆ</option></select>
+              <div class="helper">ไม่บังคับ</div>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="s-cur">หลักสูตรที่เรียนอยู่</label>
+              <select id="s-cur" name="curriculum"><option value="">— เลือก —</option></select>
+              <div class="helper">ช่วยจับคู่ครูที่สอนหลักสูตรตรงกัน · ไม่บังคับ</div>
+            </div>
+            <!-- ⛔ ไม่มีช่อง "ID LINE" แล้ว (Owner สั่งตัด 2026-08-20 · LOG รายการ 127)
+                 ระบบติดต่อผ่าน LINE OA ด้วย userId ที่ได้ตอนสมัคร -->
+          </div>
+
+          <div class="badge-note" id="too-young" hidden style="background:var(--color-error-soft);border-color:var(--color-error)">
+            <span class="badge-icon" aria-hidden="true" style="background:var(--color-error)">!</span>
+            <span><strong>อายุต่ำกว่า 16 ปี สมัครเองไม่ได้</strong>
+              ให้ผู้ปกครองเป็นคนสมัครแทนที่ <a href="signup-parent.html" style="color:var(--color-accent-deep);font-weight:600">หน้าสมัครสำหรับผู้ปกครอง</a>
+              เพราะการจองเรียนเป็นการทำสัญญาและมีการจ่ายเงิน ซึ่งต้องมีผู้ปกครองรับผิดชอบ</span>
+          </div>
+        </section>
+
+        <section class="section" id="sec2">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 2</span>
+            <h2>สิ่งที่อยากเรียน</h2>
+            <p>พิมพ์ชื่อวิชาแล้วเลือกจากรายการ เลือกได้หลายวิชา</p>
+          </div>
+          <div class="field" style="position:relative">
+            <label for="subject-input">วิชาที่ต้องการ <span class="req">*</span></label>
+            <div class="tagbox" id="tagbox">
+              <input type="text" id="subject-input" placeholder="เช่น คณิตศาสตร์" autocomplete="off"
+                     role="combobox" aria-expanded="false" aria-controls="suggest" aria-autocomplete="list">
+            </div>
+            <div class="suggest-panel" id="suggest" role="listbox" hidden></div>
+            <div class="helper" data-for="subject-input">เลือกอย่างน้อย 1 วิชา</div>
+          </div>
+          <div class="field" style="margin-top:var(--space-5)">
+            <label>เป้าหมายของการเรียน <span class="req">*</span></label>
+            <div class="chip-group" id="goal-group">
+              <label class="chip"><input type="radio" name="goal" value="catch_up">ตามให้ทันในห้องเรียน</label>
+              <label class="chip"><input type="radio" name="goal" value="exam_prep">เตรียมสอบเข้า</label>
+              <label class="chip"><input type="radio" name="goal" value="contest">แข่งขัน/โอลิมปิก</label>
+              <label class="chip"><input type="radio" name="goal" value="enrich">เรียนเสริมทักษะ</label>
+            </div>
+            <div class="helper" data-for="goal-group"></div>
+          </div>
+        </section>
+
+        <section class="section" id="sec3">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 3</span>
+            <h2>เวลา สถานที่ และงบ</h2>
+            <p>ใช้เป็นตัวกรองตอนค้นหาครู — ตอนจองคาบจริงค่อยเลือกเวลาแน่นอนอีกที</p>
+          </div>
+          <div class="field">
+            <label>วัน-เวลาที่สะดวกเรียน</label>
+            <div class="timegrid" role="group" aria-label="ตารางวันและช่วงเวลาที่สะดวก">
+              <div class="timegrid-row">
+                <div class="tg-day"></div>
+                <div class="tg-cell">เช้า<small>06:00-12:00</small></div>
+                <div class="tg-cell">บ่าย<small>12:00-16:00</small></div>
+                <div class="tg-cell">เย็น<small>16:00-19:00</small></div>
+                <div class="tg-cell">ค่ำ<small>19:00-22:00</small></div>
+              </div>
+            </div>
+            <div class="helper">ติ๊กช่วงที่สะดวก ไม่ติ๊กเลยก็ได้ถ้ายังไม่แน่ใจ</div>
+          </div>
+
+          <div class="field" style="margin-top:var(--space-6)">
+            <label>สถานที่เรียน <span class="req">*</span></label>
+            <div class="chip-group" id="place-group">
+              <!-- 🔴 รหัสล็อกทั้งเว็บ: online / home / public · ป้ายไทยเปลี่ยนตามมุมคนดูได้ แต่ value ห้ามเปลี่ยน -->
+              <label class="chip"><input type="checkbox" name="place" value="online">ออนไลน์</label>
+              <label class="chip"><input type="checkbox" name="place" value="home">ที่บ้าน</label>
+              <label class="chip"><input type="checkbox" name="place" value="public">สถานที่อื่นๆ</label>
+            </div>
+            <div class="helper" data-for="place-group">เลือกได้มากกว่า 1 อย่าง</div>
+          </div>
+
+          <div class="grid grid-2" style="margin-top:var(--space-6)">
+            <div class="field">
+              <label for="zone">จังหวัดที่ให้ครูมาสอน</label>
+              <select id="zone" name="zone"><option value="">— เลือกจังหวัด —</option></select>
+              <div class="helper">ครูเห็นที่อยู่เต็มหลังชำระเงินแล้วเท่านั้น</div>
+            </div>
+            <div class="field">
+              <label for="zone-detail">สถานที่ (พิมพ์ระบุเอง)</label>
+              <input type="text" id="zone-detail" name="zone_detail" placeholder="เช่น เขตบางนา ใกล้ BTS อุดมสุข">
+              <div class="helper">ไม่บังคับ</div>
+            </div>
+            <div class="field">
+              <label for="budget">งบต่อชั่วโมง (บาท)</label>
+              <input type="number" id="budget" name="budget" min="0" step="50" placeholder="400">
+              <div class="helper">ใส่คร่าว ๆ ได้ ใช้กรองครูที่อยู่ในงบ</div>
+            </div>
+            <!-- 🔴 ถามเป็น "ต่อคาบ" ให้ตรงกับ signup-parent.html + post-job.html (Owner สั่ง 2026-08-20)
+                 นาทีต่อคาบใช้ลิสต์เดียวกับที่ครูตั้งขั้นต่ำ (signup-teacher.html ค้น MINHR_OPTIONS) -->
+            <div class="field">
+              <label for="seslen">เรียนครั้งละกี่ชั่วโมง</label>
+              <select id="seslen" name="session_len">
+                <option value="">— เลือก —</option>
+                <option value="60">1 ชม.</option>
+                <option value="90">1.5 ชม.</option>
+                <option value="120">2 ชม.</option>
+                <option value="150">2.5 ชม.</option>
+                <option value="180">3 ชม.</option>
+              </select>
+              <div class="helper">ไม่บังคับ · ครูแต่ละคนรับความยาวคาบไม่เท่ากัน</div>
+            </div>
+            <div class="field">
+              <label for="perweek">สัปดาห์ละกี่ครั้ง</label>
+              <select id="perweek" name="times_per_week">
+                <option value="">— เลือก —</option>
+                <option value="1">1 ครั้ง/สัปดาห์</option>
+                <option value="2">2 ครั้ง/สัปดาห์</option>
+                <option value="3">3 ครั้ง/สัปดาห์</option>
+                <option value="4">4 ครั้ง/สัปดาห์</option>
+                <option value="5">5 ครั้ง/สัปดาห์</option>
+                <option value="6">6 ครั้ง/สัปดาห์</option>
+                <option value="7">7 ครั้ง/สัปดาห์</option>
+              </select>
+              <div class="helper" id="wk-total">ไม่บังคับ</div>
+              <input type="hidden" id="hpw" name="hours_per_week">
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="sec4">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 4</span>
+            <h2>ยืนยันเบอร์ของคุณ</h2>
+            <p>ใช้เข้าสู่ระบบและให้ครูติดต่อหลังจองสำเร็จ</p>
+          </div>
+          <div class="otp-row">
+            <div class="field">
+              <label for="s-phone">เบอร์มือถือ <span class="req">*</span></label>
+              <input type="tel" id="s-phone" name="phone" required placeholder="0812345678" inputmode="numeric" autocomplete="tel">
+              <div class="helper" data-for="s-phone"></div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัส</button>
+          </div>
+          <div class="otp-row" id="otp-box" hidden>
+            <div class="field">
+              <label for="otp">รหัส 6 หลักที่ได้รับ</label>
+              <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000">
+              <div class="helper" data-for="otp">ตัวอย่างเท่านั้น — พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยัน</button>
+          </div>
+          <div id="otp-ok" hidden><span class="otp-status">ยืนยันเบอร์เรียบร้อย</span></div>
+
+          <div id="guardian-block" hidden style="margin-top:var(--space-8);padding-top:var(--space-6);border-top:1px solid var(--color-rule)">
+            <div class="field" style="margin-bottom:var(--space-4)">
+              <label for="g-phone" style="font-size:var(--text-base)">เบอร์ผู้ปกครอง (ให้ผู้ปกครองรับทราบ) <span class="req">*</span></label>
+              <div class="helper" style="min-height:0;margin-bottom:6px">อายุยังไม่ถึง 20 ปี ต้องมีผู้ปกครองรับทราบ 1 ครั้ง แล้วหลังจากนั้นคุณใช้งานเองได้ทั้งหมด</div>
+            </div>
+            <div class="otp-row">
+              <div class="field">
+                <input type="tel" id="g-phone" name="guardian_phone" placeholder="0898765432" inputmode="numeric" aria-label="เบอร์ผู้ปกครอง">
+                <div class="helper" data-for="g-phone"></div>
+              </div>
+              <button type="button" class="btn btn-secondary" id="send-g-otp">ส่งให้ผู้ปกครอง</button>
+            </div>
+            <div class="otp-row" id="g-otp-box" hidden>
+              <div class="field">
+                <input type="text" id="g-otp" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="รหัสจากผู้ปกครอง">
+                <div class="helper" data-for="g-otp">ให้ผู้ปกครองบอกรหัสที่ได้รับ</div>
+              </div>
+              <button type="button" class="btn btn-secondary" id="verify-g-otp">ยืนยัน</button>
+            </div>
+            <div id="g-otp-ok" hidden><span class="otp-status">ผู้ปกครองรับทราบแล้ว</span></div>
+          </div>
+
+          <div class="badge-note">
+            <span class="badge-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>
+              <strong>ข้อมูลของคุณปลอดภัย</strong>
+              เราไม่แสดงชื่อจริง เบอร์ หรือที่อยู่ของคุณให้ครูเห็น จนกว่าคุณจะยืนยันการจองกับครูคนนั้นแล้ว
+              และเรา<strong style="display:inline">ไม่ขอสำเนาบัตรประชาชน</strong>ตอนสมัคร
+            </span>
+          </div>
+        </section>
+
+        <section class="section" id="sec5">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 5</span>
+            <h2>ข้อตกลงการใช้งาน</h2>
+            <p>อ่านก่อนกดสมัคร</p>
+          </div>
+          <div class="agree">
+            <input type="checkbox" id="agree1" required>
+            <label for="agree1">ข้าพเจ้ายอมรับ <a href="#">ข้อตกลงการใช้งาน</a> และ <a href="#">นโยบายความเป็นส่วนตัว</a> ของ BGT Tutor <span class="req">*</span></label>
+          </div>
+          <div class="agree">
+            <input type="checkbox" id="agree2">
+            <label for="agree2">ยินดีรับข่าวสาร โปรโมชัน และครูแนะนำใหม่ ๆ ทาง SMS หรือ LINE (ไม่บังคับ ยกเลิกได้ทุกเมื่อ)</label>
+          </div>
+          <div class="submit-row">
+            <button type="submit" class="btn btn-primary">ส่งใบสมัคร</button>
+            <span class="helper" id="form-error" style="color:var(--color-error);font-weight:600"></span>
+          </div>
+        </section>
+
+      </div>
+    </form>
+
+    <div class="wrap">
+      <div class="success" id="success">
+        <span class="badge-icon" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <h2>สมัครเรียบร้อยแล้ว</h2>
+        <p>กดค้นหาครูได้เลย หรือรอเราคัดครูที่ตรงกับวิชา เวลา และงบของคุณมาให้ภายใน 1-2 วัน</p>
+        <a class="btn btn-primary" id="go-search" href="teacher-search.html">ไปหน้าค้นหาครู</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span class="foot-brand">BGT Tutor</span>
+    <span>แพลตฟอร์มจับคู่ครูสอนพิเศษกับผู้ปกครอง</span>
+    <nav aria-label="ลิงก์ทางกฎหมาย">
+      <a href="#">ข้อตกลงการใช้งาน</a>
+      <a href="#">นโยบายความเป็นส่วนตัว</a>
+      <a href="#">ติดต่อเรา</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+/* 🔴 ชุดย่อยของลิสต์ 18 ตัวใน signup-parent.html (ต้นฉบับ) — หน้านี้สำหรับ 16+ จึงตัดชั้นที่ต่ำกว่า ม.1 ออก
+   ห้ามตั้งชื่อ/ลำดับเอง · เรียงจากน้อยไปมากให้ตรงกับต้นฉบับ (เดิมเรียงสลับ ม.4-6 ขึ้นก่อน ม.1-3)
+   ❌ "อื่น ๆ" ถูกตัดทิ้ง 2026-08-15 — gradeToLevel() แปลงไม่ได้ ทำให้ผู้เรียนหายจากผลค้นหาทั้งหมด
+   หลักสูตรนานาชาติให้เลือกชั้นเทียบเท่า (Grade 10 = ม.4) ดูข้อความช่วยใต้ช่อง */
+const GRADES = ['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6','ปวช./ปวส.','กศน. (ม.ต้น)','กศน. (ม.ปลาย)','มหาวิทยาลัย','วัยทำงาน'];
+const CURRICULA = ['หลักสูตรสามัญ (ไทย)','English Program (EP)','โรงเรียนนานาชาติ','กศน. / การศึกษาทางเลือก','โฮมสคูล','ไม่ได้เรียนในระบบแล้ว'];
+const ZONES = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
+function fill(id, arr){ const s=document.getElementById(id); arr.forEach(v=>{const o=document.createElement('option');o.textContent=v;s.appendChild(o);}); }
+fill('s-grade', GRADES); fill('s-cur', CURRICULA); fill('zone', ZONES);
+
+/* ตารางวัน x ช่วงเวลา */
+(() => {
+  const days = ['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์','อาทิตย์'];
+  /* 🔴 สำเนา — ต้นฉบับ signup-parent.html (ค้น DAY_CODES) · รูปแบบค่า mon-2 (Owner เคาะ 2026-08-20) */
+  const DAY_CODES = ['mon','tue','wed','thu','fri','sat','sun'];
+  const grid = document.querySelector('.timegrid');
+  days.forEach((d, di) => {
+    const row = document.createElement('div');
+    row.className = 'timegrid-row';
+    row.innerHTML = '<div class="tg-day">' + d + '</div>' +
+      [0,1,2,3].map(si => '<div class="tg-cell"><label class="tg-check">' +
+        '<input type="checkbox" name="slot" value="' + DAY_CODES[di] + '-' + si + '" aria-label="' + d + ' ช่วงที่ ' + (si+1) + '">' +
+        '<span class="tg-check-box"></span></label></div>').join('');
+    grid.appendChild(row);
+  });
+})();
+
+/* อายุ -> กำหนดว่าต้องให้ผู้ปกครองรับทราบไหม / ต่ำกว่า 16 สมัครเองไม่ได้ */
+(() => {
+  const age = document.getElementById('s-age');
+  const young = document.getElementById('too-young');
+  const gb = document.getElementById('guardian-block');
+  function apply() {
+    const v = parseInt(age.value, 10);
+    const isYoung = !isNaN(v) && v < 16;
+    const needsGuardian = !isNaN(v) && v >= 16 && v < 20;
+    young.hidden = !isYoung;
+    gb.hidden = !needsGuardian;
+    document.body.dataset.tooYoung = isYoung ? '1' : '';
+    document.body.dataset.needsGuardian = needsGuardian ? '1' : '';
+    if (isYoung) setErr(age, 'อายุต่ำกว่า 16 ให้ผู้ปกครองสมัครให้แทน'); else clearErr(age);
+    /* Owner เคาะ 2026-08-11: ต่ำกว่า 16 = ขอ OTP ไม่ได้ และกดสมัครไม่ได้ ปิดตายไปเลย */
+    const sendBtn = document.getElementById('send-otp');
+    const submitBtn = document.querySelector('button[type=submit]');
+    sendBtn.disabled = isYoung;
+    submitBtn.disabled = isYoung;
+    sendBtn.title = isYoung ? 'อายุต่ำกว่า 16 ปี สมัครเองไม่ได้' : '';
+    submitBtn.title = sendBtn.title;
+    if (isYoung) {
+      document.getElementById('otp-box').hidden = true;
+      document.getElementById('otp-ok').hidden = true;
+      delete document.body.dataset.otpVerified;
+      document.getElementById('form-error').textContent = 'อายุต่ำกว่า 16 ปี สมัครเองไม่ได้ — ให้ผู้ปกครองสมัครให้แทน';
+    } else if (document.getElementById('form-error').textContent.startsWith('อายุต่ำกว่า 16')) {
+      document.getElementById('form-error').textContent = '';
+    }
+  }
+  age.addEventListener('input', apply);
+  age.addEventListener('change', apply);
+})();
+
+/* วิชาที่ต้องการ — combobox จัดหมวด (ลิสต์เดียวกับหน้าครูและหน้าผู้ปกครอง) */
+(() => {
+  const SUBJECT_GROUPS = [
+    {label:'วิชาการ (ประถม-มัธยม)', items:['คณิตศาสตร์','ภาษาไทย','ภาษาอังกฤษ','วิทยาศาสตร์','ฟิสิกส์','เคมี','ชีววิทยา','สังคมศึกษา','ประวัติศาสตร์','ภูมิศาสตร์','คอมพิวเตอร์/เขียนโปรแกรม']},
+    {label:'ติวสอบ/สอบเข้า', items:['ติวสอบเข้า ป.1','ติวสอบเข้า ม.1','ติวสอบเข้า ม.4','ติว TCAS/GAT/PAT','ติว A-Level','ติวสอบเข้ามหาวิทยาลัย','ติวโอลิมปิกวิชาการ','ติวสอบเข้าโรงเรียนนานาชาติ']},
+    {label:'ภาษาต่างประเทศ', items:['ภาษาจีน','ภาษาญี่ปุ่น','ภาษาเกาหลี','ภาษาฝรั่งเศส','ภาษาเยอรมัน','ภาษาสเปน','ภาษารัสเซีย','ภาษาเวียดนาม','ภาษาอาหรับ','ติว IELTS','ติว TOEFL','ติว TOEIC','ติว SAT','ภาษาอื่นๆ (พิมพ์ระบุเอง)']},
+    {label:'ดนตรี', items:['เปียโน','กีตาร์','ไวโอลิน','กลองชุด','ร้องเพลง','ดนตรีไทย','อูคูเลเล่','แซกโซโฟน','ทฤษฎีดนตรี/แต่งเพลง','ดนตรีอื่นๆ (พิมพ์ระบุเอง)']},
+    {label:'ศิลปะและงานฝีมือ', items:['วาดรูป/ระบายสี','ศิลปะสำหรับเด็ก','งานปั้น','การถ่ายภาพ','ตัดต่อวิดีโอ','ออกแบบกราฟิก']},
+    {label:'กีฬา', items:['ว่ายน้ำ','ฟุตบอล','บาสเกตบอล','แบดมินตัน','เทนนิส','กอล์ฟ','เทควันโด','มวยไทย','ยิมนาสติก','โยคะ','สเก็ตบอร์ด','กีฬาอื่นๆ (พิมพ์ระบุเอง)']},
+    {label:'ทักษะชีวิต/อื่นๆ', items:['ทำอาหาร/เบเกอรี่','การพูดในที่สาธารณะ','การเงินส่วนบุคคล','การเขียน/นักเขียน','หุ่นยนต์/โค้ดดิ้งเด็ก']},
+  ];
+  const input = document.getElementById('subject-input');
+  const box = document.getElementById('tagbox');
+  const panel = document.getElementById('suggest');
+  const picked = [];
+  function renderTags() {
+    [...box.querySelectorAll('.tag')].forEach(t => t.remove());
+    picked.forEach(name => {
+      const t = document.createElement('span');
+      t.className = 'tag';
+      t.innerHTML = '<span></span><button type="button" aria-label="ลบ ' + name + '">&times;</button>';
+      t.querySelector('span').textContent = name;
+      t.querySelector('button').addEventListener('click', () => { picked.splice(picked.indexOf(name),1); renderTags(); });
+      box.insertBefore(t, input);
+    });
+    box.setAttribute('aria-invalid', picked.length ? 'false' : 'true');
+  }
+  function open(q) {
+    const term = (q || '').trim();
+    panel.innerHTML = ''; let count = 0;
+    SUBJECT_GROUPS.forEach(g => {
+      const items = g.items.filter(x => !picked.includes(x) && (!term || x.includes(term)));
+      if (!items.length) return;
+      count += items.length;
+      const gd = document.createElement('div'); gd.className = 'suggest-group';
+      const lb = document.createElement('div'); lb.className = 'suggest-group-label'; lb.textContent = g.label;
+      gd.appendChild(lb);
+      items.forEach(x => {
+        const b = document.createElement('button');
+        b.type='button'; b.className='suggest-item'; b.textContent=x; b.setAttribute('role','option');
+        b.addEventListener('mousedown', e => { e.preventDefault(); picked.push(x); renderTags(); input.value=''; open(''); });
+        gd.appendChild(b);
+      });
+      panel.appendChild(gd);
+    });
+    if (!count) panel.innerHTML = '<div class="suggest-empty">ไม่พบวิชานี้ในรายการ — พิมพ์ต่อได้ เราจะเพิ่มให้ทีหลัง</div>';
+    panel.hidden = false; input.setAttribute('aria-expanded','true');
+  }
+  function close(){ panel.hidden = true; input.setAttribute('aria-expanded','false'); }
+  input.addEventListener('focus', () => open(input.value));
+  input.addEventListener('input', () => open(input.value));
+  input.addEventListener('blur', () => setTimeout(close, 120));
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  window.__pickedSubjects = picked;
+})();
+
+/* OTP จำลอง — ของตัวเอง + ของผู้ปกครอง (เฉพาะอายุ 16-19) */
+function wireOtp(phoneId, sendId, boxId, otpId, verifyId, okId, flag) {
+  const phone = document.getElementById(phoneId);
+  document.getElementById(sendId).addEventListener('click', () => {
+    if (!/^0\d{8,9}$/.test(phone.value.trim())) { setErr(phone, 'กรอกเบอร์มือถือ 10 หลัก ขึ้นต้นด้วย 0'); return; }
+    clearErr(phone);
+    document.getElementById(boxId).hidden = false;
+    document.getElementById(otpId).focus();
+  });
+  document.getElementById(verifyId).addEventListener('click', () => {
+    const el = document.getElementById(otpId);
+    if (!/^\d{6}$/.test(el.value.trim())) { setErr(el, 'กรอกรหัส 6 หลัก'); return; }
+    clearErr(el);
+    document.getElementById(boxId).hidden = true;
+    document.getElementById(okId).hidden = false;
+    document.body.dataset[flag] = '1';
+  });
+}
+wireOtp('s-phone','send-otp','otp-box','otp','verify-otp','otp-ok','otpVerified');
+wireOtp('g-phone','send-g-otp','g-otp-box','g-otp','verify-g-otp','g-otp-ok','guardianVerified');
+
+/* ตรวจความถูกต้อง */
+function setErr(el, msg) {
+  el.setAttribute('aria-invalid','true');
+  const h = document.querySelector('[data-for="' + el.id + '"]');
+  if (h) { h.textContent = msg; h.classList.add('err'); }
+}
+function clearErr(el) {
+  el.setAttribute('aria-invalid','false');
+  const h = document.querySelector('[data-for="' + el.id + '"]');
+  if (h) { h.classList.remove('err'); if (el.id !== 's-age') h.textContent = ''; }
+}
+document.addEventListener('blur', e => {
+  const el = e.target;
+  if (!(el instanceof HTMLElement) || !el.matches('input[required],select[required]')) return;
+  if (!el.value.trim()) setErr(el, 'ช่องนี้ต้องกรอก'); else if (el.id !== 's-age') clearErr(el);
+}, true);
+
+document.getElementById('student-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const errBox = document.getElementById('form-error');
+  const problems = [];
+  if (document.body.dataset.tooYoung) {
+    errBox.textContent = 'อายุต่ำกว่า 16 ปี ต้องให้ผู้ปกครองสมัครให้แทน';
+    document.getElementById('too-young').scrollIntoView({block:'center', behavior:'smooth'});
+    return;
+  }
+  document.querySelectorAll('input[required],select[required]').forEach(el => {
+    if (el.type === 'checkbox') { if (!el.checked) problems.push(el); return; }
+    if (!el.value.trim()) { setErr(el, 'ช่องนี้ต้องกรอก'); problems.push(el); }
+  });
+  if (!(window.__pickedSubjects || []).length) {
+    document.getElementById('tagbox').setAttribute('aria-invalid','true');
+    problems.push(document.getElementById('subject-input'));
+  }
+  if (!document.querySelector('input[name=goal]:checked')) problems.push(document.getElementById('goal-group'));
+  if (!document.querySelector('input[name=place]:checked')) problems.push(document.getElementById('place-group'));
+  if (!document.body.dataset.otpVerified) problems.push(document.getElementById('s-phone'));
+  if (document.body.dataset.needsGuardian && !document.body.dataset.guardianVerified) problems.push(document.getElementById('g-phone'));
+
+  if (problems.length) {
+    errBox.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด — เลื่อนไปดูช่องที่มีข้อความสีแดง';
+    problems[0].scrollIntoView({block:'center', behavior:'smooth'});
+    if (problems[0].focus) problems[0].focus({preventScroll:true});
+    return;
+  }
+  errBox.textContent = '';
+  handoffToSearch();                       /* ก้อน C1ข — ต่อท่อไปหน้าค้นหาครู */
+  document.getElementById('student-form').style.display = 'none';
+  document.querySelector('.hero-band').style.display = 'none';
+  document.getElementById('success').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+/* ===== ก้อน C1ข — ส่งค่าที่กรอกไว้ต่อไปหน้าค้นหาครู (2026-08-20) =====
+   สัญญาการส่งค่าตัวเดียวกับ signup-parent.html (ต้นฉบับอยู่ที่นั่น ค้น 'ก้อน C1ข')
+   ต่างกันจุดเดียว: หน้านี้คือ "นักเรียน 16+ สมัครเอง" -> ผู้เรียน 1 คนเสมอ ใช้รหัส me (ตรงกับ SELF ใน post-job.html)
+   🔴 ห้ามใส่ชื่อ-นามสกุลจริง เบอร์ หรือสถานที่ (zone_detail) ลง URL/storage — กติกาถาวรข้อ 5 */
+const SLOT_CODES = ['morning','afternoon','evening','night'];   /* 🔴 สำเนา — ต้นฉบับ signup-parent.html ค้น SLOT_CODES */
+function slotsToBuckets(slotValues){                     /* ['mon-2'] -> ['evening'] */
+  return [...new Set((slotValues || [])
+    .map(v => SLOT_CODES[parseInt(String(v).split('-')[1], 10)] || '')
+    .filter(Boolean))];
+}
+function handoffToSearch(){
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const checked = name => [...document.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
+  const goalEl = document.querySelector('input[name=goal]:checked');
+  const me = {
+    id:     'me',
+    nick:   val('s-nick').trim(),
+    grade:  val('s-grade'),
+    age:    parseInt(val('s-age'), 10) || null,
+    curriculum: val('s-cur'),
+    goal:   goalEl ? goalEl.value : '',
+    subj:   (window.__pickedSubjects || []).slice(),
+    time:   slotsToBuckets(checked('slot')),
+    mode:   checked('place'),
+    budget: parseInt(val('budget'), 10) || 0
+  };
+  const prov = val('zone');
+  /* 🔴 ก้อนนี้ = "บัญชีจำลอง" ของทาง A · หน้าจองอ่านไปใช้บอกว่าจองให้ใคร จึงต้องมีชื่อเล่น
+     คุมความเสี่ยงด้วย: อายุ 2 ชม. · ลบเมื่อกดล้างตัวกรอง · ไม่ขึ้น URL (ผลตรวจ security+logic 2026-08-20) */
+  let stored = false;
+  try {
+    sessionStorage.setItem('bgt_learners', JSON.stringify({ v:1, ts: Date.now(), prov, learners: [me] }));
+    stored = true;
+  } catch (e) {}
+  const p = new URLSearchParams();
+  /* ปกติส่งแค่รหัส — ใส่เงื่อนไขลง URL เฉพาะตอนเขียน storage ไม่ได้ ไม่งั้นหน้าค้นหาจะว่างเปล่า */
+  if (!stored) {
+    if (me.subj.length) p.set('subj', me.subj.join(','));
+    if (me.grade)       p.set('grade', me.grade);
+    if (me.time.length) p.set('time', me.time.join(','));
+    if (me.mode.length) p.set('mode', me.mode.join(','));
+    if (me.budget)      p.set('budget', me.budget);
+    if (prov)           p.set('prov', prov);
+  }
+  p.set('kid', me.id);
+  const btn = document.getElementById('go-search');
+  if (btn) btn.href = 'teacher-search.html?' + p.toString();
+}
+
+/* sidebar ไฮไลต์หัวข้อที่กำลังดู */
+(() => {
+  const links = [...document.querySelectorAll('.sidenav a')];
+  const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + en.target.id));
+    });
+  }, {rootMargin: '-20% 0px -70% 0px'});
+  secs.forEach(s => io.observe(s));
+})();
+
+
+/* โซนจะโผล่ก็ต่อเมื่อเลือกเรียนแบบ onsite (ที่บ้าน / สถานที่อื่นๆ) */
+(() => {
+  const boxes = [...document.querySelectorAll('input[name=place]')];
+  const zone = document.getElementById('zone').closest('.field');
+  const detail = document.getElementById('zone-detail').closest('.field');
+  function sync() {
+    const onsite = boxes.some(b => b.checked && b.value !== 'online');
+    zone.style.display = onsite ? '' : 'none';
+    detail.style.display = onsite ? '' : 'none';
+    if (!onsite) { document.getElementById('zone').value = ''; document.getElementById('zone-detail').value = ''; }
+  }
+  boxes.forEach(b => b.addEventListener('change', sync));
+  sync();
+})();
+/* รวม ชม./สัปดาห์ = ครั้งละกี่ชั่วโมง x สัปดาห์ละกี่ครั้ง (Owner สั่ง 2026-08-20)
+   เก็บลงช่องซ่อน hours_per_week เพราะการ์ดงานในกระดานยังโชว์ค่านี้ (job-board.html ค้น 'สัปดาห์ละ ') */
+(() => {
+  const len = document.getElementById('seslen');
+  const per = document.getElementById('perweek');
+  const out = document.getElementById('wk-total');
+  const hpw = document.getElementById('hpw');
+  if (!len || !per) return;
+  function sync(){
+    const m = Number(len.value || 0), t = Number(per.value || 0);
+    if (m && t) {
+      const h = (m / 60) * t;
+      hpw.value = h;
+      out.textContent = 'รวมสัปดาห์ละ ' + (h % 1 === 0 ? h : h.toFixed(1)) + ' ชั่วโมง';
+    } else { hpw.value = ''; out.textContent = 'ไม่บังคับ'; }
+  }
+  len.addEventListener('change', sync);
+  per.addEventListener('change', sync);
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

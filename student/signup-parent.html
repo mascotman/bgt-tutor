@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ข้อมูลไม่ถูกบันทึกที่ไหน
+  ปุ่ม "ส่งใบสมัคร" / OTP = จำลองหน้าตาเท่านั้น
+  โครงสร้างบัญชี: บัญชีเป็นของ "ผู้ปกครอง" เสมอ · ผู้เรียนเป็นโปรไฟล์ใต้บัญชี (Owner เคาะ 2026-08-11)
+  ระบบดีไซน์: design.md + tokens.css (ห้ามสร้างสีหรือฟอนต์ใหม่ในไฟล์นี้)
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่อาจมีเงื่อนไขของผู้เรียน) หลุดไปกับ Referer ตอนโหลดฟอนต์/ลิงก์ออกนอกเว็บ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผู้ปกครองสมัครหาครู — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<style>
+/* Hallmark · genre: modern-minimal · macrostructure: Narrative Workflow · design-system: design.md · designed-as-app
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none
+ * ขั้น 2 — ใช้ระบบเดียวกับ signup-teacher.html ทุกอย่าง (class name เดิม ห้ามคิดใหม่)
+ * ต่างจากหน้าครูแค่: 6 หัวข้อแทน 8 · มีบล็อก "ผู้เรียน" ที่เพิ่มได้หลายคน
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* 🔴 แก้ 2026-08-12 (รอบ 3): กล่องกรอก OTP โผล่ตั้งแต่เปิดหน้า ทั้งที่ใส่ hidden ไว้ในแท็ก
+   สาเหตุ: [hidden] = display:none ที่ "ชั้นของเบราว์เซอร์" -> คลาสของเราที่เขียน display:flex ทับมันเสมอ
+   ต้องประกาศ [hidden] ในชั้นของเราเองให้ชนะทุกคลาส
+   (เจอตอนวัด DOM หน้าค้นหาครู แล้ว grep ย้อนกลับมาเจอที่นี่ — วัดจริงในเบราว์เซอร์แล้วว่าสูง 137px) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);color:var(--color-ink);
+  line-height:1.65;font-size:16px;overflow-x:clip;background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.sec-num,.chip{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:780px;margin:0 auto;padding:0 var(--space-5)}
+
+.page-shell{display:flex;flex-direction:column;min-height:100vh}
+.content-col{flex:1;min-width:0}
+@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+
+.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
+  color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.sidenav-num{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;color:var(--color-muted);min-width:20px;font-variant-numeric:tabular-nums}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a.active .sidenav-num{color:var(--color-accent-deep)}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+
+.hero-band{position:relative;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.intro{padding:var(--space-16) 0 var(--space-12)}
+.intro .eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);margin-bottom:var(--space-5);
+}
+.intro h1{font-size:var(--text-display-s);line-height:1.15;max-width:16ch}
+.intro h1 .underline{position:relative;white-space:nowrap}
+.intro h1 .underline::after{content:"";position:absolute;left:0;right:0;bottom:-.06em;height:3px;background:var(--color-accent);border-radius:2px}
+.intro p{margin-top:var(--space-5);color:var(--color-ink-2);font-size:var(--text-lg);max-width:48ch;line-height:1.6}
+
+form{padding:var(--space-12) 0 var(--space-16)}
+/* 🔴 ห้ามใส่ z-index กลับเข้ามาใน .section (Owner เจอเอง 2026-08-17 · แก้พร้อมกัน 4 ไฟล์)
+   position:relative + z-index = การ์ดแต่ละใบสร้าง "ชั้นของตัวเอง" ขึ้นมา
+   → รายการวิชาที่ดรอปลงมาถูกขังอยู่ในชั้นของการ์ดใบนั้น การ์ดใบถัดไปจึงทับลงมาบนมัน
+   วัดได้จริง: กลางแผงกับท้ายแผงกดไม่โดน (ไปโดน .sec-head และ .tg-cell ของขั้นถัดไปแทน)
+   position:relative อย่างเดียวพอสำหรับเส้นตกแต่ง ::before — ไม่ต้องมี z-index */
+.section{
+  position:relative;background:var(--color-surface);
+  border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+  padding:var(--space-8);margin-bottom:var(--space-6);
+  box-shadow:var(--shadow-raise);scroll-margin-top:var(--space-16);
+}
+@media (min-width:900px){
+  .section::before{content:"";position:absolute;left:-1px;top:var(--space-10);bottom:var(--space-8);width:2px;background:var(--color-accent-soft);border-radius:2px}
+}
+@media (max-width:560px){.section{padding:var(--space-6) var(--space-4);border-radius:var(--radius-md)}}
+.sec-head{margin-bottom:var(--space-6)}
+.sec-num{
+  display:inline-flex;align-items:center;gap:6px;height:26px;font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:0 10px;border-radius:var(--radius-sm);margin-bottom:var(--space-3);font-variant-numeric:tabular-nums;
+}
+.sec-head h2{font-size:var(--text-xl);line-height:1.25}
+.sec-head p{color:var(--color-ink-2);font-size:var(--text-base);margin-top:var(--space-2);max-width:60ch}
+
+.grid{display:grid;gap:var(--space-5)}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+@media (max-width:560px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:var(--text-sm);font-weight:600;color:var(--color-ink)}
+.field .req{color:var(--color-error);margin-left:2px}
+.field .helper{font-size:var(--text-sm);color:var(--color-ink-2);min-height:1lh}
+.field .helper.err{color:var(--color-error);font-weight:600}
+
+input[type=text],input[type=number],input[type=tel],select,textarea{
+  height:var(--control-h);font:inherit;font-size:var(--text-base);color:var(--color-ink);
+  background:var(--color-surface);border:1px solid var(--color-rule-2);
+  outline:2px solid transparent;outline-offset:1px;border-radius:var(--radius-md);
+  padding:0 14px;width:100%;
+  transition:background-color var(--dur-short) var(--ease-out),border-color var(--dur-short) var(--ease-out);
+}
+textarea{height:auto;min-height:6.5rem;padding:12px 14px;resize:vertical;line-height:1.6}
+input:hover,select:hover,textarea:hover{border-color:var(--color-ink-2)}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--color-focus);border-color:var(--color-focus)}
+input::placeholder,textarea::placeholder{color:var(--color-muted)}
+input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--color-error);background:var(--color-error-soft)}
+input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
+
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  position:relative;flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 16px;white-space:nowrap;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);
+  background:var(--color-surface);font-size:var(--text-sm);font-weight:600;color:var(--color-ink);
+  cursor:pointer;user-select:none;transition:background-color var(--dur-short) var(--ease-out);
+}
+.chip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.chip:has(input:checked){background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.chip:hover{background:var(--color-paper-2)}.chip:has(input:checked):hover{background:var(--color-accent)}}
+
+.timegrid{border:1px solid var(--color-rule);border-radius:var(--radius-md);overflow:hidden}
+.timegrid-row{display:grid;grid-template-columns:64px repeat(4,1fr);align-items:center;border-top:1px solid var(--color-rule)}
+.timegrid-row:first-child{border-top:none;background:var(--color-paper-2)}
+.timegrid-row:first-child .tg-cell{
+  display:block !important;font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+  color:var(--color-ink);padding:10px 4px;text-align:center;line-height:1.4;
+}
+.timegrid-row:first-child .tg-cell small{display:block;font-family:var(--font-sans);font-weight:400;font-size:11px;color:var(--color-ink-2);margin-top:2px}
+@media (max-width:560px){.timegrid-row:first-child .tg-cell small{font-size:9.5px}}
+.tg-day{font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;padding:10px 8px}
+.tg-cell{padding:8px;display:flex;justify-content:center}
+.tg-check{position:relative;width:100%;max-width:56px;height:44px;display:flex;align-items:center;justify-content:center}
+.tg-check input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}
+.tg-check-box{width:28px;height:28px;pointer-events:none;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);background:var(--color-surface);transition:background-color var(--dur-short) var(--ease-out)}
+.tg-check:has(input:checked) .tg-check-box{background:var(--color-accent);border-color:var(--color-accent)}
+.tg-check:has(input:focus-visible) .tg-check-box{outline:2px solid var(--color-focus);outline-offset:2px}
+@media (max-width:560px){
+  .timegrid-row{grid-template-columns:40px repeat(4,1fr)}
+  .tg-day{font-size:12px;padding:8px 2px}
+  .tg-cell{padding:4px 2px}
+}
+
+.tagbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--color-rule-2);border-radius:var(--radius-md);background:var(--color-surface);padding:8px 10px;min-height:var(--control-h)}
+.tagbox:has(.subject-input:focus-visible){outline:2px solid var(--color-focus);outline-offset:1px;border-color:var(--color-focus)}
+.tagbox[aria-invalid=true]{border-color:var(--color-error);background:var(--color-error-soft)}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--color-accent-soft);color:var(--color-ink);font-size:var(--text-sm);font-weight:600;padding:6px 8px 6px 12px;border-radius:var(--radius-sm)}
+.tag button{width:22px;height:22px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--color-ink-2);font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tag button:hover{background:var(--color-surface);color:var(--color-ink)}
+.tag button:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px}
+.subject-input{flex:1;min-width:120px;border:none;height:32px;padding:0;background:transparent;outline:none}
+
+.suggest-panel{
+  position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:var(--z-dropdown);
+  max-height:min(70vh, 560px);overflow-y:auto;background:var(--color-surface);
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);box-shadow:var(--shadow-lift);padding:var(--space-2) 0;
+}
+.suggest-group + .suggest-group{border-top:1px solid var(--color-rule);margin-top:4px;padding-top:6px}
+.suggest-group-label{
+  margin:2px var(--space-3) 6px;padding:5px 10px;font-family:var(--font-display);
+  font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);border-radius:var(--radius-sm);
+}
+.suggest-item{display:block;width:100%;text-align:left;border:none;background:transparent;cursor:pointer;padding:11px var(--space-4);font:inherit;font-size:var(--text-base);color:var(--color-ink)}
+.suggest-item:hover,.suggest-item.is-active{background:var(--color-accent-soft)}
+.suggest-empty{padding:var(--space-3) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+
+/* ---- บล็อกผู้เรียน (เพิ่มได้หลายคน) ---- */
+.learner{scroll-margin-top:var(--space-6);border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--space-6);margin-bottom:var(--space-4);background:var(--color-surface-2)}
+.learner-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-5)}
+.learner-head h3{font-size:var(--text-lg)}
+.learner-remove{
+  min-height:44px;padding:0 14px;border-radius:var(--radius-md);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink-2);cursor:pointer;font:inherit;font-size:var(--text-sm);font-weight:600;
+}
+.learner-remove:hover{background:var(--color-error-soft);color:var(--color-error);border-color:var(--color-error)}
+.learner-remove:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+/* ---- การ์ดผู้เรียน: พับ-กางได้ เปิดทีละคน (C0 · 2026-08-19)
+   เหตุผล: การ์ดโตจาก 5 ช่อง เป็น ~12 ช่อง + ตารางเวลา -> กางพร้อมกัน 3 คนคือหน้าจอยาวจนหาที่กรอกไม่เจอ
+   🔴 ห้ามพับด้วย max-height/overflow:hidden — รายการวิชาที่ดรอปลงมาจะถูกกล่องตัดหัว ใช้ [hidden] เท่านั้น */
+.learner.is-open{border-color:var(--color-rule-2);box-shadow:var(--shadow-raise)}
+.learner-toggle{
+  flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;
+  background:transparent;border:none;padding:0;margin:0;font:inherit;color:var(--color-ink);
+  cursor:pointer;min-height:44px;
+}
+.learner-toggle:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+.learner-caret{flex:0 0 auto;width:16px;height:16px;color:var(--color-ink-2);transition:transform var(--dur-short) var(--ease-out)}
+.learner.is-open .learner-caret{transform:rotate(90deg)}
+.learner-sum{
+  font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.learner-toggle h3{white-space:nowrap}
+/* จอแคบ: หัวข้อกับบรรทัดสรุปซ้อนกันเป็น 2 บรรทัด — วัดจริงที่ 375px แล้ว ชื่อยาวทำให้หัวข้อตัดคำกลางคำ */
+@media (max-width:560px){
+  .learner-toggle{flex-direction:column;align-items:flex-start;justify-content:center;gap:2px}
+  .learner-sum{max-width:100%}
+}
+.learner-alert{
+  display:block;background:var(--color-error-soft);color:var(--color-error);
+  font-size:var(--text-sm);font-weight:600;border-radius:var(--radius-sm);
+  padding:8px 12px;margin-bottom:var(--space-5);
+}
+.learner-flag{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;background:var(--color-error);color:var(--color-surface);
+  font-family:var(--font-display);font-size:12px;font-weight:700;line-height:1;
+}
+.week-total{
+  margin-top:var(--space-4);padding:10px 14px;border-radius:var(--radius-sm);
+  background:var(--color-accent-soft);color:var(--color-ink);
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+}
+.sub-head{
+  display:flex;align-items:center;gap:10px;margin:var(--space-6) 0 var(--space-4);
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+  letter-spacing:.02em;color:var(--color-accent-deep);
+}
+.sub-head::after{content:"";flex:1;height:1px;background:var(--color-rule)}
+.learner .timegrid{background:var(--color-surface)}
+@media (max-width:560px){.learner{padding:var(--space-4)}}
+
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover{background:var(--color-paper-2)}
+.btn-secondary[disabled]{opacity:.55;cursor:not-allowed}
+.btn-add{background:transparent;color:var(--color-accent-deep);border:1px dashed var(--color-rule-2);width:100%;font-weight:600}
+.btn-add:hover{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+
+/* .otp-row: ปุ่มต้องเรียงชิดก้น "ช่องกรอก" ไม่ใช่ชิดก้น "ข้อความช่วยเหลือ"
+   -> ดึง .helper ออกจาก flow ด้วย absolute ไม่งั้นความสูงของ helper จะดันปุ่มตกลงไปข้างล่าง
+   (บั๊กจริงที่ Owner จับได้ 2026-08-11 — ปุ่ม "ส่งรหัส"/"ยืนยัน" ลอยต่ำกว่าช่อง) */
+.otp-row{display:flex;gap:var(--space-3);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--space-6)}
+.otp-row .field{flex:1;min-width:180px;position:relative}
+.otp-row .field .helper{position:absolute;top:calc(100% + 4px);left:0;width:100%;min-height:0}
+.otp-status{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:600;color:var(--color-ok);background:var(--color-ok-soft);padding:6px 12px;border-radius:var(--radius-sm);margin-top:var(--space-2)}
+.badge-note{
+  display:flex;gap:var(--space-4);align-items:flex-start;background:var(--color-paper-2);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);margin-top:var(--space-5);font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.badge-note .badge-icon{width:32px;height:32px;border-radius:50%;background:var(--color-ok);color:var(--color-surface);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.badge-note strong{display:block;font-family:var(--font-display);margin-bottom:4px}
+
+.agree{display:flex;gap:12px;align-items:flex-start}
+.agree + .agree{margin-top:var(--space-4)}
+.agree input{width:22px;height:22px;flex-shrink:0;margin-top:2px;accent-color:var(--color-accent)}
+.agree input:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.agree label{font-size:var(--text-sm);color:var(--color-ink);line-height:1.6}
+.agree a{color:var(--color-accent-deep);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.submit-row{margin-top:var(--space-8);display:flex;flex-direction:column;gap:var(--space-3);align-items:flex-start}
+
+.success{display:none;padding:var(--space-2xl) 0;text-align:center}
+.success .badge-icon{width:64px;height:64px;font-size:28px;margin:0 auto var(--space-5);border-radius:50%;background:var(--color-ok);color:var(--color-surface);display:flex;align-items:center;justify-content:center;font-weight:700}
+.success h2{font-size:var(--text-2xl)}
+.success p{color:var(--color-ink-2);margin-top:var(--space-3);max-width:44ch;margin-left:auto;margin-right:auto}
+.success .btn{margin-top:var(--space-6)}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-6) 0 var(--space-8);font-size:var(--text-sm);color:var(--color-ink-2)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+  <header class="mobile-header">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="../index.html">กลับหน้าแรก</a>
+  </header>
+
+  <aside class="sidebar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="../index.html">กลับหน้าแรก</a>
+    <nav class="sidenav" aria-label="หัวข้อในแบบฟอร์ม">
+      <a href="#sec1"><span class="sidenav-num">1</span>ผู้ปกครองและที่อยู่</a>
+      <a href="#sec2"><span class="sidenav-num">2</span>ผู้เรียนและสิ่งที่อยากเรียน</a>
+      <a href="#sec3"><span class="sidenav-num">3</span>ยืนยันเบอร์</a>
+      <a href="#sec4"><span class="sidenav-num">4</span>ข้อตกลง</a>
+    </nav>
+  </aside>
+
+  <div class="content-col">
+    <div class="hero-band">
+      <div class="wrap">
+        <div class="intro">
+          <span class="eyebrow">สำหรับผู้ปกครอง · 4 ขั้นตอน ราว 5 นาที</span>
+          <h1>หา<span class="underline">ครูที่ใช่</span>ให้ลูกคุณ</h1>
+          <p>สำหรับ<strong>ผู้ปกครองที่สมัครให้ลูก</strong> · กรอกข้อมูลบ้านครั้งเดียว แล้วใส่สิ่งที่อยากเรียนของลูก<strong>แยกเป็นรายคน</strong> — เราจะคัดครูให้ตรงกับวิชา เวลา และงบของลูกแต่ละคน ไม่ปนกัน<br><span style="font-size:var(--text-sm)">ผู้เรียนอายุ 16 ปีขึ้นไปที่อยากสมัครเอง ไปที่ <a href="signup-student.html" style="color:var(--color-accent-deep);font-weight:600">หน้าสมัครสำหรับนักเรียน</a></span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- method="post" = กันเคส JS ไม่ทำงานแล้วเบราว์เซอร์ submit เอง ข้อมูลเด็กจะไปกองใน query string (ผลตรวจ security P0-1 · 2026-08-19) -->
+    <form id="parent-form" method="post" novalidate>
+      <div class="wrap">
+
+        <!-- 1 -->
+        <section class="section" id="sec1">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 1</span>
+            <h2>ข้อมูลผู้ปกครองและที่อยู่</h2>
+            <p>บัญชีนี้เป็นของผู้ปกครอง ส่วนลูกจะเป็น “โปรไฟล์ผู้เรียน” อยู่ในบัญชีเดียวกัน · เหมาะกับผู้เรียนอายุต่ำกว่า 16 ปี<br>ข้อมูลในขั้นนี้ใช้ร่วมกันทั้งบ้าน ส่วนวิชา เวลา และงบ กรอกแยกรายคนในขั้นที่ 2</p>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="p-first">ชื่อจริงผู้ปกครอง <span class="req">*</span></label>
+              <input type="text" id="p-first" name="parent_first" required placeholder="สมหญิง" autocomplete="given-name">
+              <div class="helper" data-for="p-first"></div>
+            </div>
+            <div class="field">
+              <label for="p-last">นามสกุล <span class="req">*</span></label>
+              <input type="text" id="p-last" name="parent_last" required placeholder="ใจดี" autocomplete="family-name">
+              <div class="helper" data-for="p-last"></div>
+            </div>
+            <!-- ⛔ ไม่มีช่อง "ID LINE" แล้ว (Owner สั่งตัด 2026-08-20)
+                 ระบบติดต่อผู้ใช้ผ่าน LINE OA ด้วย userId ที่ได้ตอนสมัคร — ไม่ต้องให้ใครพิมพ์ ID ให้กันดู
+                 ห้ามเพิ่มกลับเข้ามาโดยไม่ถาม Owner (REF_LINE_ระบบแจ้งเตือน.md:29 · LOG รายการ 127) -->
+            <div class="field" style="grid-column:1/-1">
+              <label for="p-rel">ความสัมพันธ์กับผู้เรียน <span class="req">*</span></label>
+              <select id="p-rel" name="parent_relation" required>
+                <option value="">— เลือก —</option>
+                <option>แม่</option><option>พ่อ</option>
+                <option>ปู่/ย่า/ตา/ยาย</option><option>ผู้ปกครองตามกฎหมาย</option>
+              </select>
+              <div class="helper" data-for="p-rel">ผู้เรียนอายุ 16 ปีขึ้นไปสมัครเองได้ที่ <a href="signup-student.html" style="color:var(--color-accent-deep);font-weight:600">หน้าสมัครสำหรับนักเรียน</a></div>
+            </div>
+          </div>
+
+          <!-- ที่อยู่ = ระดับบัญชี (ทั้งบ้านใช้ที่เดียวกัน) · วิชา/เวลา/งบ = รายผู้เรียน อยู่ขั้นที่ 2
+               🔴 Owner เคาะ 2026-08-11: โซนโผล่เฉพาะตอนเลือกเรียนแบบมาสอนถึงที่ — ตอนนี้ดูจากผู้เรียน "ทุกคน" รวมกัน -->
+          <div id="addr-block" hidden style="margin-top:var(--space-8)">
+            <div class="sub-head">ที่อยู่ที่ให้ครูมาสอน</div>
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="zone">จังหวัด</label>
+                <select id="zone" name="zone"><option value="">— เลือกจังหวัด —</option><option>กรุงเทพมหานคร</option><option>กระบี่</option><option>กาญจนบุรี</option><option>กาฬสินธุ์</option><option>กำแพงเพชร</option><option>ขอนแก่น</option><option>จันทบุรี</option><option>ฉะเชิงเทรา</option><option>ชลบุรี</option><option>ชัยนาท</option><option>ชัยภูมิ</option><option>ชุมพร</option><option>เชียงราย</option><option>เชียงใหม่</option><option>ตรัง</option><option>ตราด</option><option>ตาก</option><option>นครนายก</option><option>นครปฐม</option><option>นครพนม</option><option>นครราชสีมา</option><option>นครศรีธรรมราช</option><option>นครสวรรค์</option><option>นนทบุรี</option><option>นราธิวาส</option><option>น่าน</option><option>บึงกาฬ</option><option>บุรีรัมย์</option><option>ปทุมธานี</option><option>ประจวบคีรีขันธ์</option><option>ปราจีนบุรี</option><option>ปัตตานี</option><option>พระนครศรีอยุธยา</option><option>พะเยา</option><option>พังงา</option><option>พัทลุง</option><option>พิจิตร</option><option>พิษณุโลก</option><option>เพชรบุรี</option><option>เพชรบูรณ์</option><option>แพร่</option><option>ภูเก็ต</option><option>มหาสารคาม</option><option>มุกดาหาร</option><option>แม่ฮ่องสอน</option><option>ยโสธร</option><option>ยะลา</option><option>ร้อยเอ็ด</option><option>ระนอง</option><option>ระยอง</option><option>ราชบุรี</option><option>ลพบุรี</option><option>ลำปาง</option><option>ลำพูน</option><option>เลย</option><option>ศรีสะเกษ</option><option>สกลนคร</option><option>สงขลา</option><option>สตูล</option><option>สมุทรปราการ</option><option>สมุทรสงคราม</option><option>สมุทรสาคร</option><option>สระแก้ว</option><option>สระบุรี</option><option>สิงห์บุรี</option><option>สุโขทัย</option><option>สุพรรณบุรี</option><option>สุราษฎร์ธานี</option><option>สุรินทร์</option><option>หนองคาย</option><option>หนองบัวลำภู</option><option>อ่างทอง</option><option>อำนาจเจริญ</option><option>อุดรธานี</option><option>อุตรดิตถ์</option><option>อุทัยธานี</option><option>อุบลราชธานี</option></select>
+                <div class="helper" data-for="zone">ครูเห็นที่อยู่เต็มหลังชำระเงินแล้วเท่านั้น</div>
+              </div>
+              <div class="field">
+                <label for="zone-detail">ย่าน/เขต (พิมพ์ระบุเอง)</label>
+                <input type="text" id="zone-detail" name="zone_detail" maxlength="60" placeholder="เช่น เขตบางนา ใกล้ BTS อุดมสุข">
+                <div class="helper" data-for="zone-detail">ไม่บังคับ · ใส่แค่ย่านพอ ไม่ต้องใส่บ้านเลขที่</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 -->
+        <section class="section" id="sec2">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 2</span>
+            <h2>ผู้เรียนและสิ่งที่อยากเรียน</h2>
+            <p>ลูกแต่ละคนกรอก <strong>วิชา เป้าหมาย เวลา รูปแบบ และงบของตัวเอง</strong> — เราจะคัดครูให้ตรงกับแต่ละคน ไม่เอามาปนกัน · มีหลายคนกด “เพิ่มผู้เรียน” ได้เลย</p>
+          </div>
+          <div id="learners"></div>
+          <button type="button" class="btn btn-add" id="add-learner">+ เพิ่มผู้เรียนอีกคน</button>
+        </section>
+
+        <!-- 3 -->
+        <section class="section" id="sec3">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 3</span>
+            <h2>ยืนยันเบอร์ผู้ปกครอง</h2>
+            <p>เราส่งรหัสไปที่เบอร์ของผู้ปกครอง ไม่ใช่เบอร์ของเด็ก</p>
+          </div>
+          <div class="otp-row">
+            <div class="field">
+              <label for="p-phone">เบอร์มือถือผู้ปกครอง <span class="req">*</span></label>
+              <input type="tel" id="p-phone" name="parent_phone" required placeholder="0812345678" inputmode="numeric" autocomplete="tel">
+              <div class="helper" data-for="p-phone"></div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัส</button>
+          </div>
+          <div class="otp-row" id="otp-box" hidden style="margin-top:var(--space-4)">
+            <div class="field">
+              <label for="otp">รหัส 6 หลักที่ได้รับ</label>
+              <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000">
+              <div class="helper" data-for="otp">ตัวอย่างเท่านั้น — พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยัน</button>
+          </div>
+          <div id="otp-ok" hidden><span class="otp-status">ยืนยันเบอร์เรียบร้อย</span></div>
+
+          <div class="badge-note">
+            <span class="badge-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>
+              <strong>ทำไมต้องเป็นเบอร์ผู้ปกครอง</strong>
+              กฎหมายคุ้มครองข้อมูลส่วนบุคคลของไทยกำหนดว่า ผู้เรียนที่อายุยังไม่ถึง 20 ปี ต้องมีผู้ปกครองรับรู้และร่วมตัดสินใจด้วย
+              การยืนยันที่เบอร์ผู้ปกครองคือวิธีที่เรายืนยันเรื่องนี้ โดย<strong style="display:inline">ไม่ต้องขอสำเนาบัตรประชาชนหรือเอกสารใด ๆ ของเด็ก</strong>
+              และเราจะไม่แสดงชื่อจริง เบอร์ หรือที่อยู่ของเด็กให้ครูเห็น จนกว่าจะยืนยันการจองแล้ว
+            </span>
+          </div>
+        </section>
+
+        <!-- 4 -->
+        <section class="section" id="sec4">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 4</span>
+            <h2>ข้อตกลงการใช้งาน</h2>
+            <p>อ่านก่อนกดสมัคร</p>
+          </div>
+          <div class="agree">
+            <input type="checkbox" id="agree1" required>
+            <label for="agree1">ข้าพเจ้าเป็นผู้ปกครองหรือผู้ใช้อำนาจปกครองของผู้เรียนที่ระบุไว้ข้างต้น และยอมรับ <a href="#">ข้อตกลงการใช้งาน</a> กับ <a href="#">นโยบายความเป็นส่วนตัว</a> ของ BGT Tutor <span class="req">*</span></label>
+          </div>
+          <div class="helper" data-for="agree1"></div>
+          <div class="agree" style="margin-top:var(--space-4)">
+            <input type="checkbox" id="agree2">
+            <label for="agree2">ยินดีรับข่าวสาร โปรโมชัน และครูแนะนำใหม่ ๆ ทาง SMS หรือ LINE (ไม่บังคับ ยกเลิกได้ทุกเมื่อ)</label>
+          </div>
+          <div class="submit-row">
+            <button type="submit" class="btn btn-primary">ส่งใบสมัคร</button>
+            <span class="helper" id="form-error" style="color:var(--color-error);font-weight:600"></span>
+          </div>
+        </section>
+
+      </div>
+    </form>
+
+    <div class="wrap">
+      <div class="success" id="success">
+        <span class="badge-icon" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <h2>สมัครเรียบร้อยแล้ว</h2>
+        <p>เราจะคัดครูที่ตรงกับวิชา เวลา และงบของคุณ แล้วส่งรายชื่อให้ดูภายใน 1-2 วัน หรือคุณจะกดค้นหาครูเองเลยก็ได้</p>
+        <a class="btn btn-primary" id="go-search" href="teacher-search.html">ไปหน้าค้นหาครู</a>
+        <p class="helper" id="go-search-note" hidden style="margin-top:var(--space-3)"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span class="foot-brand">BGT Tutor</span>
+    <span>แพลตฟอร์มจับคู่ครูสอนพิเศษกับผู้ปกครอง</span>
+    <nav aria-label="ลิงก์ทางกฎหมาย">
+      <a href="#">ข้อตกลงการใช้งาน</a>
+      <a href="#">นโยบายความเป็นส่วนตัว</a>
+      <a href="#">ติดต่อเรา</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   การ์ดผู้เรียน — ตัวตน + สิ่งที่อยากเรียน + เวลา/รูปแบบ/งบ  (C0 · 2026-08-19)
+   🔴 โครงที่ Owner เคาะ (SYSTEM ข้อ 13 · LOG 122):
+      ระดับบัญชี  = ผู้ปกครอง · ที่อยู่/จังหวัด · OTP · ข้อตกลง
+      ระดับผู้เรียน = ชื่อเล่น อายุ ระดับชั้น หลักสูตร เพศ + วิชา เป้าหมาย เวลา รูปแบบ งบ ครั้งละกี่ชั่วโมง สัปดาห์ละกี่ครั้ง
+      เหตุผล: หน้าค้นหากรอง "วิชา x ระดับชั้น" พร้อมกัน — วิชากองรวมทั้งบ้าน = จับคู่ข้ามคน
+   ⚠️ id ของทุกช่องใช้ uid ที่นับขึ้นเรื่อย ๆ ไม่ reuse (ลบการ์ดกลางแล้ว id ไม่ชนกัน)
+      เลขหัวข้อ "ผู้เรียนคนที่ N" เป็นแค่ป้ายให้คนอ่าน ไม่ใช่ตัวอ้างอิงของระบบ
+   ============================================================ */
+(() => {
+  const wrap = document.getElementById('learners');
+  const addBtn = document.getElementById('add-learner');
+  let uidSeq = 0;
+
+  /* 🔴 ลิสต์ระดับชั้นมาตรฐาน 18 ตัว — ต้นฉบับของทั้งเว็บ (Owner เคาะ 2026-08-15 · CLAUDE.md กฎข้อ 8)
+     ทุกตัวต้องแปลงเป็นช่วงชั้นของครูได้ด้วย gradeToLevel() ห้ามมีตัวที่แปลงไม่ได้ */
+  /* 🔴 หน้านี้ = ผู้ปกครองสมัครแทน "ผู้เยาว์" เท่านั้น (Owner เคาะ 2026-08-20)
+     จึงตัด 'มหาวิทยาลัย' กับ 'วัยทำงาน' ออก — 2 ตัวนั้นยังอยู่ครบใน signup-student.html (คนอายุ 16+ สมัครเอง)
+     ⚠️ ห้ามลบออกจาก gradeToLevel() ของหน้าอื่น — ผู้เรียนจากหน้านักเรียนยังส่งค่าพวกนั้นมา */
+  const GRADES = ['อนุบาล','ป.1','ป.2','ป.3','ป.4','ป.5','ป.6','ม.1','ม.2','ม.3','ม.4','ม.5','ม.6','ปวช./ปวส.','กศน. (ม.ต้น)','กศน. (ม.ปลาย)'];
+  const CURRICULA = ['หลักสูตรสามัญ (ไทย)','English Program (EP)','โรงเรียนนานาชาติ','กศน. / การศึกษาทางเลือก','โฮมสคูล'];
+  const DAYS = ['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์','อาทิตย์'];
+  /* 🔴 ต้นฉบับ "รหัสวัน" ของทั้งเว็บ — Owner เคาะ 2026-08-20 ให้ใช้รูปแบบ mon-2 ทุกหน้า
+     ค่าที่เก็บจริง = <รหัสวันอังกฤษ>-<ลำดับช่วง 0-3> (0=เช้า 1=บ่าย 2=เย็น 3=ค่ำ)
+     ข้อความไทยข้างบนมีไว้ให้คนอ่านบนจอเท่านั้น (CLAUDE.md กฎ 8 ข้อ 3)
+     สำเนาอยู่ที่: signup-student.html · post-job.html — แก้ที่นี่ต้องไล่แก้ 2 ไฟล์นั้นด้วย
+     ⚠️ เดิม 2 หน้าใช้คนละสูตร (จันทร์-2 กับ จ-เย็น) = ค่าเดียวกันเขียนคนละแบบ เทียบกันไม่ได้ */
+  const DAY_CODES = ['mon','tue','wed','thu','fri','sat','sun'];
+  /* 🔴 [รหัส, ป้ายบนจอ] — ระบบอ่านรหัส คนอ่านข้อความไทย (CLAUDE.md กฎ 8 ข้อ 3 · เปลี่ยนเป็นรหัส 2026-08-20 ก้อน C1ข)
+     ต้นฉบับของทั้งเว็บอยู่บรรทัดนี้ · สำเนา: signup-student.html · post-job.html · job-board.html (ข้อมูลจำลอง) */
+  const GOALS = [['catch_up','ตามให้ทันในห้องเรียน'],['exam_prep','เตรียมสอบเข้า'],['contest','แข่งขัน/โอลิมปิก'],['enrich','เรียนเสริมทักษะ']];
+  /* 🔴 รหัสล็อกทั้งเว็บ: online / home / public — ป้ายไทยเปลี่ยนได้ value ห้ามเปลี่ยน */
+  const PLACES = [['online','ออนไลน์'],['home','ที่บ้าน'],['public','สถานที่อื่นๆ']];
+  /* 🔴 นาทีต่อคาบ — ต้องตรงกับ MINHR_OPTIONS ใน signup-teacher.html เป๊ะ (60/90/120/150/180)
+     ครูตั้ง "ขั้นต่ำต่อคาบ" ด้วยลิสต์นี้ · หน้าจองเทียบกันตรง ๆ ไม่มีการแปลงหน่วย */
+  const SESSION_LEN = [60,90,120,150,180];
+  const SUBJECT_GROUPS = [
+    {label:'วิชาการ (ประถม-มัธยม)', items:['คณิตศาสตร์','ภาษาไทย','ภาษาอังกฤษ','วิทยาศาสตร์','ฟิสิกส์','เคมี','ชีววิทยา','สังคมศึกษา','ประวัติศาสตร์','ภูมิศาสตร์','คอมพิวเตอร์/เขียนโปรแกรม']},
+    {label:'ติวสอบ/สอบเข้า', items:['ติวสอบเข้า ป.1','ติวสอบเข้า ม.1','ติวสอบเข้า ม.4','ติว TCAS/GAT/PAT','ติว A-Level','ติวสอบเข้ามหาวิทยาลัย','ติวโอลิมปิกวิชาการ','ติวสอบเข้าโรงเรียนนานาชาติ']},
+    {label:'ภาษาต่างประเทศ', items:['ภาษาจีน','ภาษาญี่ปุ่น','ภาษาเกาหลี','ภาษาฝรั่งเศส','ภาษาเยอรมัน','ภาษาสเปน','ภาษารัสเซีย','ภาษาเวียดนาม','ภาษาอาหรับ','ติว IELTS','ติว TOEFL','ติว TOEIC','ติว SAT','ภาษาอื่นๆ (พิมพ์ระบุเอง)']},
+    {label:'ดนตรี', items:['เปียโน','กีตาร์','ไวโอลิน','กลองชุด','ร้องเพลง','ดนตรีไทย','อูคูเลเล่','แซกโซโฟน','ทฤษฎีดนตรี/แต่งเพลง','ดนตรีอื่นๆ (พิมพ์ระบุเอง)']},
+    {label:'ศิลปะและงานฝีมือ', items:['วาดรูป/ระบายสี','ศิลปะสำหรับเด็ก','งานปั้น','การถ่ายภาพ','ตัดต่อวิดีโอ','ออกแบบกราฟิก']},
+    {label:'กีฬา', items:['ว่ายน้ำ','ฟุตบอล','บาสเกตบอล','แบดมินตัน','เทนนิส','กอล์ฟ','เทควันโด','มวยไทย','ยิมนาสติก','โยคะ','สเก็ตบอร์ด','กีฬาอื่นๆ (พิมพ์ระบุเอง)']},
+    {label:'ทักษะชีวิต/อื่นๆ', items:['ทำอาหาร/เบเกอรี่','การพูดในที่สาธารณะ','การเงินส่วนบุคคล','การเขียน/นักเขียน','หุ่นยนต์/โค้ดดิ้งเด็ก','กฎหมาย']},
+  ];
+
+  /* วิชาที่แต่ละคนเลือก: uid -> ['คณิตศาสตร์', ...] · ก้อน C1ข จะอ่านจากตรงนี้ไปส่งต่อหน้าค้นหา */
+  const subjectsByUid = {};
+  window.__learnerSubjects = subjectsByUid;
+
+  function esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+  function timegridHTML(uid){
+    return '<div class="timegrid" role="group" aria-label="ตารางวันและช่วงเวลาที่สะดวก">' +
+      '<div class="timegrid-row"><div class="tg-day"></div>' +
+        '<div class="tg-cell">เช้า<small>06:00-12:00</small></div>' +
+        '<div class="tg-cell">บ่าย<small>12:00-16:00</small></div>' +
+        '<div class="tg-cell">เย็น<small>16:00-19:00</small></div>' +
+        '<div class="tg-cell">ค่ำ<small>19:00-22:00</small></div>' +
+      '</div>' +
+      DAYS.map((d, di) =>
+        '<div class="timegrid-row"><div class="tg-day">' + d + '</div>' +
+        [0,1,2,3].map(si =>
+          '<div class="tg-cell"><label class="tg-check">' +
+          '<input type="checkbox" name="slot_l' + uid + '" value="' + DAY_CODES[di] + '-' + si + '" aria-label="' + d + ' ช่วงที่ ' + (si+1) + '">' +
+          '<span class="tg-check-box"></span></label></div>').join('') +
+        '</div>').join('') +
+    '</div>';
+  }
+
+  function cardHTML(uid, no){
+    const p = 'l' + uid + '-';
+    return '' +
+    '<div class="learner-head">' +
+      '<button type="button" class="learner-toggle" aria-expanded="true" aria-controls="' + p + 'body">' +
+        '<svg class="learner-caret" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<h3>ผู้เรียนคนที่ ' + no + '</h3>' +
+        '<span class="learner-sum" data-role="sum"></span>' +
+      '</button>' +
+      (no > 1 ? '<button type="button" class="learner-remove">ลบคนนี้</button>' : '') +
+    '</div>' +
+
+    '<div class="learner-body" id="' + p + 'body">' +
+      '<div class="learner-alert" data-role="alert" hidden></div>' +
+      /* 🔴 รหัสประจำใบ — ห้ามเอาออก (ผลตรวจ logic B9 + security B-1 · 2026-08-19)
+         รูปแบบ k1/k2/k3 ตรงกับ KIDS ใน post-job.html / booking.html */
+      '<input type="hidden" name="learner_id" value="k' + uid + '">' +
+
+      '<div class="grid grid-2">' +
+        '<div class="field"><label for="' + p + 'nick">ชื่อเล่นผู้เรียน <span class="req">*</span></label>' +
+        '<input type="text" id="' + p + 'nick" name="learner_nick" required maxlength="20" placeholder="น้องพลอย">' +
+        '<div class="helper" data-for="' + p + 'nick">ใส่ชื่อเล่นพอ ไม่ต้องใส่ชื่อ-นามสกุลจริง</div></div>' +
+
+        '<div class="field"><label for="' + p + 'age">อายุ <span class="req">*</span></label>' +
+        '<input type="number" id="' + p + 'age" name="learner_age" required min="3" max="16" placeholder="10">' +
+        '<div class="helper" data-for="' + p + 'age">ไม่เกิน 16 ปี · อายุ 16 ปีขึ้นไปสมัครเองได้ที่หน้าสำหรับนักเรียน</div></div>' +
+
+        '<div class="field"><label for="' + p + 'grade">ระดับชั้น <span class="req">*</span></label>' +
+        '<select id="' + p + 'grade" name="learner_grade" required><option value="">— เลือก —</option>' +
+        GRADES.map(g => '<option>' + g + '</option>').join('') + '</select>' +
+        '<div class="helper" data-for="' + p + 'grade">หลักสูตรนานาชาติ เลือกชั้นเทียบเท่า เช่น Grade 10 = ม.4</div></div>' +
+
+        '<div class="field"><label for="' + p + 'sex">เพศ</label>' +
+        '<select id="' + p + 'sex" name="learner_sex"><option value="">ไม่ระบุ</option><option>หญิง</option><option>ชาย</option><option>อื่น ๆ</option></select>' +
+        '<div class="helper">ไม่บังคับ</div></div>' +
+
+        '<div class="field" style="grid-column:1/-1"><label for="' + p + 'cur">หลักสูตรที่เรียนอยู่</label>' +
+        '<select id="' + p + 'cur" name="learner_curriculum"><option value="">— เลือก —</option>' +
+        CURRICULA.map(c => '<option>' + c + '</option>').join('') + '</select>' +
+        '<div class="helper">ช่วยให้จับคู่ครูที่สอนหลักสูตรตรงกันได้แม่นขึ้น · ไม่บังคับ</div></div>' +
+      '</div>' +
+
+      '<div class="sub-head">สิ่งที่อยากเรียน</div>' +
+      '<div class="field" style="position:relative">' +
+        '<label for="' + p + 'subject-input">วิชาที่ต้องการ <span class="req">*</span></label>' +
+        '<div class="tagbox">' +
+          '<input type="text" class="subject-input" id="' + p + 'subject-input" placeholder="เช่น คณิตศาสตร์" autocomplete="off" ' +
+          'role="combobox" aria-expanded="false" aria-controls="' + p + 'suggest" aria-autocomplete="list">' +
+        '</div>' +
+        '<div class="suggest-panel" id="' + p + 'suggest" role="listbox" hidden></div>' +
+        '<input type="hidden" name="learner_subjects" id="' + p + 'subjects">' +
+        '<div class="helper" data-for="' + p + 'subject-input">เลือกอย่างน้อย 1 วิชา · ของผู้เรียนคนนี้เท่านั้น</div>' +
+      '</div>' +
+
+      '<div class="field" style="margin-top:var(--space-5)">' +
+        '<label>เป้าหมายของการเรียน <span class="req">*</span></label>' +
+        '<div class="chip-group" data-role="goal-group">' +
+        GOALS.map(g => '<label class="chip"><input type="radio" name="goal_l' + uid + '" value="' + g[0] + '">' + g[1] + '</label>').join('') +
+        '</div>' +
+        '<div class="helper" data-for="' + p + 'goal"></div>' +
+      '</div>' +
+
+      '<div class="sub-head">เวลา รูปแบบ และงบ</div>' +
+      '<div class="field">' +
+        '<label>วัน-เวลาที่สะดวกเรียน</label>' +
+        '<div class="helper" style="margin-bottom:8px">ติ๊ก<b>เฉพาะวันที่ไปเรียนได้จริง</b> — ครูจะเห็นเฉพาะวันที่ติ๊กไว้ และเราใช้กรองครูที่ว่างตรงกัน · ติ๊กได้หลายช่วงในวันเดียว</div>' +
+        timegridHTML(uid) +
+        '<div class="helper">ไม่ติ๊กเลยก็ได้ถ้ายังไม่แน่ใจ (จะเห็นครูทุกคน) · ตอนจองคาบจริงค่อยเลือกวัน-เวลาแน่นอนอีกที</div>' +
+      '</div>' +
+
+      '<div class="field" style="margin-top:var(--space-6)">' +
+        '<label>รูปแบบการเรียน <span class="req">*</span></label>' +
+        '<div class="chip-group" data-role="place-group">' +
+        PLACES.map(pl => '<label class="chip"><input type="checkbox" name="place_l' + uid + '" value="' + pl[0] + '">' + pl[1] + '</label>').join('') +
+        '</div>' +
+        '<div class="helper" data-for="' + p + 'place">เลือกได้มากกว่า 1 อย่าง</div>' +
+      '</div>' +
+
+      '<div class="grid grid-2" style="margin-top:var(--space-6)">' +
+        '<div class="field"><label for="' + p + 'budget">งบต่อชั่วโมง (บาท)</label>' +
+        '<input type="number" id="' + p + 'budget" name="learner_budget" min="0" step="50" placeholder="400">' +
+        '<div class="helper" data-for="' + p + 'budget">ใส่คร่าว ๆ ได้ ใช้กรองครูที่อยู่ในงบ</div></div>' +
+
+        '<div class="field"><label for="' + p + 'seslen">เรียนครั้งละกี่ชั่วโมง</label>' +
+        '<select id="' + p + 'seslen" name="learner_session_len">' +
+        '<option value="">— เลือก —</option>' +
+        SESSION_LEN.map(m => '<option value="' + m + '">' + (m % 60 === 0 ? m/60 : (m/60).toFixed(1)) + ' ชม.</option>').join('') +
+        '</select>' +
+        '<div class="helper" data-for="' + p + 'seslen">ไม่บังคับ · ครูแต่ละคนตั้งขั้นต่ำต่อคาบไม่เท่ากัน เราจะเติมให้ตอนจองคาบ</div></div>' +
+
+        '<div class="field"><label for="' + p + 'times">สัปดาห์ละกี่ครั้ง</label>' +
+        '<select id="' + p + 'times" name="learner_times_per_week">' +
+        '<option value="">— เลือก —</option>' +
+        [1,2,3,4,5,6,7].map(t => '<option value="' + t + '">' + t + ' ครั้ง/สัปดาห์</option>').join('') +
+        '</select>' +
+        '<div class="helper" data-for="' + p + 'times">ไม่บังคับ · ใช้ประเมินค่าใช้จ่ายคร่าว ๆ</div></div>' +
+      '</div>' +
+      /* รวม ชม./สัปดาห์ — คำนวณให้เอง ไม่ให้กรอกซ้ำ (การ์ดงานในหน้ากระดานโชว์ค่านี้) */
+      '<div class="week-total" data-role="wk" hidden></div>' +
+      '<input type="hidden" name="learner_hours_per_week" id="' + p + 'hpw">' +
+    '</div>';
+  }
+
+  /* ---- combobox วิชา: 1 กล่องต่อ 1 การ์ด (ของเดิมเป็นตัวเดียวใช้ทั้งหน้า) ---- */
+  function initSubjectBox(card, uid){
+    const input = card.querySelector('.subject-input');
+    const box   = card.querySelector('.tagbox');
+    const panel = card.querySelector('.suggest-panel');
+    const store = card.querySelector('input[name=learner_subjects]');
+    const picked = [];
+    subjectsByUid[uid] = picked;
+
+    function commit(){
+      store.value = picked.join(',');
+      if (picked.length) { box.setAttribute('aria-invalid','false'); clearErr(input); }
+      updateSum(card);
+    }
+    function renderTags(){
+      [...box.querySelectorAll('.tag')].forEach(t => t.remove());
+      picked.forEach(name => {
+        const t = document.createElement('span');
+        t.className = 'tag';
+        t.innerHTML = '<span></span><button type="button" aria-label="ลบ ' + esc(name) + '">&times;</button>';
+        t.querySelector('span').textContent = name;
+        t.querySelector('button').addEventListener('click', () => {
+          picked.splice(picked.indexOf(name), 1); renderTags();
+        });
+        box.insertBefore(t, input);
+      });
+      commit();
+    }
+    function open(q){
+      const term = (q || '').trim();
+      panel.innerHTML = '';
+      let count = 0;
+      SUBJECT_GROUPS.forEach(g => {
+        const items = g.items.filter(x => !picked.includes(x) && (!term || x.includes(term)));
+        if (!items.length) return;
+        count += items.length;
+        const gd = document.createElement('div');
+        gd.className = 'suggest-group';
+        const lb = document.createElement('div');
+        lb.className = 'suggest-group-label';
+        lb.textContent = g.label;
+        gd.appendChild(lb);
+        items.forEach(x => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.className = 'suggest-item'; b.textContent = x; b.setAttribute('role','option');
+          b.addEventListener('mousedown', e => {
+            e.preventDefault();
+            picked.push(x); renderTags(); input.value = ''; open('');
+          });
+          gd.appendChild(b);
+        });
+        panel.appendChild(gd);
+      });
+      if (!count) panel.innerHTML = '<div class="suggest-empty">ไม่พบวิชานี้ในรายการ — พิมพ์ต่อได้ เราจะเพิ่มให้ทีหลัง</div>';
+      panel.hidden = false;
+      input.setAttribute('aria-expanded','true');
+    }
+    function close(){ panel.hidden = true; input.setAttribute('aria-expanded','false'); }
+    input.addEventListener('focus', () => open(input.value));
+    input.addEventListener('input', () => open(input.value));
+    input.addEventListener('blur', () => setTimeout(close, 120));
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  }
+
+  /* ---- พับ/กาง: เปิดทีละคน ---- */
+  function setOpen(card, open){
+    card.classList.toggle('is-open', open);
+    card.querySelector('.learner-body').hidden = !open;
+    card.querySelector('.learner-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function openOnly(card){
+    [...wrap.querySelectorAll('.learner')].forEach(c => setOpen(c, c === card));
+  }
+  window.__openLearner = openOnly;
+
+  /* ---- บรรทัดสรุปบนหัวการ์ด (พับอยู่ก็ต้องรู้ว่าใบไหนของใคร) ---- */
+  function updateSum(card){
+    const uid = card.dataset.uid;
+    const nick = (card.querySelector('[name=learner_nick]').value || '').trim();
+    const grade = card.querySelector('[name=learner_grade]').value || '';
+    const subs = subjectsByUid[uid] || [];
+    const bits = [];
+    if (nick) bits.push(nick);
+    if (grade) bits.push(grade);
+    if (subs.length) bits.push(subs.length === 1 ? subs[0] : subs[0] + ' +' + (subs.length - 1));
+    card.querySelector('[data-role=sum]').textContent = bits.length ? '· ' + bits.join(' · ') : '';
+  }
+
+  function renumber(){
+    [...wrap.querySelectorAll('.learner')].forEach((c, idx) => {
+      c.querySelector('.learner-toggle h3').textContent = 'ผู้เรียนคนที่ ' + (idx + 1);
+      const al = c.querySelector('[data-role=alert]');
+      if (al && !al.hidden) al.textContent = al.textContent.replace(/ผู้เรียนคนที่ \d+/, 'ผู้เรียนคนที่ ' + (idx + 1));
+    });
+  }
+
+  function clearGroupErr(card, kind){
+    const h = card.querySelector('[data-for="l' + card.dataset.uid + '-' + kind + '"]');
+    if (h && h.classList.contains('err')) {
+      h.classList.remove('err');
+      h.textContent = kind === 'place' ? 'เลือกได้มากกว่า 1 อย่าง' : '';
+    }
+  }
+
+  function add(){
+    uidSeq++;
+    const uid = uidSeq;
+    const no = wrap.querySelectorAll('.learner').length + 1;
+    const el = document.createElement('div');
+    el.className = 'learner is-open';
+    el.dataset.uid = uid;
+    el.innerHTML = cardHTML(uid, no);
+    wrap.appendChild(el);
+
+    initSubjectBox(el, uid);
+
+    el.querySelector('.learner-toggle').addEventListener('click', () => {
+      if (el.classList.contains('is-open')) setOpen(el, false); else openOnly(el);
+    });
+    const rm = el.querySelector('.learner-remove');
+    if (rm) rm.addEventListener('click', () => {
+      const wasOpen = el.classList.contains('is-open');
+      const next = el.nextElementSibling || el.previousElementSibling;
+      delete subjectsByUid[uid];
+      el.remove(); renumber(); window.__syncAddrBlock();
+      /* ลบใบที่กางอยู่ -> ต้องเปิดใบข้าง ๆ ต่อ ไม่งั้นเหลือแต่หัวการ์ดพับหมดทั้งขั้น (ผลตรวจ 2026-08-19) */
+      if (wasOpen && next && next.classList.contains('learner')) openOnly(next);
+    });
+
+    el.addEventListener('input', e => { if (e.target.name === 'learner_nick') updateSum(el); });
+    /* ครั้งละกี่ชั่วโมง x สัปดาห์ละกี่ครั้ง = รวม ชม./สัปดาห์ (ผู้ใช้ไม่ต้องคิดเลขเอง ไม่ต้องกรอกซ้ำ) */
+    el.addEventListener('change', e => {
+      if (e.target.name !== 'learner_session_len' && e.target.name !== 'learner_times_per_week') return;
+      const mins = Number(el.querySelector('[name=learner_session_len]').value || 0);
+      const times = Number(el.querySelector('[name=learner_times_per_week]').value || 0);
+      const box = el.querySelector('[data-role=wk]');
+      const hidden = el.querySelector('[name=learner_hours_per_week]');
+      if (mins && times) {
+        const hrs = (mins / 60) * times;
+        hidden.value = hrs;
+        box.hidden = false;
+        box.textContent = 'รวมสัปดาห์ละ ' + (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + ' ชั่วโมง';
+      } else {
+        hidden.value = '';
+        box.hidden = true;
+        box.textContent = '';
+      }
+    });
+    el.addEventListener('change', e => {
+      if (e.target.name === 'learner_grade') updateSum(el);
+      /* 🔴 ต้อง clearGroupErr ก่อน แล้วค่อย sync — sync() ข้ามการ์ดที่ยังติด err อยู่ (ผลตรวจ logic B5) */
+      if (e.target.name === 'place_l' + uid) { clearGroupErr(el, 'place'); window.__syncAddrBlock(); }
+      if (e.target.name === 'goal_l' + uid) clearGroupErr(el, 'goal');
+    });
+
+    openOnly(el);
+    if (no > 1) el.scrollIntoView({block:'start', behavior:'smooth'});   /* block:'start' = การ์ดสูงเกินจอ ถ้าใช้ center หัวการ์ดจะหลุดขึ้นไปเหนือจอ */
+    return el;
+  }
+
+  addBtn.addEventListener('click', add);
+  add();
+})();
+
+/* ===== ตัวแปลงช่วงเวลา: ช่องในตาราง -> คำที่หน้าค้นหาใช้ =====
+   🔴 ห้ามให้หน้าอื่นเดาเอง ให้เรียกฟังก์ชันนี้ (ก้อน C1ข ใช้ตอนส่งค่าไป teacher-search.html)
+   ที่มา: teacher-search.html ค้น 'ช่วงเวลาที่สะดวก' -> value="morning"/"afternoon"/"evening"/"night" · การ์ดครูเก็บ data-time="evening,night"
+   ชั่วโมงตรงกันทั้ง 2 ฝั่ง: เช้า 06-12 · บ่าย 12-16 · เย็น 16-19 · ค่ำ 19-22 (ตรวจของจริง 2026-08-19) */
+/* 🔴 ต้นฉบับ "รหัสช่วงเวลา" ของทั้งเว็บ — ระบบอ่านรหัส คนอ่านป้ายไทย (CLAUDE.md กฎ 8 ข้อ 3)
+   ลำดับในลิสต์ = เลขหลังขีดในค่าช่องเวลา (mon-2 = จันทร์ ช่วง evening) 🔴 ห้ามสลับลำดับ
+   สำเนา: signup-student.html · post-job.html · job-board.html · teacher-search.html (ค่าช่องติ๊ก + data-time ของการ์ดครู) */
+const SLOT_CODES = ['morning','afternoon','evening','night'];
+const SLOT_LABEL = { morning:'เช้า', afternoon:'บ่าย', evening:'เย็น', night:'ค่ำ' };
+function slotToBucket(slotValue){          /* 'mon-2' -> 'evening' (อ่านเฉพาะเลขลำดับช่วงหลังขีด) */
+  const i = parseInt(String(slotValue).split('-')[1], 10);
+  return SLOT_CODES[i] || '';
+}
+function slotsToBuckets(slotValues){       /* ['mon-2','sat-2','wed-0'] -> ['evening','morning'] */
+  return [...new Set((slotValues || []).map(slotToBucket).filter(Boolean))];
+}
+window.slotsToBuckets = slotsToBuckets;
+
+/* ===== ยามข้อมูลส่วนตัว (เตือน ไม่บล็อก) =====
+   ชุดเดียวกับ post-job.html (ค้น contactRisk) — ที่อยู่ต้องมี "เลขจริง" ถึงจะนับ ชื่อย่านเฉย ๆ ไม่นับ
+   เพิ่ม 2026-08-19 ตามผลตรวจ security: maxlength ไม่ใช่มาตรการกัน ("199/45 ซอยอ่อนนุช 17 แขวงสวนหลวง" = 43 ตัว ลอด 60 สบาย) */
+(() => {
+  /* 🔴 ต้นฉบับยามที่อยู่ของทั้งเว็บ — สำเนาอยู่ที่ booking.html (ช่องเขต/อำเภอ) · post-job.html (contactRisk)
+     แก้ที่นี่เมื่อไร ต้องไล่แก้ 2 ไฟล์นั้นด้วย (ผลตรวจ security 2026-08-20: เดิม 3 ก๊อป 2 กติกา จับไม่เท่ากัน)
+     กติกา: เตือนเมื่อมี "ของจริง" ให้หลุด (มีตัวเลขบ้าน/ซอย/ชั้น/ห้อง) — ชื่อย่านเฉย ๆ ไม่นับ เพราะเราขอย่านอยู่แล้ว */
+  function looksLikeAddress(t){
+    const x = (t || '').trim();
+    return /(บ้านเลขที่|เลขที่)\s*[\d๐-๙]/.test(x)                       /* บ้านเลขที่ 199 */
+        || /(ซอย|ซ\.|ถนน|ถ\.|หมู่ที่|หมู่)[^\d๐-๙]{0,20}[\d๐-๙]/.test(x)  /* ซอยอ่อนนุช 17 · ถนนสุขุมวิท 71 */
+        || /(ชั้น|ห้อง|อาคาร|ตึก|คอนโด)\s*\S{0,10}[\d๐-๙]/.test(x)        /* ชั้น 12 ห้อง 1205 */
+        || /[\d๐-๙]{1,4}\/[\d๐-๙]{1,4}/.test(x);                        /* 199/45 · ๑๙๙/๔๕ */
+  }
+  function looksLikeRealName(t){
+    const x = (t || '').trim();
+    if (!x) return false;
+    return /^(ด\.ช\.|ด\.ญ\.|นาย|น\.ส\.|นางสาว|นาง)/.test(x) || x.split(/\s+/).length >= 2;
+  }
+  const BASE = {
+    'zone-detail': 'ไม่บังคับ · ใส่แค่ย่านพอ ไม่ต้องใส่บ้านเลขที่',
+    'learner_nick': 'ใส่ชื่อเล่นพอ ไม่ต้องใส่ชื่อ-นามสกุลจริง'
+  };
+  function warn(el, key, msg){
+    const h = document.querySelector('[data-for="' + el.id + '"]');
+    if (!h) return;
+    if (msg) { h.textContent = msg; h.classList.add('err'); }
+    else if (h.classList.contains('err')) { h.classList.remove('err'); h.textContent = BASE[key]; }
+  }
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement)) return;
+    if (el.id === 'zone-detail') {
+      warn(el, 'zone-detail', looksLikeAddress(el.value) ? 'ตรงนี้ขอแค่ย่าน/เขต ไม่ต้องใส่บ้านเลขที่หรือเลขซอย — ครูจะเห็นที่อยู่เต็มหลังชำระเงินแล้วเท่านั้น' : '');
+    } else if (el.name === 'learner_nick') {
+      warn(el, 'learner_nick', looksLikeRealName(el.value) ? 'ใส่ชื่อเล่นพอ (เช่น น้องพลอย) — ไม่ต้องใส่ชื่อจริง-นามสกุลของเด็ก' : '');
+    }
+  });
+})();
+
+/* ===== OTP จำลอง ===== */
+(() => {
+  const phone = document.getElementById('p-phone');
+  const send = document.getElementById('send-otp');
+  const box = document.getElementById('otp-box');
+  const verify = document.getElementById('verify-otp');
+  const ok = document.getElementById('otp-ok');
+  send.addEventListener('click', () => {
+    if (!/^0\d{8,9}$/.test(phone.value.trim())) {
+      setErr(phone, 'กรอกเบอร์มือถือ 10 หลัก ขึ้นต้นด้วย 0'); return;
+    }
+    clearErr(phone); box.hidden = false; document.getElementById('otp').focus();
+  });
+  verify.addEventListener('click', () => {
+    const v = document.getElementById('otp').value.trim();
+    if (!/^\d{6}$/.test(v)) { setErr(document.getElementById('otp'), 'กรอกรหัส 6 หลัก'); return; }
+    clearErr(document.getElementById('otp'));
+    box.hidden = true; ok.hidden = false; document.body.dataset.otpVerified = '1';
+  });
+})();
+
+/* ===== ตรวจความถูกต้องทันทีที่กรอกเสร็จ (Duolingo pattern) + ตอนกดส่ง ===== */
+function setErr(el, msg) {
+  el.setAttribute('aria-invalid','true');
+  const h = document.querySelector('[data-for="' + el.id + '"]');
+  if (h) { h.textContent = msg; h.classList.add('err'); }
+}
+function clearErr(el) {
+  el.setAttribute('aria-invalid','false');
+  const h = document.querySelector('[data-for="' + el.id + '"]');
+  if (h) { h.textContent = ''; h.classList.remove('err'); }
+}
+document.addEventListener('blur', e => {
+  const el = e.target;
+  if (!(el instanceof HTMLElement) || !el.matches('input[required],select[required]')) return;
+  if (!el.value.trim()) setErr(el, 'ช่องนี้ต้องกรอก'); else clearErr(el);
+}, true);
+
+/* ตรวจ "รายคน" — ลูก 3 คน ไม่กรอก 1 คน ต้องเตือนถูกใบ (C0 · 2026-08-19)
+   คืนค่าเป็นลิสต์ช่องที่ยังไม่ผ่านของการ์ดใบนั้น + เขียนแถบแดงบนหัวการ์ด */
+function validateLearnerCard(card, no){
+  const uid = card.dataset.uid;
+  const probs = [];
+
+  card.querySelectorAll('input[required],select[required]').forEach(el => {
+    if (!el.value.trim()) { setErr(el, 'ช่องนี้ต้องกรอก'); probs.push(el); }
+    else clearErr(el);
+  });
+
+  /* ฟอร์มเป็น novalidate -> min/max ในแท็กไม่ถูกบังคับ ต้องตรวจเอง (ผลตรวจ logic B8)
+     งบติดลบ/อายุเพี้ยน ไหลไปเป็นตัวกรองในหน้าค้นหา = ผลลัพธ์ว่างโดยไม่มีใครรู้สาเหตุ */
+  [['age', 3, 16, 'หน้านี้สำหรับผู้ปกครองสมัครให้ผู้เยาว์ (3-16 ปี) — อายุ 16 ปีขึ้นไปสมัครเองได้ที่หน้าสำหรับนักเรียน'],
+   ['budget', 0, 100000, 'งบต่อชั่วโมงต้องเป็นเลข 0 ขึ้นไป']].forEach(([key, lo, hi, msg]) => {
+    const el = card.querySelector('#l' + uid + '-' + key);
+    if (!el) return;
+    if (!el.value.trim()) { clearErr(el); return; }
+    const v = Number(el.value);
+    if (!Number.isFinite(v) || v < lo || v > hi) { setErr(el, msg); probs.push(el); }
+    else clearErr(el);
+  });
+
+  const subs = (window.__learnerSubjects || {})[uid] || [];
+  if (!subs.length) {
+    const tb = card.querySelector('.tagbox');
+    tb.setAttribute('aria-invalid','true');
+    const inp = card.querySelector('.subject-input');
+    setErr(inp, 'เลือกอย่างน้อย 1 วิชาให้ผู้เรียนคนนี้');
+    probs.push(inp);
+  }
+  if (!card.querySelector('input[name="goal_l' + uid + '"]:checked')) {
+    const h = card.querySelector('[data-for="l' + uid + '-goal"]');
+    if (h) { h.textContent = 'เลือกเป้าหมาย 1 ข้อ'; h.classList.add('err'); }
+    probs.push(card.querySelector('[data-role=goal-group]'));
+  }
+  if (!card.querySelector('input[name="place_l' + uid + '"]:checked')) {
+    const h = card.querySelector('[data-for="l' + uid + '-place"]');
+    if (h) { h.textContent = 'เลือกรูปแบบการเรียนอย่างน้อย 1 อย่าง'; h.classList.add('err'); }
+    probs.push(card.querySelector('[data-role=place-group]'));
+  }
+
+  const alert = card.querySelector('[data-role=alert]');
+  if (probs.length) {
+    alert.hidden = false;
+    alert.textContent = 'ผู้เรียนคนที่ ' + no + ' ยังกรอกไม่ครบ ' + probs.length + ' จุด';
+  } else {
+    alert.hidden = true;
+    alert.textContent = '';
+  }
+  return probs;
+}
+
+document.getElementById('parent-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const errBox = document.getElementById('form-error');
+  let problems = [];
+
+  /* 1) ระดับบัญชี — ทุกช่องที่ "ไม่ได้อยู่ในการ์ดผู้เรียน" */
+  document.querySelectorAll('input[required],select[required]').forEach(el => {
+    if (el.closest('.learner')) return;
+    if (el.type === 'checkbox') {
+      if (!el.checked) { setErr(el, 'ต้องติ๊กยอมรับข้อตกลงก่อนส่งใบสมัคร'); problems.push(el); }
+      return;
+    }
+    if (!el.value.trim()) { setErr(el, 'ช่องนี้ต้องกรอก'); problems.push(el); }
+    else clearErr(el);
+  });
+
+  /* เลือกให้ครูมาสอนถึงที่ (home/public) = ต้องมีจังหวัด ไม่งั้นกรองพื้นที่ไม่ได้เลย (ผลตรวจ logic B4)
+     ทำแบบเดียวกับ post-job.html (ค้น "left.push('จังหวัด')") */
+  const zoneEl = document.getElementById('zone');
+  if (!document.getElementById('addr-block').hidden && !zoneEl.value) {
+    setErr(zoneEl, 'เลือกจังหวัดด้วย เพราะมีผู้เรียนที่ให้ครูมาสอนถึงที่');
+    problems.push(zoneEl);
+  }
+
+  /* 2) รายผู้เรียน */
+  const cards = [...document.querySelectorAll('.learner')];
+  cards.forEach((card, idx) => { problems = problems.concat(validateLearnerCard(card, idx + 1)); });
+
+  /* ยังไม่ยืนยัน OTP — ต้องเขียนข้อความให้เห็นด้วย ไม่ใช่แค่เพิ่มตัวนับ (ผลตรวจ logic B1)
+     และห้ามนับซ้ำถ้าเบอร์ว่างอยู่แล้ว (ผลตรวจ logic B2 — เบอร์ว่าง 1 จุด เคยขึ้นว่า 2 จุด) */
+  const phoneEl = document.getElementById('p-phone');
+  if (!document.body.dataset.otpVerified && !problems.includes(phoneEl)) {
+    setErr(phoneEl, phoneEl.value.trim() ? 'กด "ส่งรหัส" แล้วยืนยันรหัส 6 หลักก่อน' : 'ช่องนี้ต้องกรอก แล้วกดยืนยันรหัส');
+    problems.push(phoneEl);
+  }
+
+  if (problems.length) {
+    const bad = cards.filter(c => !c.querySelector('[data-role=alert]').hidden).length;
+    errBox.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด' +
+      (bad ? ' (ผู้เรียน ' + bad + ' คน)' : '') + ' — เลื่อนไปดูช่องที่มีข้อความสีแดง';
+    /* การ์ดที่พับอยู่ต้องกางก่อน ไม่งั้นเลื่อนไปแล้วไม่เห็นช่องแดง */
+    const firstCard = problems[0].closest ? problems[0].closest('.learner') : null;
+    if (firstCard && window.__openLearner) window.__openLearner(firstCard);
+    /* กลุ่ม chip เป็น <div> โฟกัสไม่ได้ -> ไปโฟกัสตัวเลือกแรกข้างในแทน (ผลตรวจ logic ข้อสังเกต) */
+    const focusTarget = (problems[0].tagName === 'DIV' ? problems[0].querySelector('input') : problems[0]) || problems[0];
+    if (focusTarget.focus) focusTarget.focus({preventScroll:true});
+    problems[0].scrollIntoView({block:'center', behavior:'smooth'});
+    return;
+  }
+  errBox.textContent = '';
+  handoffToSearch();                       /* ก้อน C1ข — ต่อท่อไปหน้าค้นหาครู */
+  document.getElementById('parent-form').style.display = 'none';
+  document.querySelector('.hero-band').style.display = 'none';
+  document.getElementById('success').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+/* ===== ก้อน C1ข — ส่งค่าที่กรอกไว้ต่อไปหน้าค้นหาครู (2026-08-20) =====
+   🔗 สัญญาการส่งค่า (ต้นฉบับอยู่ตรงนี้ · teacher-search.html เป็นฝั่งรับ):
+     - URL:  teacher-search.html?subj=&grade=&time=&mode=&budget=&prov=&kid=k1
+             ทุกตัวยกเว้น kid หน้ารับรองรับอยู่ก่อนแล้ว (teacher-search.html ค้น applyUrlParams)
+     - sessionStorage['bgt_learners'] = {"v":1,"prov":"...","learners":[{id,nick,grade,subj[],time[],mode[],budget}]}
+             ใช้ทำ "แถบเลือกผู้เรียน" บนหน้าค้นหาเท่านั้น (Owner เคาะ LOG 122: สลับได้ตลอด ไม่ทำหน้าคั่นบังคับ)
+   🔴 ห้ามใส่ของพวกนี้ลง URL หรือ storage: ชื่อ-นามสกุลจริง · เบอร์ · ที่อยู่/ย่าน (zone_detail) — กติกาถาวรข้อ 5
+      (URL ไปโผล่ใน log/ประวัติเบราว์เซอร์ได้ · ชื่อเล่น+ระดับชั้นอยู่ใน sessionStorage แท็บเดียวเท่านั้น) */
+function learnerCriteria(card){
+  const uid = card.dataset.uid;
+  const val = key => (document.getElementById('l' + uid + '-' + key) || {}).value || '';
+  const checked = name => [...card.querySelectorAll('input[name="' + name + '"]:checked')].map(i => i.value);
+  const goalEl = card.querySelector('input[name="goal_l' + uid + '"]:checked');
+  return {
+    id:     'k' + uid,                                   /* รูปแบบเดียวกับ KIDS ใน post-job/booking */
+    nick:   val('nick').trim(),
+    grade:  val('grade'),                                /* รายชั้น (ม.2) · ฝั่งรับแปลงเป็นช่วงชั้นเอง */
+    age:    parseInt(val('age'), 10) || null,            /* หน้าจองโชว์ "ม.2 · 14 ปี" ตอนเลือกผู้เรียน */
+    curriculum: val('cur'),
+    subj:   ((window.__learnerSubjects || {})[uid] || []).slice(),
+    time:   slotsToBuckets(checked('slot_l' + uid)),     /* ห้ามให้หน้าอื่นเดาเอง ใช้ตัวแปลงตัวนี้ */
+    mode:   checked('place_l' + uid),                    /* online/home/public */
+    budget: parseInt(val('budget'), 10) || 0,
+    /* 2 ตัวนี้ไม่ได้ใช้กรองในหน้าค้นหา แต่หน้าโพสต์/หน้าจองต้องใช้ ไม่งั้นผู้ใช้ต้องกรอกซ้ำ (กฎ 8 ข้อ 4) */
+    goal:   goalEl ? goalEl.value : '',
+    sesLen: parseInt(val('seslen'), 10) || 0
+  };
+}
+/* 🔴 ปกติส่งแค่รหัสผู้เรียน — เงื่อนไขจริงเดินทางไปทาง sessionStorage ไม่ใช่ทาง URL
+   (ผลตรวจ security 2026-08-20: URL ไปค้างในประวัติเบราว์เซอร์ถาวร + access log ตอนต่อ backend)
+   full = true ใช้เฉพาะกรณีเขียน storage ไม่ได้ (โหมดส่วนตัวบางเบราว์เซอร์) ไม่งั้นหน้าค้นหาจะว่างเปล่า */
+function searchUrlFor(c, prov, full){
+  const p = new URLSearchParams();
+  if (full) {
+    if (c.subj.length)  p.set('subj', c.subj.join(','));
+    if (c.grade)        p.set('grade', c.grade);
+    if (c.time.length)  p.set('time', c.time.join(','));
+    if (c.mode.length)  p.set('mode', c.mode.join(','));
+    if (c.budget)       p.set('budget', c.budget);
+    if (prov)           p.set('prov', prov);
+  }
+  p.set('kid', c.id);
+  return 'teacher-search.html?' + p.toString();
+}
+function handoffToSearch(){
+  const prov = (document.getElementById('zone') || {}).value || '';
+  const learners = [...document.querySelectorAll('.learner')].map(learnerCriteria);
+  if (!learners.length) return;
+  /* 🔴 sessionStorage ก้อนนี้ = "บัญชีจำลอง" ของทาง A — หน้าค้นหา/หน้าจอง/หน้าโพสต์ อ่านจากตรงนี้
+     จึงต้องมีชื่อเล่นเสมอ (หน้าจองต้องบอกให้ได้ว่า "จองให้ใคร" · ผลตรวจ logic 2026-08-20 ข้อ 1)
+     ความเสี่ยงที่แลกมา คุมด้วย: อายุ 2 ชม. · ลบทิ้งเมื่อกด "ล้างตัวกรองทั้งหมด" · ไม่ขึ้น URL สักตัว */
+  const payload = learners;
+  /* sessionStorage อาจถูกปิด (โหมดส่วนตัวบางเบราว์เซอร์) -> ปุ่มต้องยังใช้ได้ ห้ามพังทั้งหน้า */
+  let stored = false;
+  try {
+    sessionStorage.setItem('bgt_learners', JSON.stringify({ v:1, ts: Date.now(), prov, learners: payload }));
+    stored = true;
+  } catch (e) {}
+  const btn = document.getElementById('go-search');
+  if (btn) btn.href = searchUrlFor(learners[0], prov, !stored);
+  const note = document.getElementById('go-search-note');
+  if (note && learners.length > 1) {
+    note.textContent = 'เปิดให้ ' + learners[0].nick + ' ก่อน — สลับไปหาครูให้คนอื่นได้ที่แถบบนหน้าค้นหา';
+    note.hidden = false;
+  }
+}
+
+/* ===== sidebar: ไฮไลต์หัวข้อที่กำลังดูอยู่ ===== */
+(() => {
+  const links = [...document.querySelectorAll('.sidenav a')];
+  const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + en.target.id));
+    });
+  }, {rootMargin: '-20% 0px -70% 0px'});
+  secs.forEach(s => io.observe(s));
+})();
+
+/* บล็อกที่อยู่ (ขั้นที่ 1) โผล่ก็ต่อเมื่อมีผู้เรียน "อย่างน้อย 1 คน" เลือกให้ครูมาสอนถึงที่
+   Owner เคาะกติกานี้ 2026-08-11 (เรียนออนไลน์ล้วนไม่ต้องถามที่อยู่)
+   C0 2026-08-19: เดิมดูจากช่องเดียวทั้งหน้า -> ตอนนี้รูปแบบการเรียนอยู่รายคน จึงต้องกวาดทุกการ์ด
+   ⚠️ ที่อยู่ยังเป็น "ระดับบัญชี" ตามสเปก (SYSTEM ข้อ 13) — บ้านเดียวกันใช้ที่อยู่เดียวกัน */
+(() => {
+  const block = document.getElementById('addr-block');
+  const zone = document.getElementById('zone');
+  const detail = document.getElementById('zone-detail');
+  function sync(){
+    const onsite = [...document.querySelectorAll('input[name^="place_l"]')]
+      .some(b => b.checked && b.value !== 'online');
+    block.hidden = !onsite;
+    if (!onsite) {
+      /* พักค่าไว้ก่อน แล้วล้างของจริง — ฟอร์มจะไม่ส่งที่อยู่ออกไปเมื่อไม่มีใครเรียนแบบเจอตัว */
+      if (zone.value) zone.dataset.stash = zone.value;
+      if (detail.value) detail.dataset.stash = detail.value;
+      zone.value = ''; detail.value = '';
+    } else {
+      /* กลับมาเลือกใหม่ = คืนค่าที่พิมพ์ไว้ ไม่ต้องพิมพ์ซ้ำ */
+      if (!zone.value && zone.dataset.stash) zone.value = zone.dataset.stash;
+      if (!detail.value && detail.dataset.stash) detail.value = detail.dataset.stash;
+    }
+    /* บอกในการ์ดด้วยว่าที่อยู่ไปกรอกที่ขั้น 1 — กันคนหาไม่เจอเพราะมันอยู่คนละขั้น */
+    document.querySelectorAll('.learner').forEach(card => {
+      const uid = card.dataset.uid;
+      const h = card.querySelector('[data-for="l' + uid + '-place"]');
+      if (!h || h.classList.contains('err')) return;
+      const mine = [...card.querySelectorAll('input[name="place_l' + uid + '"]')]
+        .some(b => b.checked && b.value !== 'online');
+      h.textContent = mine
+        ? 'เลือกได้มากกว่า 1 อย่าง · ที่อยู่ให้ครูมาสอน กรอกที่ขั้นที่ 1 (ใช้ที่เดียวกันทั้งบ้าน)'
+        : 'เลือกได้มากกว่า 1 อย่าง';
+    });
+  }
+  zone.addEventListener('change', () => {
+    if (!zone.value) return;
+    zone.setAttribute('aria-invalid','false');
+    const h = document.querySelector('[data-for="zone"]');
+    if (h && h.classList.contains('err')) { h.classList.remove('err'); h.textContent = 'ครูเห็นที่อยู่เต็มหลังชำระเงินแล้วเท่านั้น'; }
+  });
+  window.__syncAddrBlock = sync;
+  sync();
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

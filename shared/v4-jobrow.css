@@ -1,0 +1,95 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   v4-jobrow.css — จัดการ์ดงาน/การ์ดคาบให้เป็น "แถว" แบบจอจำลองใน index-v3
+   สร้าง 2026-08-31 · Owner ตีตกรอบแรก:
+     *"หน้ากระดานงานทุเรศมากครับ ลบ side bar ออกแต่ไม่จัดอะไรเลย ดูแล้วใช้งานยากมาก
+       เทียบกับในจอ landing ที่เราโชว์เพื่อขาย User"*
+     *"ที่ผมชอบแบบ landing เพราะมันดูใช้งานง่าย ชัดเจน ผู้ใช้มองมารู้ว่าใช้ยังไง กดตรงไหน"*
+
+   สิ่งที่จอจำลองทำแล้วอ่านง่ายกว่า (เอามาใช้ทั้งหมด):
+     1. ไม่ใช่ "กล่องมีกรอบ" แต่เป็น **แถวคั่นด้วยเส้นบาง** -> ตากวาดลงมาเป็นคอลัมน์เดียว
+     2. เนื้อหาซ้าย / **ปุ่มลงมืออยู่ขวาสุดเสมอ** ตำแหน่งเดียวกันทุกแถว -> รู้ทันทีว่ากดตรงไหน
+     3. ข้อความ 2 บรรทัด: หัวเรื่อง + รายละเอียดตัวเล็ก ไม่ใช่ย่อหน้ายาว
+     4. ป้ายสถานะเป็นแคปซูลสั้น ๆ ไม่ใช่ประโยค
+
+   🔴 CSS ล้วน — ไม่แตะ HTML ไม่แตะ JS ของหน้า
+      (หน้ากระดานงานวาดการ์ดใหม่เองเวลากรอง ถ้าไปจัดด้วย JS จะโดนวาดทับหาย)
+   ใช้กับ: job-board.html · teacher-jobs.html · my-jobs.html
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── การ์ด -> แถว ─────────────────────────────────────────────── */
+.v4 .j-card{
+  --card-pad: 0px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--color-rule);
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--space-5) 2px;
+  /* ซ้าย = เนื้อหา · ขวา = ราคา + ปุ่ม (ตำแหน่งเดียวกันทุกแถว) */
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(170px, auto);
+  column-gap: var(--space-6);
+  align-items: start;
+}
+.v4 .j-card > *{ grid-column: 1 }
+.v4 .j-card > .j-foot,
+.v4 .j-card > .j-actions{ grid-column: 2 }
+
+/* ใบแรกของแต่ละกลุ่มไม่ต้องมีเส้นบน (กลุ่มมีหัวข้ออยู่แล้ว) */
+.v4 .rail-track > .j-card:first-child,
+.v4 .board-list > .j-card:first-child,
+.v4 .jobs > .j-card:first-child{ border-top: 0 }
+
+/* ── หัวแถว ── */
+.v4 .j-title{ font-size: var(--text-base); line-height:1.4 }
+.v4 .j-code{ font-size:.78rem }
+.v4 .tag-group{ margin-top: 6px; gap:5px }
+.v4 .tag{ font-size:.76rem; padding:3px 9px; border-radius:var(--radius-pill) }
+.v4 .j-meta{ margin-top:6px; font-size:.82rem; gap:2px var(--space-4) }
+
+/* เนื้อความของผู้เรียน = บรรทัดรอง ไม่ใช่ก้อนใหญ่กลางการ์ด */
+.v4 .j-body{ --lines:2; margin-top:6px; font-size:.86rem; color:var(--color-ink-2) }
+.v4 .j-more{ font-size:.8rem }
+
+/* ── ฝั่งขวา: ราคา + ปุ่ม ── */
+.v4 .j-foot{
+  margin:0; padding:0; border:0;
+  flex-direction:column; align-items:flex-end; gap:2px; text-align:right;
+}
+.v4 .j-price{ font-size:var(--text-lg) }
+.v4 .j-actions{
+  margin:0; padding:var(--space-3) 0 0; background:transparent; border:0; border-radius:0;
+  flex-direction:column; align-items:stretch; gap:var(--space-2);
+}
+.v4 .j-actions .btn{ margin-left:0; width:100% }
+.v4 .j-actions .j-state{ align-self:flex-end }
+/* หมายเหตุยาว ๆ ท้ายการ์ด ย้ายไปอยู่ฝั่งซ้ายใต้เนื้อหา จะได้ไม่บีบปุ่มให้แคบ */
+.v4 .j-note{ grid-column:1; flex:1 1 100%; font-size:.8rem; margin-top:var(--space-2) }
+
+/* ── การ์ดที่ปิดแล้ว = จางลง ไม่ต้องเปลี่ยนพื้น ── */
+.v4 .j-card.is-closed{ background:transparent; opacity:.62 }
+.v4 .j-card.is-closed .j-actions{ background:transparent }
+
+/* ── แถวเลื่อนแนวนอน (ชั้นการค้นพบ) ยังเป็นการ์ดเหมือนเดิม —
+      ที่นั่นการ์ดเรียงข้างกัน ถ้าถอดกรอบออกจะแยกใบไม่ออก ── */
+.v4 .rail-track > .j-card{
+  border:1px solid var(--color-rule); border-radius:var(--radius-lg);
+  padding:var(--space-5); background:var(--color-surface); box-shadow:var(--shadow-raise);
+  grid-template-columns:minmax(0,1fr);
+}
+.v4 .rail-track > .j-card > .j-foot,
+.v4 .rail-track > .j-card > .j-actions{ grid-column:1 }
+.v4 .rail-track > .j-card > .j-actions{ flex-direction:row; align-items:center }
+.v4 .rail-track > .j-card > .j-foot{ flex-direction:row; align-items:baseline; justify-content:space-between;
+  width:100%; padding-top:var(--space-4); border-top:1px solid var(--color-rule); margin-top:var(--space-4) }
+
+/* ── จอแคบ: กลับเป็นคอลัมน์เดียว ปุ่มเต็มความกว้าง ── */
+@media (max-width: 700px){
+  .v4 .j-card{ grid-template-columns:minmax(0,1fr) }
+  .v4 .j-card > .j-foot,
+  .v4 .j-card > .j-actions{ grid-column:1 }
+  .v4 .j-foot{ flex-direction:row; align-items:baseline; justify-content:space-between;
+    text-align:left; margin-top:var(--space-3) }
+  .v4 .j-actions{ flex-direction:row; flex-wrap:wrap }
+  .v4 .j-actions .btn{ flex:1 1 140px; width:auto }
+}

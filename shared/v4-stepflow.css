@@ -1,0 +1,225 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   v4-stepflow.css — เอา "วิธีจัดหน้า" ของจอจำลองใน index-v3 (#for-teachers) มาใช้จริง
+   สร้าง 2026-08-31 · Owner: "ผมอยากให้ออกแบบให้เหมือนกับ signup-teacher
+                              ในแบบเดียวกับ จอใน landing และหน้าอื่น ๆ ด้วย"
+
+   🔴 ไฟล์นี้ + v4-stepflow.js = "ชั้นทับ" ไม่ได้แก้ HTML เดิมสักบรรทัด
+      ช่องกรอกทุกช่อง · id · name · การตรวจข้อมูล · ยาม PDPA · ปลายทางตอนกดส่ง = ของเดิมทั้งหมด
+      ที่เปลี่ยนคือ "เห็นทีละขั้น" แทน "เลื่อนยาวลงมา" + หน้าตาชิ้นส่วนตามจอจำลอง
+
+   ที่มาของหน้าตา: index-v3.html บล็อก .mock (ค้น "--m-paper")
+     - แท็บ/ชิปที่เลือกอยู่ = ถมสีหมึกเข้ม ไม่ใช่สีอำพัน (อำพันสงวนไว้ให้ป้ายสถานะ)
+     - แถวรายการ = วงกลมตัวอักษร + ข้อความ 2 บรรทัด + ป้ายชิดขวา + เส้นคั่นบาง ๆ
+     - ตัวเลขสำคัญ = กล่องสี่เหลี่ยมมีขอบ ตัวเลขใหญ่ คำอธิบายเล็กใต้
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.v4 {
+  /* ชุดค่าของจอจำลอง — คุมทุกอย่างในไฟล์นี้ */
+  --v4-line:  var(--color-rule);
+  --v4-ink:   var(--color-ink);
+  --v4-ink2:  var(--color-ink-2);
+  --v4-paper: var(--color-surface);
+  --v4-r:     var(--radius-xl, 26px);
+}
+
+/* ── การ์ดใบใหญ่ที่ครอบทั้งฟอร์ม — จอจำลองเป็นแผ่นเดียวลอยอยู่ ──
+   (สคริปต์ติดคลาส .v4-card ให้เองเมื่อเป็นหน้าแบบฟอร์ม) */
+.v4 .v4-card{
+  background: var(--v4-paper);
+  border-radius: var(--v4-r);
+  box-shadow: var(--shadow-lift);
+  padding: clamp(20px, 3vw, 38px);
+  max-width: 860px;
+  margin-inline: auto;
+}
+
+/* ── 🔴 ถอดแถบเมนูซ้ายทิ้ง — Owner สั่ง 2026-08-31 ──
+   *"เมนู side bar ก็ไม่ควรมีแล้วรึเปล่า ผมต้องการให้เป็นเหมือนกับในจอ landing เลย"*
+   จอจำลองใน landing ไม่มีแถบข้าง มีแต่ **แท็บแถวบน** (.mock-tabs)
+   -> ซ่อนแถบข้าง แล้วเอาแถบบน (ที่หน้าเดิมใช้เฉพาะจอแคบ) มาโชว์ทุกความกว้างแทน
+      = โลโก้กับปุ่มกลับหน้าแรกยังอยู่ครบ ไม่ได้ตัดทางออกของใคร */
+.v4 .sidebar{ display:none !important }
+.v4 .mobile-header{ display:flex !important }
+
+/* ── แท็บขั้นแถวบน — ท่า .mock-tabs เป๊ะ: ไม่มีขอบ ตัวจาง · อันที่เปิดอยู่ = ถมหมึกเข้ม ── */
+.v4-steps{
+  display:flex; flex-wrap:wrap; gap:8px;
+  max-width:860px; margin:0 auto 14px;
+}
+.v4-step{
+  display:inline-flex; align-items:center; gap:7px; width:auto;
+  font-family:var(--font-display); font-weight:500; font-size:.86rem;
+  text-align:left; cursor:pointer;
+  padding:8px 15px; border:0; background:transparent; border-radius:var(--radius-pill);
+  color:var(--color-ink-2);
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.v4-step:hover{ background:var(--color-paper-2) }
+.v4-step .n{ display:none }   /* แท็บในจอจำลองเป็นตัวหนังสือล้วน ไม่มีเลขวงกลม */
+.v4-step[aria-current="true"]{ background:var(--color-ink); color:var(--color-surface); font-weight:600 }
+/* ขั้นที่กรอกครบแล้ว = ติ๊กถูก · ขั้นที่ยังขาด = จุดอำพัน (ไม่ใช่แดง จะได้ไม่ตกใจตั้งแต่ยังไม่ได้กรอก) */
+.v4-step .mark{ font-size:.8rem; line-height:1 }
+.v4-step[data-state="done"]    .mark::after{ content:"✓"; color:var(--color-ok) }
+.v4-step[data-state="todo"]    .mark::after{ content:"•"; color:var(--color-amber-edge); font-size:1.3rem }
+.v4-step[aria-current="true"][data-state="done"] .mark::after,
+.v4-step[aria-current="true"][data-state="todo"] .mark::after{ color:var(--color-surface) }
+
+/* ── หัวแถบความคืบหน้าเหนือฟอร์ม ── */
+.v4-progress{
+  max-width:860px; margin:0 auto 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.v4-progress .lbl{ font-family:var(--font-display); font-weight:700; font-size:var(--text-sm); color:var(--color-ink) }
+.v4-progress .bar{
+  flex:1 1 180px; height:8px; border-radius:99px; overflow:hidden;
+  background:var(--color-paper-2); border:1px solid var(--v4-line);
+}
+.v4-progress .bar i{ display:block; height:100%; background:var(--color-amber); border-radius:99px;
+  transition:width var(--dur-med) var(--ease-out) }
+.v4-progress .all{
+  font:inherit; font-size:var(--text-sm); font-weight:600; cursor:pointer;
+  background:transparent; border:1px solid var(--color-rule-2); border-radius:var(--radius-pill);
+  padding:7px 15px; color:var(--color-ink-2); min-height:40px;
+}
+.v4-progress .all:hover{ background:var(--color-paper-2) }
+
+/* ── เห็นทีละขั้น ── (โหมด "ดูทั้งหมด" ปิดกฎนี้) */
+.v4:not(.v4-all) .section[hidden]{ display:none }
+.v4 .section{ border:0; padding:0; margin:0; box-shadow:none; background:transparent }
+.v4 .section + .section{ margin-top:0 }
+.v4-all .section + .section{ margin-top:40px; padding-top:32px; border-top:1px solid var(--v4-line) }
+
+/* หัวข้อของขั้น — ป้ายทรงแคปซูล ไม่ใช่ป้ายสี่เหลี่ยม
+   🔴 ห้ามล็อกเป็นวงกลม 30×30 — Owner เจอเอง 2026-08-31:
+      หน้าสมัครครูเขียนเลขสั้น ("01") แต่หน้าสมัครผู้ปกครอง/หน้าจองเขียนยาว ("ขั้นที่ 1")
+      พอบังคับกล่อง 30px ตัวหนังสือเลยล้นจนอ่านไม่ออก
+      -> ให้กว้างตามข้อความ (วงกลมพอดีเป๊ะเมื่อเป็นเลข 2 หลัก) */
+.v4 .sec-head{ margin-bottom:22px }
+.v4 .sec-num{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:30px; height:30px; padding:0 11px; border-radius:var(--radius-pill);
+  background:var(--color-ink); color:var(--color-surface); white-space:nowrap;
+  font-family:var(--font-display); font-weight:700; font-size:.8rem; line-height:1;
+}
+
+/* 🔴 เส้นอำพันแนวตั้งข้างการ์ดขั้น (`.section::before` ของหน้าเดิม) — Owner เจอเอง
+   ของเดิมมันคือเส้นตกแต่งที่ "ขอบซ้ายของการ์ดแต่ละขั้น" ซึ่งตอนนั้นแต่ละขั้นเป็นการ์ดมีกรอบ
+   พอ v4 ถอดกรอบของแต่ละขั้นออก (ให้ทั้งฟอร์มเป็นการ์ดใบเดียวแทน) เส้นนี้เลยลอยค้างกลางการ์ด
+   มีในหน้าเดิม 8 หน้า -> ปิดพร้อมกันตรงนี้ที่เดียว */
+.v4 .section::before{ display:none }
+
+/* ── ปุ่มเดินหน้า-ถอยหลังท้ายขั้น ── */
+.v4-nav{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  margin-top:30px; padding-top:22px; border-top:1px solid var(--v4-line);
+}
+.v4-nav .grow{ flex:1 1 auto }
+.v4-nav button{
+  font:inherit; font-family:var(--font-display); font-weight:700; font-size:var(--text-sm);
+  min-height:46px; padding:0 22px; border-radius:var(--radius-pill); cursor:pointer;
+  border:1px solid var(--color-rule-2); background:var(--color-surface); color:var(--color-ink);
+}
+.v4-nav .next{ background:var(--color-amber); border-color:var(--color-amber-edge); color:var(--color-amber-ink) }
+.v4-nav .next:hover{ filter:brightness(.96) }
+.v4-nav button:hover{ background:var(--color-paper-2) }
+.v4-nav .next:hover{ background:oklch(89% 0.135 84) }
+.v4-all .v4-nav{ display:none }
+
+/* ── ชิป — ท่าจอจำลอง: ที่เลือกอยู่ = ถมหมึกเข้ม ไม่ใช่อำพัน ── */
+.v4 .chip{
+  min-height:38px; padding:0 15px; border-radius:var(--radius-pill);
+  border-color:var(--v4-line); font-weight:500; color:var(--v4-ink2);
+}
+.v4 .chip:has(input:checked){
+  background:var(--color-ink); border-color:var(--color-ink); color:var(--color-surface); font-weight:600;
+}
+@media (hover:hover){ .v4 .chip:has(input:checked):hover{ background:var(--color-ink) } }
+/* พื้นที่แตะยังต้อง >=44px ตาม design.md ข้อ 8 — ขยายด้วยเงาใส ไม่ทำให้ชิปอ้วน */
+.v4 .chip::after{ content:""; position:absolute; inset:-4px 0; }
+.v4 .chip{ position:relative }
+
+/* ── ตารางว่าง — ท่าแถวของจอจำลอง: เส้นคั่นบาง ๆ ไม่ใช่กล่องมีกรอบ ── */
+.v4 .availbox{ border:0; border-radius:0 }
+.v4 .avail-day{
+  border-top:1px solid var(--v4-line); border-radius:0;
+  grid-template-columns:150px minmax(0,1fr); align-items:center; padding:12px 2px;
+}
+.v4 .avail-day.is-on{ background:transparent }
+.v4 .avail-sw{
+  border:0; background:transparent; padding:0; gap:11px; font-weight:600; color:var(--v4-ink2);
+}
+.v4 .avail-sw:has(input:checked){ background:transparent; color:var(--v4-ink) }
+/* จุดติ๊กกลายเป็นวงกลมตัวอักษรแบบในจอจำลอง */
+.v4 .avail-sw .sw-dot{
+  width:30px; height:30px; border-radius:50%;
+  background:var(--color-paper-2); border:1px solid var(--v4-line); color:var(--v4-ink2);
+}
+.v4 .avail-sw:has(input:checked) .sw-dot{
+  background:var(--color-amber-deep); border-color:var(--color-amber-deep); color:var(--color-surface);
+}
+/* ป้าย "ไม่ว่าง" ให้เป็นป้ายสถานะชิดขวาแบบ .mbadge.is-wait */
+.v4 .avail-off{
+  display:inline-flex; align-items:center; border-radius:var(--radius-pill);
+  padding:4px 12px; background:var(--color-paper-2); color:var(--v4-ink2);
+  font-family:var(--font-display); font-weight:600; font-size:.78rem;
+}
+
+/* ── กล่องตัวเลขสรุป (ท่า .mtile) — ใช้กับสรุปเวลาว่าง/ราคา ── */
+.v4 .avail-sum{
+  display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; padding-top:16px;
+  border-top:1px solid var(--v4-line);
+}
+
+@media (max-width: 900px){
+  .v4 .v4-card{ padding:18px; border-radius:var(--radius-lg) }
+  .v4-steps{ flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:4px }
+  .v4-step{ flex:none }
+}
+
+/* ── ของที่เคยอยู่ในแถบข้าง แล้วถูกย้ายออกมาเพราะถอดแถบข้างทิ้ง ──
+   (เช่นกล่อง "สรุปคาบนี้" ของหน้าจอง — ห้ามให้หายไปพร้อมแถบ) */
+.v4-side-extra{
+  max-width:860px; margin:0 auto 14px;
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+}
+.v4-side-extra > *{ margin:0 }
+
+/* ลิงก์ที่เคยอยู่ในสารบัญแต่ชี้ออกไปหน้าอื่น (เช่น "หางานเพิ่ม") ถูกย้ายขึ้นแถบบน */
+.v4 .mobile-header{ flex-wrap:wrap }
+
+/* ตัวนับบนแท็บ (เช่น "คาบวันนี้ 2") — ย้ายตัวจริงมาจากสารบัญ ตัวเลขจึงยังอัปเดตเองได้ */
+.v4-count{
+  display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px;
+  border-radius:var(--radius-pill); background:var(--color-paper-2); color:var(--color-ink-2);
+  font-family:var(--font-display); font-weight:700; font-size:.72rem; font-variant-numeric:tabular-nums;
+}
+.v4-step[aria-current="true"] .v4-count{ background:var(--color-surface); color:var(--color-ink) }
+
+/* ── พื้นที่แตะของแท็บ ≥44px ตาม design.md ข้อ 8 ──
+   แท็บสูง 35px ตามหน้าตาของจอจำลอง -> ขยาย "เฉพาะพื้นที่กด" ด้วย ::after
+   ขยายแนวตั้งอย่างเดียว ไม่ให้ทับแท็บที่อยู่ข้าง ๆ (ท่าเดียวกับที่ใช้กับชิป) */
+.v4-step{ position:relative }
+.v4-step::after{ content:""; position:absolute; inset:-5px 0 }
+
+/* ── จอแคบ: แถบแท็บเลื่อนแนวนอน ต้องบอกให้รู้ว่าเลื่อนได้ ── */
+@media (max-width: 900px){
+  .v4-steps{
+    -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
+    mask-image:linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 24px), transparent 100%);
+  }
+  .v4-step{ scroll-snap-align:start }
+}
+
+/* 🔴 กับดักน้ำหนัก selector — เจอจริง 2026-08-31 ตอนไล่ตรวจจอ 390px
+   `.v4 .avail-day` (2 คลาส) ชนะ `@media(max-width:640px){.avail-day{...}}` ของหน้าเดิม (1 คลาส)
+   ผลคือจอมือถือถูกบังคับเป็น 2 คอลัมน์ 150px+เนื้อหา -> การ์ดกว้างเกินจอจนเนื้อหาโดนตัดหาย
+   -> ต้องเขียนกฎจอแคบซ้ำในไฟล์นี้ด้วยเสมอ เวลาไปทับ layout ของหน้าเดิม */
+@media (max-width: 640px){
+  .v4 .avail-day{ grid-template-columns:minmax(0,1fr); gap:8px; padding:10px 2px }
+}
+
+/* 🔴 กันการ์ดล้นจอมือถือ — เจอจริง 2026-08-31 (จอ 390px การ์ดกว้าง 660 เนื้อหาขวาโดนตัดหาย)
+   ต้นเหตุ: แถบแท็บเรียงแนวนอน "ความกว้างขั้นต่ำตามเนื้อหา" = 875px
+            `.wrap` เป็น flex item ของ .content-col (คอลัมน์) ซึ่งใน Chrome ยืดได้แต่ "หดต่ำกว่า min-content ไม่ได้"
+            -> .wrap เลยโป่งเป็น 700 แล้วการ์ดโป่งตาม ทั้งที่ตัวแถบแท็บมี overflow-x:auto อยู่แล้ว
+   วิธีแก้ที่ได้ผล: บังคับ width:100% ให้ .wrap (วัดแล้วเหลือ 390 พอดีจอ ทั้งบนมือถือและจอกว้าง) */
+.v4 .wrap{ width:100%; min-width:0 }

@@ -1,0 +1,2286 @@
+﻿<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ไม่มีการบันทึกข้อมูล ไม่มีการจ่ายเงิน
+  ขั้น 6 · section 3 — "หน้าจอง" (ทาง 3: ปฏิทินจริงเป็นต้นทางเดียว · Owner เคาะ 2026-08-15)
+
+  ทางเข้าหน้านี้: teacher-profile.html กดช่วงเวลา → booking.html?t=ploy&d=2026-08-18&s=960&e=1320
+  ทางเข้าที่ยังไม่ต่อ: ปุ่ม "ยื่นข้อเสนอ" ใน job-board.html = section 4
+
+  🔗 ลิสต์กลางที่หน้านี้ต้องใช้ร่วมกับหน้าอื่น (ห้ามตั้งขึ้นมาเอง — CLAUDE.md กฎข้อ 8):
+     · รูปแบบสอน  = online / home / public  (รหัสเดียวกับ signup-teacher:1068, teacher-search, post-job)
+     · ช่วงชั้น    = kindergarten/primary_low/primary_high/middle/high/university/adult/all (signup-teacher:1061)
+     · ระดับชั้น   = GRADES 18 ตัว (ต้นฉบับ signup-parent.html ค้น `const GRADES`) แปลงด้วย gradeToLevel() ชุดเดียวกับ teacher-search
+     · ตรรกะเวลา  = mergeRanges/subtract/ymd/addDays/toHHMM ก๊อบจาก teacher-profile.html ห้ามเขียนใหม่
+  🔐 ห้ามแสดง/ห้ามเก็บในหน้านี้: เบอร์ครู · ID LINE · ชื่อ-นามสกุลจริง (ที่อยู่ผู้เรียนกรอกได้ แต่ครูเห็นหลังชำระเงินแล้วเท่านั้น)
+  ⭐ ก้อน B (2026-08-18): ส่งคำขอถึงครูหลายคนได้ (เพิ่มครูใน "หน้าติดตามคำขอ" หลังส่งแล้ว — Owner สั่งย้ายจากในฟอร์ม 2026-08-18) · ระบบสถานะตาม SYSTEM ข้อ 8 · ขั้นชำระเงิน (โครง ยังไม่ตัดเงิน)
+     · จองล่วงหน้าขั้นต่ำ 24 ชม. บังคับที่ leadCutoff() จุดเดียว
+     · ไม่มีครูรับ → ปุ่มเดียว "โพสต์หาครูด้วยข้อมูลเดิม" (SYSTEM ข้อ 12 ข้อ 4) ห้ามให้กรอกใหม่
+  🔴 กติกาทาง 3 ข้อ 6: หน้านี้คือ "ขอจอง" ไม่ใช่ "จองติดทันที" — ครูตอบใน 1-2 ชม. (นาฬิกาหยุดเดิน 22:00–07:00)
+     ⚠️ อย่าสับสน 2 ตัวเลข: ครูตอบภายใน = 1-2 ชม. · จองล่วงหน้าก่อนเวลาเรียน = 24 ชม.
+     ต้นฉบับตัวเลขทั้งหมด = SYSTEM_สถานะงาน.md ข้อ 5 (แก้ 24 ชม. → 1-2 ชม. เมื่อ 2026-08-17 ตามคำสั่ง Owner)
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่อาจมีเงื่อนไขของผู้เรียน) หลุดไปกับ Referer ตอนโหลดฟอนต์/ลิงก์ออกนอกเว็บ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ขอจองคาบเรียนกับครูพลอย — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<style>
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ * macrostructure: Narrative Workflow (design.md ล็อกไว้สำหรับขั้น 6) · genre: modern-minimal · designed-as-app
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none (typography only)
+ * เปลือก + คลาสฟอร์ม = ชุดเดียวกับ post-job.html เป๊ะ (ห้ามคิดชื่อคลาสใหม่)
+ * ปฏิทิน (.cal / .slot / .legend) = ก๊อบจาก teacher-profile.html เพื่อให้ผู้ใช้เห็นของหน้าตาเดียวกัน 2 หน้า
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* [hidden] ต้องประกาศเอง ไม่งั้นคลาสที่มี display: จะทับ (บั๊กจริง 2026-08-13) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);color:var(--color-ink);
+  line-height:1.65;font-size:16px;overflow-x:clip;background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.sec-num,.chip{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:780px;width:100%;margin:0 auto;padding:0 var(--space-5)}
+
+.page-shell{display:flex;flex-direction:column;min-height:100vh}
+.content-col{flex:1;min-width:0}
+@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+
+.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
+  color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);white-space:nowrap;
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
+    position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.sidenav-num{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;color:var(--color-muted);min-width:20px;font-variant-numeric:tabular-nums}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a.active .sidenav-num{color:var(--color-accent-deep)}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+
+/* กล่องสรุปราคาในราวซ้าย — อัปเดตสดตามที่เลือก (จอ <900px ไปโผล่เป็นแถบท้ายจอแทน) */
+.side-sum{
+  margin-top:auto;padding-top:var(--space-6);border-top:1px solid var(--color-rule);
+  font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55;
+}
+.side-sum strong{display:block;font-family:var(--font-display);color:var(--color-ink);margin-bottom:4px}
+.side-sum .sum-total{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-ink);display:block;margin-top:6px}
+
+.hero-band{position:relative;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.intro{padding:var(--space-16) 0 var(--space-12)}
+.intro .eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);margin-bottom:var(--space-5);
+}
+.intro h1{font-size:var(--text-display-s);line-height:1.15;max-width:18ch}
+.intro h1 .underline{position:relative;white-space:nowrap}
+.intro h1 .underline::after{content:"";position:absolute;left:0;right:0;bottom:-.06em;height:3px;background:var(--color-accent);border-radius:2px}
+.intro p{margin-top:var(--space-5);color:var(--color-ink-2);font-size:var(--text-lg);max-width:48ch;line-height:1.6}
+/* แถบตัวตนครู — ผู้ใช้ต้องเห็นตลอดว่ากำลังจองกับใคร ไม่ใช่จองลอย ๆ */
+.who-strip{display:flex;align-items:center;gap:var(--space-4);margin-top:var(--space-6);flex-wrap:wrap}
+.who-avatar{
+  width:56px;height:56px;border-radius:var(--radius-lg);flex:0 0 auto;
+  background:var(--color-accent-soft);border:1px solid var(--color-rule);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-accent-deep);
+}
+.who-text{min-width:0;font-size:var(--text-sm);color:var(--color-ink-2)}
+.who-text b{display:block;font-family:var(--font-display);font-size:var(--text-base);color:var(--color-ink)}
+
+form{padding:var(--space-12) 0 var(--space-16)}
+.section{
+  position:relative;z-index:var(--z-base);background:var(--color-surface);
+  border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+  padding:var(--space-8);margin-bottom:var(--space-6);
+  box-shadow:var(--shadow-raise);scroll-margin-top:var(--space-16);
+  container-type:inline-size;               /* ให้ปฏิทินบีบตามความกว้างกล่อง ไม่ใช่ความกว้างจอ */
+}
+@media (min-width:900px){
+  .section::before{content:"";position:absolute;left:-1px;top:var(--space-10);bottom:var(--space-8);width:2px;background:var(--color-accent-soft);border-radius:2px}
+}
+@media (max-width:560px){.section{padding:var(--space-6) var(--space-4);border-radius:var(--radius-md)}}
+.sec-head{margin-bottom:var(--space-6)}
+.sec-num{
+  display:inline-flex;align-items:center;gap:6px;height:26px;font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:0 10px;border-radius:var(--radius-sm);margin-bottom:var(--space-3);font-variant-numeric:tabular-nums;
+}
+.sec-head h2{font-size:var(--text-xl);line-height:1.25}
+.sec-head p{color:var(--color-ink-2);font-size:var(--text-base);margin-top:var(--space-2);max-width:60ch}
+
+/* ขั้นที่ยังเลือกไม่ได้ = จืดลงทั้งกล่อง + บอกเหตุผล (ไม่ซ่อน เพราะผู้ใช้ต้องเห็นว่ายังเหลืออีกกี่ขั้น) */
+.step-lock{
+  display:flex;gap:var(--space-3);align-items:flex-start;
+  background:var(--color-paper-2);border:1px dashed var(--color-rule-2);border-radius:var(--radius-md);
+  padding:var(--space-5);font-size:var(--text-sm);color:var(--color-ink-2);
+}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:var(--text-sm);font-weight:600;color:var(--color-ink)}
+.field .req{color:var(--color-error);margin-left:2px}
+.field .helper{font-size:var(--text-sm);color:var(--color-ink-2);min-height:1lh}
+.field .helper.err{color:var(--color-error);font-weight:600}
+.grid{display:grid;gap:var(--space-5)}
+.grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:560px){.grid-2{grid-template-columns:minmax(0,1fr)}}
+
+input[type=text],select,textarea{
+  height:var(--control-h);font:inherit;font-size:var(--text-base);color:var(--color-ink);
+  background:var(--color-surface);border:1px solid var(--color-rule-2);
+  outline:2px solid transparent;outline-offset:1px;border-radius:var(--radius-md);
+  padding:0 14px;width:100%;
+  transition:background-color var(--dur-short) var(--ease-out),border-color var(--dur-short) var(--ease-out);
+}
+textarea{height:auto;min-height:5.5rem;padding:12px 14px;resize:vertical;line-height:1.6}
+input:hover,select:hover,textarea:hover{border-color:var(--color-ink-2)}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--color-focus);border-color:var(--color-focus)}
+input::placeholder,textarea::placeholder{color:var(--color-muted)}
+input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--color-error);background:var(--color-error-soft)}
+
+/* ---- การ์ดเลือกผู้เรียน (ขั้น 1) ----
+   🔴 ห้ามให้พิมพ์ชื่อเอง — ต้องเลือกจากโปรไฟล์ลูกที่มีในบัญชี (CLAUDE.md กฎ 8 ข้อ 4)
+   คอมโพเนนต์นี้จะถูกก๊อบไปแทนช่องพิมพ์ชื่อใน post-job.html:371 ตอน section 4 */
+.learner-grid{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.learner-pick{
+  position:relative;display:flex;gap:var(--space-4);align-items:flex-start;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);background:var(--color-surface);
+  padding:var(--space-5);cursor:pointer;min-height:44px;
+  transition:background-color var(--dur-short) var(--ease-out),border-color var(--dur-short) var(--ease-out);
+}
+.learner-pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;margin:0}
+.learner-pick:has(input:checked){border-color:var(--color-accent);background:var(--color-accent-soft)}
+.learner-pick:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.learner-pick:hover{background:var(--color-paper-2)}.learner-pick:has(input:checked):hover{background:var(--color-accent-soft)}}
+/* อีโมจิตามช่วงชั้น — ไม่ใช้ตัวอักษรแรกของชื่อ (ชื่อไทยขึ้นต้นด้วยสระบ่อย เช่น แทน/แพร = "แ" เหมือนกัน) */
+.learner-face{
+  width:44px;height:44px;border-radius:var(--radius-md);flex:0 0 auto;
+  background:var(--color-paper-2);border:1px solid var(--color-rule);
+  display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;
+}
+.learner-info{min-width:0}
+.learner-info b{font-family:var(--font-display);font-size:var(--text-base);display:block;overflow-wrap:anywhere}
+.learner-info span{display:block;font-size:var(--text-sm);color:var(--color-ink-2)}
+/* ลูกคนเดียว = ไม่มีอะไรให้เลือก → เหลือบรรทัดเดียว (Setmore ตัดขั้นที่ไม่มีตัวเลือกทิ้ง) */
+.learner-single{
+  display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap;
+  background:var(--color-paper-2);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-4) var(--space-5);font-size:var(--text-base);
+}
+.learner-single .link-btn{margin-left:auto}
+/* ใช้เป็นได้ทั้ง <button> และ <a> — <a> เป็น inline ตามค่าเริ่มต้น min-height จะไม่ทำงาน
+   ต้องบังคับ inline-flex ไม่งั้นพื้นที่แตะเหลือ 23px (วัดเจอจริง) */
+.link-btn{
+  display:inline-flex;align-items:center;
+  border:none;background:transparent;font:inherit;font-size:var(--text-sm);font-weight:600;
+  color:var(--color-accent-deep);cursor:pointer;text-decoration:underline;
+  min-height:44px;padding:0 var(--space-2);border-radius:var(--radius-sm);
+}
+.link-btn:hover{background:var(--color-surface)}
+.link-btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* ---- ชิปตัวเลือก (รูปแบบเรียน / เวลาเริ่ม / ความยาวคาบ) ---- */
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  position:relative;flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 16px;white-space:nowrap;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);
+  background:var(--color-surface);font-size:var(--text-sm);font-weight:600;color:var(--color-ink);
+  cursor:pointer;user-select:none;transition:background-color var(--dur-short) var(--ease-out);
+}
+.chip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;margin:0}
+.chip:has(input:checked){background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+.chip:has(input:disabled){opacity:.5;cursor:not-allowed;background:var(--color-surface-2)}
+@media (hover:hover){.chip:hover{background:var(--color-paper-2)}.chip:has(input:checked):hover{background:var(--color-accent)}}
+.chip small{font-family:var(--font-sans);font-weight:400;color:var(--color-ink-2)}
+.chip:has(input:checked) small{color:var(--color-accent-ink);opacity:.85}
+/* เวลาเริ่มมีเยอะ → เรียงเป็นกริดให้กวาดตาเป็นคอลัมน์ ไม่ใช่กองยาวพันบรรทัด */
+.time-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+.time-grid .chip{justify-content:center;padding:0 8px;font-variant-numeric:tabular-nums}
+
+/* ---- ปฏิทิน (ก๊อบทรงมาจาก teacher-profile.html ห้ามให้ 2 หน้าหน้าตาคนละแบบ) ---- */
+.cal{border:1px solid var(--color-rule);border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface)}
+.cal-head{display:flex;align-items:center;gap:var(--space-3);padding:10px 12px;background:var(--color-paper-2);border-bottom:1px solid var(--color-rule)}
+.cal-range{font-family:var(--font-display);font-weight:700;font-size:var(--text-sm);color:var(--color-ink);flex:1;min-width:0}
+.cal-nav{display:flex;gap:6px;flex:none}
+.cal-nav button{
+  width:44px;height:44px;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink);font-size:18px;line-height:1;cursor:pointer;
+}
+.cal-nav button:hover:not(:disabled){background:var(--color-paper-2)}
+.cal-nav button:disabled{opacity:.35;cursor:not-allowed}
+.cal-nav button:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.cal-day{
+  display:grid;grid-template-columns:112px minmax(0,1fr);gap:var(--space-3);
+  align-items:start;padding:10px 12px;border-top:1px solid var(--color-rule);
+}
+.cal-day:first-child{border-top:none}
+.cal-date{font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--color-ink);line-height:1.35;padding-top:10px}
+.cal-date small{display:block;font-family:var(--font-sans);font-weight:400;font-size:12px;color:var(--color-ink-2);margin-top:1px}
+.cal-slots{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.slot{
+  position:relative;min-height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;
+  border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:600;
+  background:var(--color-accent-soft);border:1px solid var(--color-accent-deep);color:var(--color-ink);
+  font-family:var(--font-sans);cursor:pointer;
+}
+.slot:hover{background:var(--color-surface);border-color:var(--color-accent)}
+.slot:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+/* ช่วงที่เลือกอยู่ = ทึบ (ต่างที่น้ำหนักสี ไม่ใช่เติมคำอย่างเดียว) */
+.slot.is-picked{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-accent-ink)}
+.slot.is-picked .slot-go{color:var(--color-accent-ink)}
+.slot .slot-go{color:var(--color-accent-deep);font-weight:700}
+.slot.is-busy{background:var(--color-surface-2);border-color:var(--color-rule-2);color:var(--color-ink-2);cursor:default;font-weight:400}
+.cal-off{font-size:var(--text-sm);color:var(--color-muted);padding:12px 0}
+/* บอกเหตุผลตรงแถวที่ช่วงเวลาหายไปเพราะกันเวลาเดินทาง — ไม่งั้นผู้ใช้เห็นช่องโหว่แล้วงงว่าทำไมกดไม่ได้ */
+.cal-hint{display:inline-flex;align-items:center;min-height:44px;font-size:var(--text-sm);color:var(--color-muted)}
+.cal-foot{margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+@container (max-width:380px){
+  .cal-day{grid-template-columns:minmax(0,1fr);gap:6px}
+  .cal-date{padding-top:0}
+  .cal-date small{display:inline;margin-left:6px}
+  .slot{width:100%;justify-content:space-between}
+}
+.legend{display:flex;gap:var(--space-5);flex-wrap:wrap;margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{width:18px;height:18px;border-radius:var(--radius-sm);border:1px solid var(--color-rule);background:var(--color-paper-2);display:inline-block}
+.legend i.on{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+.legend i.busy{background:var(--color-surface-2);border-color:var(--color-rule)}
+
+/* ---- กล่องข้อความ (ชุดเดียวกับ post-job.html) ---- */
+.note{
+  display:flex;gap:var(--space-4);align-items:flex-start;background:var(--color-paper-2);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.note strong{display:block;font-family:var(--font-display);margin-bottom:4px}
+.note-mark{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--color-ok);color:var(--color-surface);
+}
+.note--warn{background:var(--color-error-soft);border-color:var(--color-error)}
+.note--warn .note-mark{background:var(--color-error)}
+
+/* ---- สรุปราคา ---- */
+.price-box{
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);background:var(--color-paper-2);
+  padding:var(--space-5) var(--space-6);
+}
+.price-line{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap;font-size:var(--text-base)}
+.price-line + .price-line{margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--color-rule)}
+.price-line .k{color:var(--color-ink-2);font-size:var(--text-sm)}
+.price-line .v{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.price-total .v{font-family:var(--font-display);font-weight:700;font-size:var(--text-2xl);color:var(--color-ink)}
+.summary{list-style:none;display:grid;gap:var(--space-3)}
+.summary li{display:flex;gap:var(--space-4);align-items:baseline;font-size:var(--text-base);border-bottom:1px solid var(--color-rule);padding-bottom:var(--space-3)}
+.summary li:last-child{border-bottom:none;padding-bottom:0}
+.summary .k{flex:0 0 34%;max-width:180px;font-size:var(--text-sm);font-weight:600;color:var(--color-ink-2)}
+.summary .v{flex:1;min-width:0;overflow-wrap:anywhere}
+.summary .v.empty{color:var(--color-error);font-weight:600}
+
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover{background:var(--color-paper-2)}
+.btn[disabled]{opacity:.55;cursor:not-allowed;transform:none}
+/* ⭐ ก้อน B 2026-08-18 — ครูหลายคน · สถานะ · ขั้นชำระเงิน */
+.btn-ghost{background:transparent;color:var(--color-ink-2);border-color:var(--color-rule);font-weight:600}
+.btn-ghost:hover{background:var(--color-surface-2)}
+.alts{border:1px solid var(--color-rule);border-radius:var(--radius-lg);padding:var(--space-5);background:var(--color-surface-2)}
+#alt-list{display:flex;flex-direction:column;gap:var(--space-2);margin-top:var(--space-4)}
+.alt{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--color-rule);border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer}
+.alt--off{opacity:.55;cursor:not-allowed}
+.alt-ava{flex:0 0 auto;width:32px;height:32px;border-radius:999px;display:grid;place-items:center;background:var(--color-surface-2);border:1px solid var(--color-rule);font-weight:700}
+.alt-name{flex:1 1 auto;font-weight:600}
+.alt-price{font-variant-numeric:tabular-nums;font-weight:600}
+.alt-price--off{font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+.ticket-list{list-style:none;margin:var(--space-6) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.ticket{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--color-rule);border-radius:var(--radius-md);background:var(--color-surface)}
+.ticket-name{flex:1 1 auto;font-weight:600}
+.ticket-name small{font-weight:400;color:var(--color-ink-2)}
+.st{font-size:var(--text-sm);font-weight:600;padding:2px 10px;border-radius:999px;border:1px solid var(--color-rule);white-space:nowrap}
+.st--wait{background:var(--color-surface-2);color:var(--color-ink-2)}
+.st--act{background:var(--color-accent);color:var(--color-accent-ink);border-color:transparent}
+.st--ok{background:var(--color-surface-2);color:var(--color-ink);border-color:var(--color-ink-2)}
+.st--off{background:transparent;color:var(--color-ink-2);opacity:.75}
+.pay-box{margin-top:var(--space-6);border:1px solid var(--color-rule);border-radius:var(--radius-lg);padding:var(--space-5);background:var(--color-surface-2);display:flex;flex-direction:column;gap:var(--space-3);align-items:flex-start}
+.pay-methods{display:flex;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-2)}
+.pay-methods label{display:flex;align-items:center;gap:var(--space-2)}
+.sim{margin-top:var(--space-8);padding-top:var(--space-5);border-top:1px dashed var(--color-rule)}
+.sim-label{display:block;font-size:var(--text-xs);color:var(--color-ink-2);margin-bottom:var(--space-3)}
+.sim-row{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.btn-sim{font-size:var(--text-sm)}
+.submit-row{margin-top:var(--space-8);display:flex;flex-direction:column;gap:var(--space-3);align-items:flex-start}
+.form-error{color:var(--color-error);font-weight:600;font-size:var(--text-sm)}
+
+/* แถบสรุปติดท้ายจอ (เฉพาะจอเล็กที่ไม่มีราวซ้าย) */
+.dock{
+  position:sticky;bottom:0;z-index:var(--z-sticky);
+  background:var(--color-surface);border-top:1px solid var(--color-rule);
+  padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;
+  box-shadow:0 -2px 12px rgb(0 0 0 / .06);
+}
+.dock .dock-total{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);margin-left:auto;font-variant-numeric:tabular-nums}
+.dock .dock-what{font-size:var(--text-sm);color:var(--color-ink-2);min-width:0;overflow-wrap:anywhere}
+@media (min-width:900px){.dock{display:none}}
+
+.success{display:none;padding:var(--space-16) 0}
+.success .note-mark{width:64px;height:64px;font-size:28px;margin-bottom:var(--space-5)}
+.success h2{font-size:var(--text-2xl)}
+.success > p{color:var(--color-ink-2);margin-top:var(--space-3);max-width:52ch}
+.success-actions{display:flex;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-6)}
+.success-card{margin-top:var(--space-8);border:1px solid var(--color-rule);border-radius:var(--radius-lg);background:var(--color-paper-2);padding:var(--space-5)}
+.success-label{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;letter-spacing:.04em;color:var(--color-ink-2);margin-bottom:var(--space-3);display:block}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-6) 0 var(--space-8);font-size:var(--text-sm);color:var(--color-ink-2)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+  <header class="mobile-header">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="teacher-profile.html">กลับไปหน้าครู</a>
+  </header>
+
+  <aside class="sidebar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="teacher-profile.html">กลับไปหน้าครู</a>
+    <nav class="sidenav" aria-label="ขั้นตอนการขอจอง">
+      <a href="#sec1"><span class="sidenav-num">1</span>จองให้ใคร</a>
+      <a href="#sec2"><span class="sidenav-num">2</span>เรียนแบบไหน</a>
+      <a href="#sec3"><span class="sidenav-num">3</span>เลือกวัน</a>
+      <a href="#sec4"><span class="sidenav-num">4</span>เลือกเวลา</a>
+      <a href="#sec5"><span class="sidenav-num">5</span>ตรวจก่อนส่ง</a>
+    </nav>
+    <p class="side-sum" id="side-sum">
+      <strong>สรุปคาบนี้</strong>
+      <span id="side-what">ยังเลือกไม่ครบ</span>
+      <span class="sum-total" id="side-total">—</span>
+    </p>
+  </aside>
+
+  <div class="content-col">
+    <div class="hero-band">
+      <div class="wrap">
+        <div class="intro">
+          <span class="eyebrow">ขอจองคาบเรียน · 5 ขั้นตอน</span>
+          <h1>เลือกวันเวลาที่ต้องการ แล้ว<span class="underline">ส่งคำขอ</span>ให้ครู</h1>
+          <p>ครูจะตอบรับหรือเสนอเวลาอื่นภายใน 1-2 ชั่วโมง — ยังไม่ถือว่าจองสำเร็จจนกว่าครูจะกดรับ และยังไม่มีการจ่ายเงินในขั้นนี้</p>
+          <div class="who-strip">
+            <span class="who-avatar" aria-hidden="true" id="who-ava">พ</span>
+            <span class="who-text">
+              <b id="who-name">ครูพลอย</b>
+              <span id="who-sub">คณิตศาสตร์ · ฟิสิกส์ · วิทยาศาสตร์</span>
+            </span>
+          </div>
+          <!-- ⭐ ก้อน C② 2026-08-21: แถบนี้โผล่เฉพาะตอนมาจากการกดรับข้อเสนอ (?from=offer)
+               ต้องบอกให้ครบว่าราคาล็อกแล้ว · เลือกได้แค่ช่วงไหน · และต้องจ่ายภายในเท่าไร -->
+          <div class="note" id="offer-band" hidden style="margin-top:var(--space-6)">
+            <span class="note-mark" aria-hidden="true">✓</span>
+            <span id="offer-band-text"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form id="book-form" novalidate>
+      <div class="wrap">
+
+        <!-- 1 · จองให้ใคร -->
+        <section class="section" id="sec1">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 1</span>
+            <h2>จองให้ใคร</h2>
+            <p id="sec1-lead">เลือกจากโปรไฟล์ผู้เรียนที่มีอยู่ในบัญชีของคุณ — ราคาคิดตามระดับชั้นของคนที่เลือก</p>
+          </div>
+          <div id="learner-slot"></div>
+          <div class="helper err" id="err-learner" hidden></div>
+
+          <!-- วิชาของคาบนี้ — ปกติยกมาจากหน้าค้นหา/โปรไฟล์ทาง ?subj= ถ้าไม่มีถึงให้เลือกเอง
+               🔴 1 คาบ = 1 วิชา (ต่างจากตัวกรองหน้าค้นหาที่ติ๊กได้หลายวิชา)
+               ค่านี้ต้องติดไปกับใบคำขอ และต้องยกต่อไป post-job.html ตอนไม่มีครูรับ (SYSTEM ข้อ 12.4) -->
+          <div class="field" id="subj-box" style="margin-top:var(--space-6)">
+            <label id="subj-lbl">วิชาที่จะเรียนคาบนี้ <span class="req">*</span></label>
+            <div class="chip-group" id="subj-group" role="radiogroup" aria-labelledby="subj-lbl"></div>
+            <div class="helper" id="subj-help">เลือก 1 วิชา — ครูใช้ข้อนี้เตรียมเนื้อหาก่อนกดรับ · อยากเรียนอีกวิชาให้ส่งคำขออีกใบ</div>
+            <div class="helper err" id="err-subj" hidden></div>
+          </div>
+        </section>
+
+        <!-- 2 · เรียนแบบไหน -->
+        <section class="section" id="sec2">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 2</span>
+            <h2>เรียนแบบไหน</h2>
+            <p>ราคาต่างกันตามรูปแบบ เพราะการสอนที่บ้านรวมเวลาเดินทางของครูไว้แล้ว</p>
+          </div>
+          <div class="chip-group" id="mode-group" role="group" aria-label="รูปแบบการเรียน"></div>
+          <p class="helper" id="mode-help" style="margin-top:var(--space-3)"></p>
+
+          <!-- ราคาที่ได้จาก โหมด × ช่วงชั้นของผู้เรียนที่เลือก -->
+          <div id="price-state" style="margin-top:var(--space-5)"></div>
+
+          <!-- ที่อยู่: โผล่เฉพาะ home -->
+          <div id="addr-box" hidden style="margin-top:var(--space-6)">
+            <div class="grid grid-2">
+              <div class="field" style="grid-column:1/-1">
+                <label for="addr">ที่อยู่ที่ให้ครูไปสอน <span class="req">*</span></label>
+                <textarea id="addr" name="addr" placeholder="บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"></textarea>
+                <div class="helper" data-for="addr">ครูจะเห็นที่อยู่นี้<b>หลังจากกดรับคำขอแล้วเท่านั้น</b> · ก่อนหน้านั้นครูเห็นแค่ชื่อเขต/อำเภอ</div>
+              </div>
+              <div class="field">
+                <label for="prov">จังหวัด <span class="req">*</span></label>
+                <select id="prov" name="prov"></select>
+                <div class="helper" data-for="prov">ครูคนนี้เดินทางไปสอนได้เฉพาะจังหวัดในรายการ</div>
+              </div>
+              <div class="field">
+                <label for="district">เขต / อำเภอ <span class="req">*</span></label>
+                <input type="text" id="district" name="district" placeholder="เช่น บางกะปิ">
+                <div class="helper" data-for="district">ส่วนนี้ครูเห็นก่อนตัดสินใจรับคาบ</div>
+              </div>
+            </div>
+            <div class="note" style="margin-top:var(--space-5)">
+              <span class="note-mark" aria-hidden="true">◷</span>
+              <span>
+                <strong>ระบบกันเวลาเดินทางให้ครู 60 นาที ก่อน-หลังคาบ</strong>
+                เวลาที่ชนกับคาบอื่นของครูจะหายไปจากตัวเลือกในขั้นที่ 3-4 โดยอัตโนมัติ — ไม่ใช่ครูไม่ว่าง แต่กันไม่ให้ครูไปสายหรือรีบออก
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3 · เลือกวัน -->
+        <section class="section" id="sec3">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 3</span>
+            <h2>เลือกวันและช่วงที่ครูเปิดรับ</h2>
+            <p>ปฏิทินชุดเดียวกับในหน้าโปรไฟล์ครู — ช่วงที่ครูเปิดติดกันถูกรวมเป็นก้อนเดียวให้แล้ว</p>
+          </div>
+          <div class="step-body" id="sec3-body">
+            <!-- แจ้งเมื่อช่วงที่เคยเลือกไว้ถูกล้างเพราะเปลี่ยนรูปแบบ/ผู้เรียน — ห้ามให้ของหายเงียบ ๆ -->
+            <div id="cleared-note" hidden style="margin-bottom:var(--space-5)"></div>
+            <div class="cal">
+              <div class="cal-head">
+                <span class="cal-range" id="cal-range"></span>
+                <span class="cal-nav">
+                  <button type="button" id="cal-prev" aria-label="สัปดาห์ก่อนหน้า">‹</button>
+                  <button type="button" id="cal-next" aria-label="สัปดาห์ถัดไป">›</button>
+                </span>
+              </div>
+              <div id="cal-body"></div>
+            </div>
+            <div class="legend">
+              <span><i class="on"></i> ว่าง เลือกได้</span>
+              <span><i class="busy"></i> มีคาบแล้ว / เลือกไม่ได้</span>
+            </div>
+            <p class="cal-foot">เช่น ครูเปิด <b>16:00–22:00</b> เป็นก้อนเดียว จอง 18:00–20:00 คร่อมกลางได้ ไม่ต้องแยก 2 คาบ</p>
+            <p class="sr-only" id="cal-sr" aria-live="polite"></p>
+            <div class="helper err" id="err-day" hidden style="margin-top:var(--space-3)"></div>
+          </div>
+          <div class="step-lock" id="sec3-lock" hidden>
+            <span aria-hidden="true">🔒</span>
+            <span id="sec3-lock-text">เลือกผู้เรียนและรูปแบบการเรียนก่อน ปฏิทินจะขึ้นตามรูปแบบที่เลือก</span>
+          </div>
+        </section>
+
+        <!-- 4 · เลือกเวลา -->
+        <section class="section" id="sec4">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 4</span>
+            <h2>เริ่มกี่โมง เรียนกี่ชั่วโมง</h2>
+            <p id="sec4-lead">เลือกความยาวคาบก่อน แล้วเลือกเวลาเริ่ม — จุดเริ่มมีให้ทุก 30 นาที</p>
+          </div>
+          <div class="step-body" id="sec4-body" hidden>
+            <span class="sr-only" id="dur-label">ความยาวคาบ</span>
+            <div class="chip-group" id="dur-group" role="group" aria-labelledby="dur-label"></div>
+            <p class="helper" id="dur-help" style="margin-top:var(--space-3)"></p>
+            <!-- คำแนะนำเรื่องสมาธิของเด็กเล็ก — โผล่เฉพาะตอนจองยาวเกิน 1.5 ชม. ให้ผู้เรียนวัยประถม -->
+            <div id="young-tip" hidden style="margin-top:var(--space-4)"></div>
+
+            <div style="margin-top:var(--space-6)">
+              <span class="sr-only" id="start-label">เวลาเริ่ม</span>
+              <div class="time-grid" id="start-group" role="group" aria-labelledby="start-label"></div>
+              <p class="helper" id="start-help" style="margin-top:var(--space-3)"></p>
+            </div>
+            <div class="helper err" id="err-time" hidden></div>
+          </div>
+          <div class="step-lock" id="sec4-lock">
+            <span aria-hidden="true">🔒</span>
+            <span>เลือกวันและช่วงเวลาในขั้นที่ 3 ก่อน</span>
+          </div>
+        </section>
+
+        <!-- 5 · ตรวจก่อนส่ง -->
+        <section class="section" id="sec5">
+          <div class="sec-head">
+            <span class="sec-num">ขั้นที่ 5</span>
+            <h2>ตรวจก่อนส่งคำขอ</h2>
+            <p>เลื่อนขึ้นไปแก้ได้ตลอด ยังไม่มีอะไรถูกส่งจนกว่าจะกดปุ่มท้ายหน้า</p>
+          </div>
+
+          <ul class="summary" id="summary"></ul>
+
+          <div class="price-box" style="margin-top:var(--space-6)">
+            <div class="price-line">
+              <span class="k">ค่าเรียนต่อชั่วโมง</span>
+              <span class="v" id="p-rate">—</span>
+            </div>
+            <div class="price-line">
+              <span class="k">ความยาวคาบ</span>
+              <span class="v" id="p-hours">—</span>
+            </div>
+            <div class="price-line price-total">
+              <span class="k">รวมที่ต้องจ่ายให้ครู</span>
+              <span class="v" id="p-total">—</span>
+            </div>
+          </div>
+
+          <div class="note" style="margin-top:var(--space-6)">
+            <span class="note-mark" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span>
+              <strong>กดแล้วเกิดอะไรขึ้น</strong>
+              คำขอไปถึงครูทันที ครูมีเวลา <b>1-2 ชั่วโมง</b> ที่จะกดรับ ปฏิเสธ หรือเสนอเวลาอื่น (นาฬิกาหยุดเดินช่วง 22:00–07:00) · เราแจ้งผลให้คุณทาง LINE ·
+              ช่วงเวลานี้ยัง<b>ไม่ถูกล็อก</b> ผู้เรียนคนอื่นยังขอจองซ้อนได้จนกว่าครูจะกดรับคนใดคนหนึ่ง
+            </span>
+          </div>
+
+          <div class="submit-row">
+            <button type="submit" class="btn btn-primary" id="submit-btn">ส่งคำขอจอง</button>
+            <p class="form-error" id="form-error" hidden></p>
+            <p class="helper" style="min-height:0">ต้นแบบเท่านั้น — ยังไม่มีการบันทึกข้อมูลจริงและไม่มีการตัดเงิน</p>
+          </div>
+        </section>
+
+      </div>
+    </form>
+
+    <!-- หน้าติดตามคำขอ (เดิมเป็น "หน้าสำเร็จ" เฉย ๆ)
+         ⭐ ก้อน B 2026-08-18: ใส่ระบบสถานะจริงตาม SYSTEM ข้อ 8 + ขั้นชำระเงิน (โครง) -->
+    <div class="success" id="success">
+      <div class="wrap">
+        <span class="success-label">รหัสคำขอ <strong id="req-code">#BK-2041</strong></span>
+        <h2 id="req-head">ส่งคำขอจองแล้ว — รอครูตอบ</h2>
+        <p id="req-lead"></p>
+
+        <ul class="ticket-list" id="ticket-list"></ul>
+
+        <!-- ⭐ Owner สั่งย้ายมาไว้ตรงนี้ 2026-08-18: ส่งให้ครูคนอื่นเพิ่ม "หลังส่งคำขอแล้ว" ไม่ใช่ในหน้าจองของครูพลอย -->
+        <div class="alts" id="add-more" hidden style="margin-top:var(--space-6)">
+          <span class="success-label">ส่งคำขอนี้ให้ครูคนอื่นด้วย (ไม่บังคับ)</span>
+          <p class="helper" style="margin-top:var(--space-2)">ยังไม่มีใครกดรับ — เพิ่มครูได้เรื่อย ๆ · <b>ครูที่กดรับก่อนได้งาน ใบที่เหลือปิดทันที ไม่มีทางจ่าย 2 ที่</b></p>
+          <ul class="ticket-list" id="add-list"></ul>
+        </div>
+
+        <!-- ขั้นชำระเงิน — โครงเปล่า ยังไม่ตัดเงินจริง (ระบบรับเงินจริง = งาน B ตาม SCOPE) -->
+        <div class="pay-box" id="pay-box" hidden>
+          <span class="success-label">ชำระเงินเพื่อยืนยันคาบกับ <span id="pay-who">—</span></span>
+          <div class="price-line price-total" style="margin-top:var(--space-3)">
+            <span class="k">ยอดที่ต้องชำระ</span>
+            <span class="v" id="pay-total">—</span>
+          </div>
+          <div class="pay-methods" role="group" aria-label="ช่องทางชำระเงิน">
+            <label><input type="radio" name="paym" value="promptpay" checked> พร้อมเพย์ (แนะนำ)</label>
+            <label><input type="radio" name="paym" value="card"> บัตรเครดิต/เดบิต</label>
+          </div>
+          <button type="button" class="btn btn-primary" id="pay-btn">ชำระเงิน</button>
+          <p class="helper">ต้นแบบ — ยังไม่มีการตัดเงินจริง · เงินจริงจะเข้าตัวรับ-จ่ายเงินที่มีใบอนุญาต ไม่ผ่านบัญชี BGT</p>
+        </div>
+
+        <div class="success-actions" id="req-actions"></div>
+
+        <div class="success-card">
+          <span class="success-label">คำขอของคุณ</span>
+          <ul class="summary" id="success-summary"></ul>
+        </div>
+
+        <div class="sim" id="sim"></div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span class="foot-brand">BGT Tutor</span>
+        <span>คนกลางที่ทำให้ครูกับผู้เรียนเจอกันได้จริง</span>
+        <nav aria-label="ลิงก์ทางกฎหมาย">
+          <a href="#">ข้อตกลงการใช้งาน</a>
+          <a href="#">นโยบายความเป็นส่วนตัว</a>
+          <a href="#">ติดต่อเรา</a>
+        </nav>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<!-- แถบสรุปติดท้ายจอ เฉพาะจอเล็ก (จอใหญ่ใช้กล่องในราวซ้ายแทน) -->
+<div class="dock" id="dock" hidden>
+  <span class="dock-what" id="dock-what">ยังเลือกไม่ครบ</span>
+  <span class="dock-total" id="dock-total">—</span>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==========================================================================
+     ลิสต์กลาง + ข้อมูลสมมติ
+     🔴 ทุกค่าที่ผู้ใช้เลือกได้ต้องมีรหัสอังกฤษกำกับ ห้ามให้ระบบอ่านจากข้อความไทยบนจอ
+        (CLAUDE.md กฎข้อ 8 · Owner เคาะ 2026-08-15)
+     ========================================================================== */
+
+  /* ป้ายไทยของรหัสสถานที่ — ฝั่งผู้เรียนมองจากมุมตัวเอง ("ที่บ้าน")
+     ชุดรหัสเดียวกับ teacher-search.html / post-job.html / job-board.html */
+  var MODE_LABEL = { online: 'ออนไลน์', home: 'ที่บ้าน', public: 'สถานที่อื่นๆ' };
+  var MODE_HINT  = { online: 'เรียนผ่านหน้าจอ', home: 'ครูเดินทางมาสอนที่บ้าน', public: 'นัดเจอกันข้างนอก' };
+  var LEVEL_LABEL = {
+    kindergarten: 'อนุบาล', primary_low: 'ประถมต้น', primary_high: 'ประถมปลาย',
+    middle: 'มัธยมต้น', high: 'มัธยมปลาย / ปวช.', university: 'มหาวิทยาลัย',
+    adult: 'ผู้ใหญ่ทั่วไป', all: 'ทุกระดับ'
+  };
+  /* ไอคอนหน้าชื่อผู้เรียน — ผูกกับ "ช่วงชั้น" ไม่ใช่ตัวอักษรแรกของชื่อ
+     🔴 เดิมใช้ตัวอักษรแรก ซึ่งพังทันทีกับชื่อไทย: น้องแทน / น้องแพร ได้ "แ" เหมือนกันทั้งคู่ (Owner จับได้ 2026-08-16)
+     ผูกกับช่วงชั้นแล้วอย่างน้อยไอคอนบอกข้อมูลจริง ไม่ใช่ของประดับ */
+  var LEVEL_ICON = {
+    kindergarten: '🧸', primary_low: '🎒', primary_high: '🎒',
+    middle: '📚', high: '📚', university: '🎓', adult: '💼'
+  };
+
+  /* ก๊อบทั้งดุ้นจาก teacher-search.html — ห้ามเขียนใหม่ให้ 2 หน้าคิดคนละแบบ
+     ต้นฉบับรายชั้น 18 ตัวอยู่ที่ signup-parent.html:551 · ทุกตัวต้องแปลงได้ ห้ามคืนค่าว่าง */
+  function gradeToLevel(g) {
+    if (!g) return '';
+    if (g === 'อนุบาล') return 'kindergarten';
+    if (/^ป\.[123]$/.test(g)) return 'primary_low';
+    if (/^ป\.[456]$/.test(g)) return 'primary_high';
+    if (/^ม\.[123]$/.test(g)) return 'middle';
+    if (/^ม\.[456]$/.test(g) || g === 'ปวช./ปวส.') return 'high';
+    if (g === 'กศน. (ม.ต้น)') return 'middle';
+    if (g === 'กศน. (ม.ปลาย)') return 'high';
+    if (g === 'มหาวิทยาลัย') return 'university';
+    if (g === 'วัยทำงาน') return 'adult';
+    return '';
+  }
+
+  /* ---- ข้อมูลครู (สมมติ) — ต้องตรงกับ teacher-profile.html เป๊ะ ๆ
+         ราคา 4 แถวนี้ = data-mode/data-level/data-price ใน teacher-profile.html:539-558
+         ของจริงมาจากแถวราคาที่ครูกรอกใน signup-teacher.html (price_level/price_mode/price_amount) */
+  var TEACHER = {
+    id: 'ploy',
+    name: 'ครูพลอย',
+    initial: 'พ',
+    /* 🔴 ชื่อวิชาต้องตรงลิสต์กลางเป๊ะ (signup-parent.html ค้น SUBJECT_GROUPS) — Owner เคาะ 2026-08-21:
+       ใช้ "วิทยาศาสตร์" เฉย ๆ ห้ามต่อท้ายว่า "(ประถม)" เพราะระดับชั้นของผู้เรียนบอกอยู่แล้ว */
+    subjects: ['คณิตศาสตร์', 'ฟิสิกส์', 'วิทยาศาสตร์'],
+    modes: ['online', 'home'],               /* ครูคนนี้ไม่รับสอนนอกสถานที่ (public) */
+    /* 🔴 ขั้นต่ำต่อคาบ = ค่าที่ "ครูตั้งเอง" ตอนสมัคร (`session_min` ใน signup-teacher.html) — Owner เคาะ 2026-08-16
+       ห้ามกลับไป hardcode เด็ดขาด · ครูพลอยตั้ง ที่บ้าน 1.5 ชม. (ต่ำกว่าขนบตลาด 2 ชม. เพราะรับเด็กประถมด้วย) */
+    minMinutes: { online: 60, home: 90, public: 120 },
+    provinces: ['กรุงเทพมหานคร', 'นนทบุรี'],
+    prices: [
+      { mode: 'online', levels: ['middle'], price: 380 },
+      { mode: 'online', levels: ['high'], price: 420 },
+      { mode: 'home', levels: ['primary_high'], price: 450 },
+      { mode: 'home', levels: ['middle', 'high'], price: 520 }
+    ]
+  };
+
+  /* ---- ครูคนอื่นที่ส่งคำขอ "ใบเดียวกัน" ไปด้วยได้ (สมมติ)
+         SYSTEM ข้อ 3: ผู้เรียนเลือกครูได้หลายคนในคำขอเดียว · ครูคนแรกที่กดรับได้งาน
+         ของจริงมาจากครูที่ผู้เรียนเลือกไว้ในหน้าค้นหา (teacher-search.html) */
+  var ALT_TEACHERS = [
+    { id: 'nont', name: 'ครูนนท์', initial: 'น', modes: ['online', 'home'],
+      minMinutes: { online: 60, home: 120 },
+      prices: [ { mode:'online', levels:['middle','high'], price:350 },
+                { mode:'home',   levels:['middle','high'], price:480 } ] },
+    /* ครูฟ้าสอนออนไลน์อย่างเดียว = เห็นเคส "เลือกไม่ได้เพราะไม่รับรูปแบบนี้" ด้วยตา */
+    { id: 'fah', name: 'ครูฟ้า', initial: 'ฟ', modes: ['online'],
+      minMinutes: { online: 60 },
+      prices: [ { mode:'online', levels:['primary_high','middle'], price:300 } ] }
+  ];
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ⭐ ก้อน C② (2026-08-21) — ทางเข้าที่ 2 ของหน้านี้: "มาจากการกดรับข้อเสนอ"
+     my-jobs.html  →  booking.html?from=offer&job=&t=&kid=&subj=&price=&time=&mode=
+     ต้นฉบับสัญญา URL: post-job.html (ค้น "สัญญา URL ของเส้นทางที่ 2")
+
+     Owner เคาะ 2026-08-21 (LOG 138 ข้อ 14): ครูยื่นข้อเสนอมาเป็น "ช่วงที่ว่าง" ไม่ใช่วันเวลาจริง
+       -> ผู้เรียนกดรับแล้วต้องมาเลือก "วัน-เวลาแน่นอน" ที่นี่ก่อน แล้วค่อยจ่าย
+       -> ใช้ปฏิทินตัวเดียวกับการจองตรง ห้ามทำปฏิทินชุดที่ 2
+     🔴 การยื่นข้อเสนอ = ครูตอบรับล่วงหน้าไปแล้ว (SYSTEM ข้อ 4 ③) -> ข้ามขั้น pending ไป awaiting_payment
+     ⚠️ ข้อจำกัดทาง A: มีปฏิทินจริงแค่ครูพลอย — ครูคนอื่นใช้ปฏิทินจำลองชุดเดียวกันไปก่อน
+        เขียนกำกับให้ผู้ใช้เห็นบนหน้า ห้ามแอบใช้เงียบ ๆ (SYSTEM ข้อ 7 ข้อ 2)
+     ══════════════════════════════════════════════════════════════════════ */
+  /* รหัสช่วงเวลา -> ช่วงนาทีของวัน · ชั่วโมงต้องตรงกับตัวแปลงใน signup-parent.html
+     เช้า 06-12 · บ่าย 12-16 · เย็น 16-19 · ค่ำ 19-22 (SYSTEM ข้อ 12 หัวข้อ "ตัวแปลง 2 ระดับความละเอียด") */
+  var SLOT_RANGE = { morning: [360, 720], afternoon: [720, 960], evening: [960, 1140], night: [1140, 1320] };
+  var SLOT_TH    = { morning: 'เช้า', afternoon: 'บ่าย', evening: 'เย็น', night: 'ค่ำ' };
+  /* กดรับข้อเสนอแล้วต้องจ่ายภายในเท่าไร — Owner เคาะ LOG 138 ข้อ 14 ("จ่ายภายใน 1 ชม.")
+     ✅ **Owner เคาะ 2026-08-21: ใช้เลขเดียวกันทั้ง 2 เส้นทาง** (จองตรง + รับข้อเสนอ)
+        เดิมจองตรงเขียนไว้ "~5 นาที" ซึ่งมาจากคำ Owner ที่พูดถึง "ดีเลย์ให้ server ตรวจ" (LOG 91)
+        ไม่ใช่ "เวลาที่ผู้ปกครองมีไว้จ่าย" — เอกสารตีความรวบไปเอง
+     [researched 2026-08-21] อายุ QR ของ payment gateway จริง: Omise PromptPay ตั้งได้ถึง 24 ชม. ·
+        PayNow ค่าเริ่มต้น 30 นาที · SHOPLINE ใช้ 1 ชม. · Atome 12 ชม. — **ไม่มีเจ้าไหนใช้ 5 นาที**
+     🔴 ห้าม hardcode เลขนี้ลงข้อความบนจอ ให้อ่านจากตัวแปรเสมอ */
+  var PAY_WINDOW_MIN = 60;
+
+  /* ทาง A ยังไม่มี DB — สถานะของงานที่กดรับข้อเสนอมาถูกฝากไว้ใน sessionStorage โดย my-jobs.html
+     หน้านี้ต้องเขียนกลับด้วย ไม่งั้นกลับไปหน้านั้นแล้วยังขึ้น "ยังไม่จ่าย" ทั้งที่จ่ายไปแล้ว
+     = ผิด SYSTEM ข้อ 7 ข้อ 3 (สิ่งที่โชว์ต้องเป็นความจริง ณ วินาทีนั้น)
+     🔴 ของจริง (งาน B) สถานะมาจากเซิร์ฟเวอร์ แล้วลบตัวนี้ทิ้งทั้งก้อน */
+  function stampOfferProgress(patch) {
+    if (!OFFER || !OFFER.jobId) return;
+    /* ⭐ ก้อน C2: เส้นทาง 'ครูเสนอเวลาอื่น' ใช้คีย์ของฝั่งคำขอจองตรง (bgt_direct_reply)
+       ไม่ใช่คีย์ของข้อเสนอบนกระดาน — คนละใบ คนละเส้นทาง เขียนปนกันแล้วสถานะจะทับกันมั่ว */
+    if (OFFER.counter) {
+      /* เก็บแยกรายงาน (v2) — ต้องเขียนกลับใบเดิมเท่านั้น ห้ามแตะใบของงานอื่น */
+      var box2 = null;
+      try { box2 = JSON.parse(sessionStorage.getItem('bgt_direct_reply') || 'null'); } catch (e) { box2 = null; }
+      if (!box2 || box2.v !== 2 || !box2.jobs) return;
+      var slip2 = box2.jobs[OFFER.jobId];
+      if (!slip2 || slip2.tid !== OFFER.tid) return;
+      Object.keys(patch).forEach(function (k) { slip2[k] = patch[k]; });
+      slip2.ts = Date.now();
+      box2.ts = Date.now();
+      try { sessionStorage.setItem('bgt_direct_reply', JSON.stringify(box2)); } catch (e) { }
+      return;
+    }
+    var cur = {};
+    try { cur = JSON.parse(sessionStorage.getItem('bgt_accepted_offer') || '{}') || {}; } catch (e) { cur = {}; }
+    /* 🔴 ต้องตรวจ "ครู" ด้วย ไม่ใช่แค่ "งาน" (ผลตรวจ logic+security 2026-08-21)
+       เปิด 2 แท็บ / แก้ URL เปลี่ยนครู แล้วจ่าย -> เดิมจะเขียน paid ทับใบของครูอีกคน
+       = จ่ายเงินให้ครู A แต่ระบบบันทึกว่าครู B ได้งาน */
+    if (cur.jobId !== OFFER.jobId || cur.tid !== OFFER.tid) return;
+    cur.v = 1; cur.ts = Date.now();
+    Object.keys(patch).forEach(function (k) { cur[k] = patch[k]; });
+    try { sessionStorage.setItem('bgt_accepted_offer', JSON.stringify(cur)); } catch (e) { }
+  }
+
+  /* เพดานราคาต้องเป็นตัวเลขเดียวกันทั้ง 3 จุด: ช่องที่ครูกรอก (job-board) · ที่นี่ · และตอนคิดยอด
+     ผลตรวจ security 2026-08-21: เดิม job-board ไม่มีเพดานบน ครูยื่น ฿50,000 ได้
+     แล้วหน้านี้ตีตกเงียบ ๆ กลับไปใช้ราคาป้าย = ผู้ใช้เห็นราคาหนึ่ง จ่ายอีกราคาหนึ่ง */
+  var PRICE_MAX = 20000;
+
+  var OFFER = (function () {
+    var p;
+    try { p = new URLSearchParams(location.search); } catch (e) { return null; }
+    /* ⭐ ก้อน C2 (2026-08-23): ทางเข้าที่ 3 = ผู้เรียนกดรับ 'เวลาอื่น' ที่ครูเสนอกลับมา
+       ต่างจาก from=offer ตรงที่วัน-เวลาถูกล็อกมาแล้วทั้งหมด หน้านี้ห้ามให้เลือกใหม่ (SYSTEM ข้อ 3ก ข้อ 1) */
+    var fromWhat = p.get('from');
+    if (['offer', 'counter', 'fixed'].indexOf(fromWhat) < 0) return null;
+    var tid = (p.get('t') || '').trim();
+    if (!tid) return null;
+    /* 🔴 ห้ามเชื่อ URL ตรง ๆ — ครูต้องมีอยู่จริง ราคาต้องเป็นตัวเลขในช่วงที่เป็นไปได้ ช่วงเวลาต้องเป็นรหัสที่รู้จัก */
+    var known = [TEACHER].concat(ALT_TEACHERS).filter(function (t) { return t.id === tid; })[0];
+    if (!known) return null;
+
+    /* 🔴 ผลตรวจ 2026-08-21: ค่าบังคับของเส้นทางนี้เพี้ยนเมื่อไร ต้อง "ทิ้งทางเข้านี้" ไม่ใช่เดินต่อแบบเงียบ ๆ
+       ราคาเพี้ยน -> เงียบ ๆ ถอยไปใช้ราคาป้าย = ผู้ใช้จ่ายคนละราคากับที่ตกลง
+       ช่วงเวลาเพี้ยน -> ปฏิทินเปิดกว้างกว่าที่ครูเสนอโดยไม่มีใครรู้ */
+    var priceRaw = p.get('price');
+    var price = Number(priceRaw);
+    if (priceRaw === null || !isFinite(price) || price <= 0 || price > PRICE_MAX) return null;
+
+    var timeRaw = (p.get('time') || '').trim();
+    var slots = timeRaw.split(',')
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return Object.prototype.hasOwnProperty.call(SLOT_RANGE, s); });
+    if (timeRaw && !slots.length) return null;   /* ส่งช่วงมาแต่ไม่มีรหัสไหนใช้ได้เลย = ค่าเพี้ยน */
+
+    /* วัน-เวลาที่ครูล็อกไว้ให้ · ตรวจรูปแบบตรงนี้ ส่วนการเทียบกับ DURATIONS/ปฏิทินจริง ทำที่ applyUrl
+       (ค่าคงที่ STEP / DURATIONS ประกาศทีหลังบล็อกนี้ ใช้ที่นี่ยังไม่ได้) */
+    var counter = null;
+    if (fromWhat === 'counter' || fromWhat === 'fixed') {
+      var dRaw = (p.get('date') || '').trim();
+      var parts = dRaw.split('-');
+      var okDate = parts.length === 3 && parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2
+        && parts.every(function (x) { return x.length && Number(x) >= 0 && String(Number(x)).length <= x.length; });
+      var stRaw = Number(p.get('start'));
+      var lnRaw = Number(p.get('len'));
+      if (!okDate) return null;
+      if (!isFinite(stRaw) || stRaw < 0 || stRaw >= 1440) return null;
+      if (!isFinite(lnRaw) || lnRaw <= 0 || lnRaw > 300) return null;
+      counter = { dateKey: dRaw, start: stRaw, len: lnRaw, via: fromWhat };
+    }
+
+    var jobId = (p.get('job') || '').trim();
+    if (!/^[A-Za-z0-9-]{1,20}$/.test(jobId)) jobId = '';
+
+    /* 🔴 โพสต์ผูกกับผู้เรียนคนหนึ่งไปแล้ว — ต้องจำไว้ ไม่งั้นหน้านี้ปล่อยให้สลับเป็นลูกอีกคนได้
+       (ผลตรวจ logic 2026-08-21: จองข้อเสนอของน้องภูมิ แล้วสลับเป็นน้องแพร ป.2 ได้ ทั้งที่ครูไม่รับช่วงชั้นนั้น) */
+    var kid = (p.get('kid') || '').trim();
+    if (!/^[A-Za-z0-9_-]{1,20}$/.test(kid)) kid = '';
+
+    /* ราคาที่เชื่อถือได้จริงคือใบที่ my-jobs ฝากไว้ ไม่ใช่ตัวเลขใน URL ที่ใครก็แก้ได้
+       ทาง A ทำได้แค่นี้ · 🔴 งาน B: ยอดเงินต้องคิดที่เซิร์ฟเวอร์จาก offer_id เท่านั้น ห้ามรับจาก client */
+    var stash = null;
+    try { stash = JSON.parse(sessionStorage.getItem('bgt_accepted_offer') || 'null'); } catch (e) { stash = null; }
+    if (stash && stash.v === 1 && stash.jobId === jobId && stash.tid === tid
+        && typeof stash.price === 'number' && isFinite(stash.price) && stash.price > 0 && stash.price <= PRICE_MAX) {
+      price = stash.price;
+    }
+    /* ⭐ ก้อน C2 · ผลตรวจ security 2026-08-23 — เส้นทาง 'เวลาถูกล็อกแล้ว' ห้ามเชื่อ URL แม้แต่ค่าเดียว
+       ต้องมีใบที่ my-jobs ฝากไว้ (bgt_direct_reply) และ ครู/ราคา/วัน-เวลา/ความยาว/เด็ก ต้องตรงกับใบนั้นเป๊ะ
+       ไม่ตรง = ทิ้งทางเข้านี้ทั้งอัน (เดินต่อเงียบ ๆ = ผู้ใช้จ่ายคนละยอด/คาบสั้นลงโดยครูไม่รู้ตัว)
+       🔴 งาน B: ทางเข้าต้องเหลือแค่ ?req=<id> แล้วเซิร์ฟเวอร์คลี่ทุกค่าจาก record ห้ามรับจาก client */
+    if (counter) {
+      var box = null;
+      try { box = JSON.parse(sessionStorage.getItem('bgt_direct_reply') || 'null'); } catch (e) { box = null; }
+      var slip = (box && box.v === 2 && box.jobs) ? box.jobs[jobId] : null;
+      if (!slip) return null;
+      if (!slip.ts || (Date.now() - slip.ts) > 2 * 60 * 60 * 1000) return null;   /* ใบหมดอายุ = หมดสิทธิ์จ่าย */
+      if (slip.tid !== tid) return null;
+      if (slip.dateKey !== counter.dateKey || slip.start !== counter.start || slip.len !== counter.len) return null;
+      if (typeof slip.price !== 'number' || slip.price !== price) return null;
+      /* ยามผู้เรียน: เอาจากใบ ไม่ใช่จาก URL — ยามที่ปิดได้ด้วยการลบพารามิเตอร์ทิ้ง ไม่ใช่ยาม */
+      if (slip.kidId) { if (kid && kid !== slip.kidId) return null; kid = slip.kidId; }
+      if (slip.paid || slip.timedOut) return null;   /* ใบที่จบไปแล้ว ห้ามเปิดหน้าจ่ายซ้ำ (กฎแม่ข้อ 2) */
+    }
+    return { tid: tid, teacher: known, price: price, slots: slots, jobId: jobId, kid: kid, counter: counter };
+  })();
+
+  /* ครูเจ้าของหน้าเปลี่ยนเป็นคนที่ยื่นข้อเสนอ — จังหวัดยังใช้ชุดเดิม (ทาง A มีโปรไฟล์เต็มแค่ครูพลอย) */
+  if (OFFER && OFFER.tid !== TEACHER.id) {
+    TEACHER = {
+      id: OFFER.teacher.id, name: OFFER.teacher.name, initial: OFFER.teacher.initial,
+      subjects: TEACHER.subjects,
+      modes: OFFER.teacher.modes,
+      minMinutes: OFFER.teacher.minMinutes,
+      provinces: TEACHER.provinces,
+      prices: OFFER.teacher.prices
+    };
+  }
+  /* 🔴 วิชาของงานใบนี้ = วิชาที่ครูยื่นข้อเสนอเข้ามา ไม่ใช่ลิสต์วิชาในโปรไฟล์ครูพลอย
+     (ผลตรวจ logic 2026-08-21: โพสต์หาครู "ภาษาอังกฤษ" แล้วกดรับ → หน้าจองบังคับให้เลือกคณิต/ฟิสิกส์
+      = ใบคำขอระบุวิชาที่ไม่มีใครขอ ขัด SYSTEM ข้อ 12.4 "1 คาบ = 1 วิชา")
+     การยื่นข้อเสนอ = ครูรับสอนวิชานั้นไปแล้ว จึงเชื่อค่านี้ได้ แต่ยังต้องตรวจรูปแบบก่อน ห้ามรับข้อความอะไรก็ได้ */
+  if (OFFER) {
+    var _sj = '';
+    try { _sj = (new URLSearchParams(location.search).get('subj') || '').trim(); } catch (e) { _sj = ''; }
+    if (_sj && _sj.length <= 40 && !/[<>"'&]/.test(_sj)) TEACHER.subjects = [_sj];
+  }
+
+  /* ---- โปรไฟล์ผู้เรียนในบัญชีผู้ปกครอง (สมมติ) ----
+     ฟิลด์ตรงกับที่ signup-parent.html:563-583 เก็บจริง (ชื่อเล่น/อายุ/ระดับชั้น/หลักสูตร)
+     🔴 ตั้งใจใส่ 2 คน และให้คนที่ 2 เป็น ป.2 = ช่วงชั้นที่ครูพลอยไม่เปิดรับ
+        เพื่อให้เห็นกับตาว่าเคส "ไม่มีราคา" ไม่ทำให้หน้าพัง (savepoint สั่งให้เทสต์เคสนี้) */
+  /* 🔴 ชื่อเล่นห้ามชนกับผู้เรียนสมมติในไฟล์อื่น (ตรวจ 2026-08-16: `job-board.html` มี น้องแทน ป.4 · น้องข้าวปุ้น ป.6 อยู่แล้ว
+     ชื่อซ้ำแต่คนละระดับชั้น = คนอ่านสับสนว่าคนเดียวกันไหม → ใช้ชื่อที่ยังไม่มีใครใช้) */
+  var KIDS = [
+    { id: 'k1', nick: 'น้องภูมิ', age: 14, grade: 'ม.2', curriculum: 'หลักสูตรสามัญ (ไทย)' },
+    /* ป.5 = ครูรับเฉพาะ "ที่บ้าน" ไม่รับออนไลน์ → เห็นเคส "โหมดนี้ไม่มีราคา แต่โหมดอื่นมี" ที่มีทางออกให้
+       และเป็นทางเดียวที่จะไปถึงขั้น 4 ด้วยผู้เรียนวัยประถม = ทดสอบคำแนะนำเรื่องสมาธิเด็กเล็กได้ */
+    { id: 'k2', nick: 'น้องใบเตย', age: 11, grade: 'ป.5', curriculum: 'หลักสูตรสามัญ (ไทย)' },
+    /* ป.2 = ครูไม่รับเลยสักโหมด → เห็นเคสตันสุด ต้องพาไปหาครูคนอื่น */
+    { id: 'k3', nick: 'น้องแพร', age: 8, grade: 'ป.2', curriculum: 'หลักสูตรสามัญ (ไทย)' }
+  ];
+
+  /* ── ก้อน C1ข · ตัวอ่านโปรไฟล์ผู้เรียนที่หน้าสมัครฝากไว้ ─────────────────
+     🔴 นี่คือ "บัญชีจำลอง" ของทาง A — ตอนงาน B เปลี่ยนมาอ่านจากบัญชีที่ล็อกอินจริง แล้วลบตัวนี้ทิ้ง
+     ต้นฉบับสัญญาข้อมูล: signup-parent.html (ค้น bgt_learners) · อายุ 2 ชม. เท่ากันทุกหน้า */
+  function readStoredLearners() {
+    var raw = null;
+    try { raw = sessionStorage.getItem('bgt_learners'); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !Array.isArray(o.learners) || !o.learners.length) return null;
+    if (!o.ts || (Date.now() - o.ts) > 2 * 60 * 60 * 1000) return null;
+    var list = o.learners.filter(function (L) { return L && typeof L.id === 'string' && L.nick; })
+      .map(function (L) {
+        return { id: L.id, nick: L.nick, grade: L.grade || '', age: L.age || null, curriculum: L.curriculum || '' };
+      });
+    return list.length ? list : null;
+  }
+
+  /* 🔴 ผู้เรียนตัวจริงชนะข้อมูลสมมติเสมอ — ไม่งั้น ?kid=k2 ที่ส่งมาจากหน้าค้นหา
+     จะไปชี้ "น้องใบเตย ป.5" ของ mock แทนลูกคนที่ผู้ปกครองกรอกไว้จริง (ผลตรวจ logic 2026-08-20 ข้อ 1)
+     นักเรียน 16+ ที่สมัครเอง (รหัส me) ก็เข้าทางนี้ ไม่ต้องเจอครอบครัวสมมติ (ข้อ 6) */
+  var storedKids = readStoredLearners();
+  if (storedKids) KIDS = storedKids;
+
+  /* ==========================================================================
+     ตรรกะเวลา — ก๊อบจาก teacher-profile.html ทั้งดุ้น (ห้ามเขียนใหม่)
+     ========================================================================== */
+  var toHHMM = function (m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+  var mergeRanges = function (ranges) {
+    var out = [];
+    ranges.map(function (r) { return [r[0], r[1]]; }).sort(function (x, y) { return x[0] - y[0]; }).forEach(function (r) {
+      var last = out[out.length - 1];
+      if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+      else out.push([r[0], r[1]]);
+    });
+    return out;
+  };
+  var subtract = function (free, busy) {
+    var out = free.map(function (r) { return [r[0], r[1]]; });
+    busy.forEach(function (b) {
+      var bs = b[0], be = b[1], next = [];
+      out.forEach(function (r) {
+        var s = r[0], e = r[1];
+        if (be <= s || bs >= e) { next.push([s, e]); return; }
+        if (bs > s) next.push([s, bs]);
+        if (be < e) next.push([be, e]);
+      });
+      out = next;
+    });
+    return out;
+  };
+  var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  var addDays = function (d, n) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; };
+
+  /* ตารางว่างประจำสัปดาห์ของครู (คีย์ = getDay() 0=อาทิตย์) — ชุดเดียวกับ teacher-profile.html
+     ของจริงมาจาก availability ที่ครูกรอกใน signup-teacher.html */
+  var WEEKLY = {
+    0: [],
+    1: [[960, 1140], [1140, 1320]],   /* จันทร์ 16:00–19:00 + 19:00–22:00 → ต้องรวมเป็น 16:00–22:00 ก้อนเดียว */
+    2: [[960, 1140], [1140, 1320]],
+    3: [[1140, 1320]],
+    4: [[960, 1320]],
+    5: [[960, 1140]],
+    6: [[540, 720], [780, 1140]]      /* เสาร์ 2 ก้อนไม่ติดกัน ห้ามรวม */
+  };
+  var today0 = new Date(); today0.setHours(0, 0, 0, 0);
+  var BOOKED = {};
+  BOOKED[ymd(addDays(today0, 2))] = [[1020, 1140]];   /* +2 วัน 17:00–19:00 */
+  BOOKED[ymd(addDays(today0, 4))] = [[1140, 1260]];   /* +4 วัน 19:00–21:00 */
+  var DAYOFF = {};
+  DAYOFF[ymd(addDays(today0, 5))] = true;             /* ครูแจ้งลา 1 วัน */
+
+  /* ==========================================================================
+     กติกาการจอง
+     ========================================================================== */
+  var STEP = 30;                                   /* จุดเริ่มทุก 30 นาที */
+  var TRAVEL_BUFFER = 60;                          /* กันเวลาเดินทางครู 60 นาที หน้า-หลัง (เฉพาะที่ต้องเดินทาง) */
+  /* 🔴 จองล่วงหน้าขั้นต่ำ = 24 ชม. ก่อนเวลาเรียน (SYSTEM_สถานะงาน.md ข้อ 5 · Owner เคาะ)
+     กติกาข้อ 7.5: ใช้สูตรเดียวคุมช่องที่จองได้ "ห่างจากตอนนี้ ≥ LEAD_MIN" ห้ามเขียนกฎพิเศษรายวันแยก
+     ⚠️ อย่าสับสนกับ "ครูมีเวลาตอบ 1-2 ชม." — คนละตัวเลข */
+  var LEAD_MIN = 24 * 60;
+  var DURATIONS = [60, 90, 120, 150, 180];
+
+  /* 🔴 ขั้นต่ำต่อคาบมาจากค่าที่ครูตั้งเองเท่านั้น (Owner เคาะ 2026-08-16 · ห้าม hardcode)
+     ถ้าครูไม่ได้ตั้ง ให้ถอยไปที่ 60 นาที = ค่าที่ปลอดภัยสุดสำหรับผู้เรียน ไม่ใช่ 120 */
+  var minMin = function (mode) {
+    var v = TEACHER.minMinutes && TEACHER.minMinutes[mode];
+    return (typeof v === 'number' && v > 0) ? v : 60;
+  };
+  /* ช่วงชั้นที่เด็กยังนั่งนาน ๆ ไม่ไหว — ใช้ขึ้นคำแนะนำ ไม่ใช่ใช้บังคับ
+     [researched 2026-08-16] K12 Tutoring / PPE Lessons / Tutorax: เด็ก 6-10 ขวบโฟกัสดีสุด 30-45 นาที */
+  var YOUNG_LEVELS = ['kindergarten', 'primary_low', 'primary_high'];
+
+  var needsTravel = function (mode) { return mode === 'home' || mode === 'public'; };
+  var hoursText = function (min) { var h = min / 60; return (h % 1 === 0 ? h : h.toFixed(1)) + ' ชม.'; };
+  var baht = function (n) { return '฿' + n.toLocaleString('th-TH'); };
+
+  /* หาราคาจาก โหมด × ช่วงชั้น — data-level อาจเป็น "middle,high" จึงต้องเทียบเป็นลิสต์
+     คืน null เมื่อครูไม่ได้ตั้งราคาช่วงชั้นนั้นไว้ 🔴 ห้ามเดาราคาแทนครู */
+  /* ราคาของครูคนไหนก็ได้ (ใช้กับ "ครูคนอื่นในคำขอเดียวกัน" ด้วย) — priceFor() ของครูเจ้าของหน้าเรียกตัวนี้ต่อ
+     ⚠️ ห้ามเรียกครูกลุ่มนี้ว่า "ครูสำรอง" — คำนั้นถูกใช้กับฟีเจอร์คนละตัวแล้ว (ครูสำรองด่วน/backup pool · SCOPE_BGT_v1.0_OwnerSpec.md:151) */
+  function priceOfTeacher(t, mode, level) {
+    if (!t || !mode || !level) return null;
+    for (var i = 0; i < t.prices.length; i++) {
+      var row = t.prices[i];
+      if (row.mode === mode && (row.levels.indexOf(level) > -1 || row.levels.indexOf('all') > -1)) return row.price;
+    }
+    return null;
+  }
+  function priceFor(mode, level) {
+    if (!mode || !level) return null;
+    /* ⭐ ก้อน C②: มาจากการกดรับข้อเสนอ = ครูเสนอราคามาเองแล้วในใบข้อเสนอ
+       ราคานั้นคือราคาที่ตกลงกัน ใช้ทับตารางราคาในโปรไฟล์ (ครูอาจเสนอต่ำ/สูงกว่าราคาป้ายก็ได้)
+       เงื่อนไขเดียวที่ยังต้องผ่าน = ครูต้องรับสอนรูปแบบนั้นจริง — ไม่งั้นราคาลอยไม่มีของรองรับ */
+    /* 🔴 ยามครบ 3 ชั้น (ผลตรวจ logic 2026-08-21):
+       ① ครูต้องรับสอนรูปแบบนั้นจริง ② ต้องเป็นผู้เรียนคนที่ข้อเสนอนี้ผูกไว้
+       ถ้าเปิดกว้างกว่านี้ ยาม "ครูไม่เปิดรับช่วงชั้นนี้" จะถูกปิดทิ้งไปด้วย แล้วจองช่วงชั้นที่ครูไม่รับได้ */
+    if (OFFER && OFFER.price !== null && TEACHER.modes.indexOf(mode) > -1
+        && (!OFFER.kid || OFFER.kid === state.kidId)) return OFFER.price;
+    for (var i = 0; i < TEACHER.prices.length; i++) {
+      var row = TEACHER.prices[i];
+      if (row.mode !== mode) continue;
+      if (row.levels.indexOf(level) > -1 || row.levels.indexOf('all') > -1) return row.price;
+    }
+    return null;
+  }
+  /* โหมดไหนบ้างที่ครูตั้งราคาช่วงชั้นนี้ไว้ — ใช้บอกทางออกเวลาโหมดที่เลือกไม่มีราคา */
+  function modesWithPrice(level) {
+    return TEACHER.modes.filter(function (m) { return priceFor(m, level) !== null; });
+  }
+
+  /* ช่วงว่างจริงของวันหนึ่ง หลังหักคาบที่จองแล้ว (+ กันเวลาเดินทางถ้าต้องเดินทาง)
+     🔴 ต้อง mergeRanges ก่อนเสมอ ไม่งั้นครูที่เปิด 16:00–19:00 + 19:00–22:00
+        จะถูกบังคับให้จองแยก 2 คาบ ทั้งที่เป็นช่วงเดียวกัน (เคสที่ Owner จับได้เอง) */
+  /* นาทีเริ่มต้นที่จองได้ของวันนั้น · null = ทั้งวันจองไม่ได้เพราะใกล้เกินกำหนดจองล่วงหน้า
+     คีย์วันที่เป็น YYYY-MM-DD เทียบกันเป็นสตริงได้ตรง ๆ */
+  function leadCutoff(dateKey) {
+    var earliest = new Date(Date.now() + LEAD_MIN * 60000);
+    var earliestKey = ymd(earliest);
+    if (dateKey < earliestKey) return null;
+    if (dateKey > earliestKey) return 0;
+    return Math.ceil((earliest.getHours() * 60 + earliest.getMinutes()) / STEP) * STEP;
+  }
+  function freeBlocks(dateKey, weekday, mode) {
+    if (DAYOFF[dateKey]) return [];
+    var merged = mergeRanges(WEEKLY[weekday] || []);
+    if (!merged.length) return [];
+    var busy = (BOOKED[dateKey] || []).map(function (r) {
+      return needsTravel(mode) ? [r[0] - TRAVEL_BUFFER, r[1] + TRAVEL_BUFFER] : [r[0], r[1]];
+    });
+    var minLen = minMin(mode);
+    var free = subtract(merged, busy).filter(function (r) { return r[1] - r[0] >= minLen; });
+    /* ตัดช่วงที่ใกล้เกินกำหนดจองล่วงหน้า — ใช้กับทุกวัน ไม่ใช่เฉพาะวันนี้ */
+    var cutoff = leadCutoff(dateKey);
+    if (cutoff === null) return [];
+    if (cutoff > 0) {
+      free = free.map(function (r) { return [Math.max(r[0], cutoff), r[1]]; })
+                 .filter(function (r) { return r[1] - r[0] >= minLen; });
+    }
+    /* ⭐ ก้อน C②: มาจากการกดรับข้อเสนอ -> เลือกได้เฉพาะช่วงที่ครูเสนอไว้ในใบข้อเสนอเท่านั้น
+       (Owner เคาะ LOG 138 ข้อ 14) · ยังใช้สูตรเดิมทุกข้อ แค่ตัดช่วงที่อยู่นอกที่ครูเสนอออก
+       🔴 ห้ามเขียนกฎเวลาชุดใหม่ — SYSTEM ข้อ 7 ข้อ 5 "ใช้สูตรเดียวคุมช่องเวลาที่จองได้" */
+    /* ⭐ ก้อน C2: มาจาก 'ครูเสนอเวลาอื่น' -> เลือกได้เฉพาะช่วงเดียวที่ครูล็อกไว้ให้เท่านั้น
+       ไม่ต้องกรองด้วยขั้นต่ำต่อคาบซ้ำ เพราะครูเป็นคนเสนอความยาวนี้เองแล้ว (SYSTEM ข้อ 3ก ข้อ 1) */
+    if (OFFER && OFFER.counter && !counterGone) {
+      if (dateKey !== OFFER.counter.dateKey) return [];
+      return intersectRanges(free, [[OFFER.counter.start, OFFER.counter.start + OFFER.counter.len]]);
+    }
+    if (OFFER && OFFER.slots.length) {
+      free = intersectRanges(free, mergeRanges(OFFER.slots.map(function (s) { return SLOT_RANGE[s].slice(); })))
+               .filter(function (r) { return r[1] - r[0] >= minLen; });
+    }
+    return free;
+  }
+  /* ส่วนที่ทับกันของช่วง 2 ชุด (ทั้ง 2 ชุดเรียงแล้วและไม่ทับกันเองหลัง mergeRanges) */
+  function intersectRanges(A, B) {
+    var out = [];
+    A.forEach(function (a) {
+      B.forEach(function (b) {
+        var s = Math.max(a[0], b[0]), e = Math.min(a[1], b[1]);
+        if (e > s) out.push([s, e]);
+      });
+    });
+    return out.sort(function (x, y) { return x[0] - y[0]; });
+  }
+  /* คาบที่มีคนจองแล้วของวันนั้น (ไว้โชว์ให้เห็นว่าทำไมช่วงหาย) */
+  function busyBlocks(dateKey, weekday) {
+    var merged = mergeRanges(WEEKLY[weekday] || []);
+    if (!merged.length || DAYOFF[dateKey]) return [];
+    return (BOOKED[dateKey] || []).slice();
+  }
+
+  /* ==========================================================================
+     สถานะของหน้า
+     ========================================================================== */
+  var state = { kidId: null, subj: null, mode: null, dateKey: null, block: null, dur: null, start: null };
+  var weekOffset = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var learnerSlot = $('learner-slot'), modeGroup = $('mode-group'), modeHelp = $('mode-help');
+  var priceState = $('price-state'), addrBox = $('addr-box'), provSel = $('prov');
+  var calBody = $('cal-body'), calRange = $('cal-range'), calPrev = $('cal-prev'), calNext = $('cal-next'), calSr = $('cal-sr');
+  var durGroup = $('dur-group'), durHelp = $('dur-help'), startGroup = $('start-group'), startHelp = $('start-help');
+  var summary = $('summary'), form = $('book-form'), formError = $('form-error');
+  /* 🔴 หนีอักขระ HTML ก่อนยัดลง innerHTML — ตั้งแต่ก้อน C1ข ค่าพวกนี้เป็น "ของที่ผู้ใช้พิมพ์เอง"
+     ที่เดินข้ามหน้ามาทาง sessionStorage แล้ว ไม่ใช่ข้อมูลสมมติที่พิมพ์ตายไว้เหมือนเดิม
+     (ยืนยันด้วยการทดสอบจริง 2026-08-20: พิมพ์แท็ก <img onerror> ในช่องเขต/อำเภอ แล้วสคริปต์รันจริง)
+     ชุดเดียวกับ signup-parent.html (ค้น function esc) */
+  function esc(t) {
+    return String(t == null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  var counterGone = false; /* ⭐ ก้อน C2 — ช่วงที่ครูล็อกไว้หายไปแล้ว (ถูกจองทับ / เลยกำหนด 24 ชม.) */
+  var submitted = false;   /* กดส่งไปแล้วหรือยัง — ก่อนกดครั้งแรกไม่ขึ้นแดง (บทเรียน post-job) */
+  var kidNotFound = false; /* ?kid= ที่ส่งมาไม่มีในบัญชีนี้ */
+
+  var kid = function () { return KIDS.filter(function (k) { return k.id === state.kidId; })[0] || null; };
+  var kidLevel = function () { var k = kid(); return k ? gradeToLevel(k.grade) : ''; };
+  var rate = function () { return priceFor(state.mode, kidLevel()); };
+
+  var fmtDay = function (d) { return d.toLocaleDateString('th-TH', { weekday: 'long' }); };
+  var fmtDate = function (d) { return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }); };
+  var dateFromKey = function (key) { var p = key.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); };
+
+  /* ---------- ขั้น 1 · เลือกผู้เรียน ---------- */
+  function renderLearners() {
+    learnerSlot.innerHTML = '';
+    /* ลูกคนเดียว = ไม่มีอะไรให้เลือก → เหลือบรรทัดเดียว ไม่ต้องมีขั้นตอนหลอก ๆ
+       [researched] Jane App เลือกจากโปรไฟล์ในบัญชี · Setmore ตัดขั้นที่ไม่มีตัวเลือกทิ้ง */
+    /* ⭐ ก้อน C②: มาจากการกดรับข้อเสนอ = โพสต์ใบนั้นผูกกับผู้เรียนคนหนึ่งไปแล้วตั้งแต่ต้นทาง
+       ต้องล็อก ห้ามให้สลับเป็นลูกอีกคน (CLAUDE.md กฎ 8 ข้อ 4 · ผลตรวจ logic 2026-08-21)
+       ถ้าปล่อยให้สลับ: ราคาข้อเสนอจะถูกใช้กับเด็กช่วงชั้นที่ครูไม่รับ และงานใน my-jobs จะขึ้นชื่อลูกผิดคน */
+    var locked = (OFFER && OFFER.kid) ? KIDS.filter(function (k) { return k.id === OFFER.kid; })[0] : null;
+    if (locked) state.kidId = locked.id;
+
+    if (locked || KIDS.length === 1) {
+      var k = locked || KIDS[0];
+      state.kidId = k.id;
+      var one = document.createElement('div');
+      one.className = 'learner-single';
+      one.innerHTML = '<span>จองให้ <b>' + esc(k.nick) + '</b>' + (k.grade ? ' · ' + esc(k.grade) : '') + '</span>' +
+        '<a class="link-btn" href="signup-parent.html">เพิ่ม/แก้โปรไฟล์ผู้เรียน</a>';
+      learnerSlot.appendChild(one);
+      $('sec1-lead').textContent = locked
+        ? 'งานใบนี้เปิดไว้ให้ ' + locked.nick + ' ตั้งแต่ตอนโพสต์ — เปลี่ยนผู้เรียนที่นี่ไม่ได้ ถ้าจะหาครูให้ลูกอีกคน ให้เปิดงานใบใหม่'
+        : 'บัญชีนี้มีผู้เรียน 1 คน ระบบเลือกให้อัตโนมัติ — ราคาคิดตามระดับชั้นของผู้เรียนคนนี้';
+      return;
+    }
+    var grid = document.createElement('div');
+    grid.className = 'learner-grid';
+    KIDS.forEach(function (k) {
+      var lab = document.createElement('label');
+      lab.className = 'learner-pick';
+      lab.innerHTML =
+        /* 🔴 esc() แม้เป็น k.id — ค่านี้มาจาก sessionStorage ที่หน้าสมัครเขียนไว้ ไม่ใช่ค่าที่โค้ดนี้สร้างเอง
+           ไม่หนี = หนีออกจาก attribute ได้ (ผลตรวจ security 2026-08-21) */
+        '<input type="radio" name="learner" value="' + esc(k.id) + '"' + (state.kidId === k.id ? ' checked' : '') + '>' +
+        '<span class="learner-face" aria-hidden="true">' + (LEVEL_ICON[gradeToLevel(k.grade)] || '🎒') + '</span>' +
+        '<span class="learner-info"><b>' + esc(k.nick) + '</b>' +
+        '<span>' + esc([k.grade, k.age ? k.age + ' ปี' : ''].filter(Boolean).join(' · ')) + '</span>' +
+        '<span>' + esc(k.curriculum || '') + '</span></span>';
+      grid.appendChild(lab);
+    });
+    learnerSlot.appendChild(grid);
+    if (kidNotFound) {
+      var miss = document.createElement('p');
+      miss.className = 'helper err';
+      miss.textContent = 'ไม่พบผู้เรียนที่ส่งมาจากหน้าก่อน — เลือกจากรายการด้านบนอีกครั้ง';
+      learnerSlot.appendChild(miss);
+    }
+    var add = document.createElement('p');
+    add.style.marginTop = 'var(--space-4)';
+    add.innerHTML = '<a class="link-btn" href="signup-parent.html">+ เพิ่มผู้เรียนอีกคน</a>';
+    learnerSlot.appendChild(add);
+
+    grid.addEventListener('change', function (e) {
+      if (e.target.name !== 'learner') return;
+      state.kidId = e.target.value;
+      /* เปลี่ยนเด็ก = ช่วงชั้นเปลี่ยน = ราคาเปลี่ยน และอาจไม่มีราคาเลย → ต้องตรวจใหม่ทั้งสาย */
+      revalidate();
+      renderAll();
+    });
+  }
+
+  /* ---------- ขั้น 1ข · วิชาของคาบนี้ ----------
+     ที่มาของค่า (เรียงตามลำดับความน่าเชื่อถือ):
+       1. ?subj= — รับได้แล้วและตรวจกับ TEACHER.subjects เสมอ (ห้ามเชื่อ URL ตรง ๆ)
+          ✅ 2026-08-20 (ก้อน C1ข): หน้าค้นหา→โปรไฟล์→หน้านี้ ส่ง subj= มาจริงแล้ว
+             และ teacher-profile.html:445 ส่งต่อแค่ ?t= → วิชาที่ผู้เรียนติ๊กไว้หล่นหายตรงนั้น
+             = งานก้อน C1ข ในตารางแผน (savepoint) รอ Owner เคาะ เพราะกระทบ 2 หน้าที่ approve แล้ว
+       2. ครูสอนวิชาเดียว → เลือกให้เลย ไม่ต้องมีขั้นตอนหลอก ๆ (ขนบเดียวกับ renderLearners ตอนมีลูกคนเดียว)
+       3. นอกนั้น = ผู้เรียนเลือกเองในหน้านี้ (เส้นทางที่ใช้จริงตอนนี้) */
+  function renderSubjects() {
+    var box = $('subj-box'), group = $('subj-group'), fromUrl = !!state.subj;
+    group.innerHTML = '';
+    if (TEACHER.subjects.length === 1) {
+      state.subj = TEACHER.subjects[0];
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    TEACHER.subjects.forEach(function (sj) {
+      var lab = document.createElement('label');
+      lab.className = 'chip';
+      /* 🔴 esc() ทั้งคู่ — ตั้งแต่ก้อน C② รายชื่อวิชาอาจมาจากใบข้อเสนอ (ผ่าน URL) ไม่ใช่ลิสต์ที่พิมพ์ตายไว้อย่างเดียวแล้ว */
+      lab.innerHTML = '<input type="radio" name="subj" value="' + esc(sj) + '"' + (state.subj === sj ? ' checked' : '') + '>' + esc(sj);
+      group.appendChild(lab);
+    });
+    subjHelp(fromUrl);
+    group.addEventListener('change', function (e) {
+      if (e.target.name !== 'subj') return;
+      state.subj = e.target.value;
+      subjHelp(false);
+      renderAll();
+    });
+  }
+
+  function subjHelp(carried) {
+    $('subj-help').textContent = carried
+      ? 'ยกมาจากหน้าที่แล้ว — กดเปลี่ยนได้ถ้าคาบนี้จะเรียนวิชาอื่น'
+      : 'เลือก 1 วิชา — ครูใช้ข้อนี้เตรียมเนื้อหาก่อนกดรับ · อยากเรียนอีกวิชาให้ส่งคำขออีกใบ';
+  }
+
+  /* ---------- ขั้น 2 · รูปแบบเรียน ---------- */
+  function renderModes() {
+    modeGroup.innerHTML = '';
+    TEACHER.modes.forEach(function (m) {
+      var lab = document.createElement('label');
+      lab.className = 'chip';
+      lab.innerHTML = '<input type="radio" name="mode" value="' + m + '"' + (state.mode === m ? ' checked' : '') + '>' +
+        MODE_LABEL[m] + ' <small>' + MODE_HINT[m] + '</small>';
+      modeGroup.appendChild(lab);
+    });
+    var missing = ['online', 'home', 'public'].filter(function (m) { return TEACHER.modes.indexOf(m) < 0; });
+    modeHelp.textContent = missing.length
+      ? 'ครูคนนี้ไม่รับสอน' + missing.map(function (m) { return MODE_LABEL[m]; }).join(' / ')
+      : '';
+    modeGroup.addEventListener('change', function (e) {
+      if (e.target.name !== 'mode') return;
+      state.mode = e.target.value;
+      revalidate();
+      renderAll();
+    });
+  }
+
+  /* กล่องบอกราคา / บอกว่าทำไมจองไม่ได้ — 🔴 ห้ามโชว์ราคามั่ว ห้ามปล่อยหน้าพัง */
+  function renderPriceState() {
+    var k = kid(), lv = kidLevel();
+    priceState.innerHTML = '';
+    if (!k) {
+      priceState.innerHTML = '<p class="helper" style="min-height:0">เลือกผู้เรียนในขั้นที่ 1 ก่อน ระบบจะได้คิดราคาตามระดับชั้น</p>';
+      return;
+    }
+    if (!state.mode) {
+      priceState.innerHTML = '<p class="helper" style="min-height:0">เลือกรูปแบบการเรียนเพื่อดูราคาของ ' + esc(k.nick) + '</p>';
+      return;
+    }
+    var p = priceFor(state.mode, lv);
+    if (p !== null) {
+      var box = document.createElement('div');
+      box.className = 'price-box';
+      box.innerHTML = '<div class="price-line"><span class="k">' + MODE_LABEL[state.mode] + ' · ' + LEVEL_LABEL[lv] + ' (' + esc(k.grade) + ')</span>' +
+        '<span class="v"><b>' + baht(p) + '</b> / ชม.</span></div>';
+      priceState.appendChild(box);
+      return;
+    }
+    /* ไม่มีราคา = ครูไม่เปิดรับช่วงชั้นนี้ในรูปแบบนี้ — ต้องบอกทางออก ไม่ใช่บอกแค่ว่าไม่ได้ */
+    var alt = modesWithPrice(lv);
+    var warn = document.createElement('div');
+    warn.className = 'note note--warn';
+    warn.innerHTML = '<span class="note-mark" aria-hidden="true">!</span><span>' +
+      '<strong>ครูยังไม่เปิดรับช่วงชั้นนี้ในรูปแบบที่เลือก</strong>' +
+      /* 🔴 ชื่อครูต้องอ่านจาก TEACHER ไม่ใช่พิมพ์ "ครูพลอย" ทับ — ก้อน C② สลับครูได้แล้ว */
+      esc(k.nick) + ' อยู่ ' + esc(k.grade) + ' (' + (LEVEL_LABEL[lv] || 'ไม่ระบุช่วงชั้น') + ') แต่' + esc(TEACHER.name) + 'ไม่ได้ตั้งราคาสำหรับ ' + MODE_LABEL[state.mode] + ' ไว้' +
+      (alt.length
+        ? ' — ลองเปลี่ยนเป็น <b>' + alt.map(function (m) { return MODE_LABEL[m]; }).join(' หรือ ') + '</b> ที่ครูเปิดรับช่วงชั้นนี้'
+        : ' และไม่ได้เปิดรับช่วงชั้นนี้ในรูปแบบอื่นด้วย — <a href="teacher-search.html?grade=' + encodeURIComponent(k.grade) + '" style="color:var(--color-accent-deep);font-weight:600">ดูครูคนอื่นที่สอน ' + esc(k.grade) + '</a>') +
+      '</span>';
+    priceState.appendChild(warn);
+  }
+
+  /* ที่อยู่ (เฉพาะ home) */
+  function renderAddr() {
+    var show = state.mode === 'home';
+    addrBox.hidden = !show;
+    if (show && !provSel.options.length) {
+      provSel.innerHTML = '<option value="">— เลือก —</option>' +
+        TEACHER.provinces.map(function (p) { return '<option>' + p + '</option>'; }).join('');
+    }
+  }
+
+  /* ---------- ขั้น 3 · ปฏิทิน ---------- */
+  function ready2() { return !!kid() && !!state.mode && rate() !== null; }
+
+  function renderCal() {
+    var open = ready2();
+    $('sec3-body').hidden = !open;
+    $('sec3-lock').hidden = open;
+    if (!open) {
+      $('sec3-lock-text').textContent = !kid() ? 'เลือกผู้เรียนในขั้นที่ 1 ก่อน'
+        : !state.mode ? 'เลือกรูปแบบการเรียนในขั้นที่ 2 ก่อน — ปฏิทินจะขึ้นตามรูปแบบที่เลือก'
+        : 'รูปแบบนี้ครูยังไม่เปิดรับช่วงชั้นของผู้เรียน เลือกรูปแบบอื่นในขั้นที่ 2 ก่อน';
+      return;
+    }
+    var cn = $('cleared-note');
+    cn.hidden = !clearedNote;
+    cn.innerHTML = clearedNote
+      ? '<div class="note note--warn"><span class="note-mark" aria-hidden="true">!</span><span>' +
+        '<strong>ช่วงเวลาที่เลือกไว้ใช้ไม่ได้แล้ว</strong>' + clearedNote + '</span></div>'
+      : '';
+
+    var base = new Date(); base.setHours(0, 0, 0, 0);
+    var start = addDays(base, weekOffset * 7);
+    calBody.innerHTML = '';
+    var freeDays = 0;
+    for (var i = 0; i < 7; i++) {
+      var d = addDays(start, i);
+      var key = ymd(d);
+      var row = document.createElement('div');
+      row.className = 'cal-day';
+
+      var dateCell = document.createElement('div');
+      dateCell.className = 'cal-date';
+      var tag = '';
+      if (key === ymd(base)) tag = ' · วันนี้';
+      else if (key === ymd(addDays(base, 1))) tag = ' · พรุ่งนี้';
+      dateCell.innerHTML = fmtDay(d) + '<small>' + fmtDate(d) + tag + '</small>';
+
+      var slots = document.createElement('div');
+      slots.className = 'cal-slots';
+
+      var weekday = d.getDay();
+      var hasHours = mergeRanges(WEEKLY[weekday] || []).length > 0;
+      var free = freeBlocks(key, weekday, state.mode);
+      var busy = busyBlocks(key, weekday);
+
+      /* ⚠️ ห้ามใช้คำว่า "วันนี้" ในข้อความพวกนี้ — แถวนี้เป็นวันไหนก็ได้ */
+      if (!hasHours) {
+        slots.innerHTML = '<span class="cal-off">ไม่เปิดสอน</span>';
+      } else if (DAYOFF[key]) {
+        slots.innerHTML = '<span class="cal-off">ครูแจ้งปิดรับ (ลา/ติดธุระ)</span>';
+      } else if (leadCutoff(key) === null) {
+        /* 🔴 จองล่วงหน้า 24 ชม. — ห้ามให้กดวันที่ใกล้เกินไปได้ (SYSTEM ข้อ 5) */
+        slots.innerHTML = '<span class="cal-off">จองไม่ได้ — ต้องจองล่วงหน้าอย่างน้อย 24 ชม.</span>';
+      } else if (OFFER && OFFER.counter && !counterGone && key !== OFFER.counter.dateKey) {
+        /* 🔴 เหตุผลที่วันนี้เลือกไม่ได้คือ 'ถูกล็อกไว้ที่วันที่ตกลงกัน' ไม่ใช่ 'ครูไม่ว่าง' (SYSTEM ข้อ 7 ข้อ 2) */
+        slots.innerHTML = '<span class="cal-off">ล็อกไว้ที่วันที่ตกลงกันแล้ว — วันอื่นเลือกไม่ได้ในขั้นนี้</span>';
+      } else if (!free.length && !busy.length) {
+        slots.innerHTML = '<span class="cal-off">' +
+          (leadCutoff(key) > 0 ? 'ช่วงที่ครูเปิดวันนี้อยู่ก่อนเวลาที่เริ่มจองได้ (ต้องล่วงหน้า 24 ชม.)' : 'ไม่มีช่วงที่ยาวพอสำหรับ ' + hoursText(minMin(state.mode))) + '</span>';
+      } else {
+        var all = free.map(function (r) { return { r: r, busy: false }; })
+          .concat(busy.map(function (r) { return { r: r, busy: true }; }))
+          .sort(function (a, b) { return a.r[0] - b.r[0]; });
+        all.forEach(function (item) {
+          var r = item.r, label = toHHMM(r[0]) + '–' + toHHMM(r[1]);
+          if (item.busy) {
+            var el = document.createElement('span');
+            el.className = 'slot is-busy';
+            el.innerHTML = label + ' <span>มีคาบแล้ว</span>';
+            slots.appendChild(el);
+          } else {
+            var picked = state.dateKey === key && state.block && state.block[0] === r[0] && state.block[1] === r[1];
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'slot' + (picked ? ' is-picked' : '');
+            btn.innerHTML = label + ' <span class="slot-go" aria-hidden="true">' + (picked ? '✓' : '→') + '</span>';
+            btn.setAttribute('aria-pressed', picked ? 'true' : 'false');
+            btn.setAttribute('aria-label', 'เลือก ' + fmtDay(d) + ' ' + fmtDate(d) + ' ช่วง ' + label);
+            btn.dataset.key = key;
+            btn.dataset.s = r[0];
+            btn.dataset.e = r[1];
+            slots.appendChild(btn);
+          }
+        });
+        /* ที่บ้าน/นอกสถานที่: เวลารอบ ๆ คาบเดิมถูกกันไว้ให้ครูเดินทาง ผู้ใช้ต้องรู้ว่าทำไมช่วงนั้นหาย */
+        if (needsTravel(state.mode) && busy.length) {
+          var hint = document.createElement('span');
+          hint.className = 'cal-hint';
+          hint.textContent = '+ เว้นเวลาเดินทางให้ครู 60 นาที ก่อน-หลังคาบนี้';
+          slots.appendChild(hint);
+        }
+        if (free.length) freeDays++;
+      }
+      row.appendChild(dateCell); row.appendChild(slots);
+      calBody.appendChild(row);
+    }
+    calRange.textContent = fmtDate(start) + ' – ' + fmtDate(addDays(start, 6));
+    calPrev.disabled = weekOffset === 0;
+    calSr.textContent = 'ช่วงวันที่ ' + calRange.textContent + ' เลือกได้ ' + freeDays + ' วัน';
+  }
+
+  calBody.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.slot') : null;
+    if (!btn || btn.classList.contains('is-busy') || btn.tagName !== 'BUTTON') return;
+    state.dateKey = btn.dataset.key;
+    state.block = [+btn.dataset.s, +btn.dataset.e];
+    state.start = null;                    /* เปลี่ยนช่วง = เวลาเริ่มเดิมใช้ไม่ได้แล้ว */
+    clearedNote = null;                    /* เลือกใหม่แล้ว คำเตือนเก่าไม่ต้องค้าง */
+    if (state.dur === null) state.dur = minMin(state.mode);
+    renderAll();
+    var s4 = $('sec4'); if (s4 && s4.scrollIntoView) s4.scrollIntoView({ block: 'start' });
+  });
+  calPrev.addEventListener('click', function () { if (weekOffset > 0) { weekOffset--; renderCal(); } });
+  calNext.addEventListener('click', function () { weekOffset++; renderCal(); });
+
+  /* ---------- ขั้น 4 · ความยาว + เวลาเริ่ม ---------- */
+  /* จุดเริ่มที่จองได้จริง = ทุก 30 นาที ที่ทั้งคาบยังอยู่ในช่วงว่างก้อนนั้น
+     🔴 ก้อนนี้ถูก mergeRanges มาแล้ว จึงคร่อมเส้น 19:00 ได้ (เคสบังคับของ Owner) */
+  function startsFor(block, dur) {
+    var out = [];
+    if (!block || !dur) return out;
+    for (var s = Math.ceil(block[0] / STEP) * STEP; s + dur <= block[1]; s += STEP) out.push(s);
+    return out;
+  }
+
+  function renderTime() {
+    var open = ready2() && !!state.block;
+    $('sec4-body').hidden = !open;
+    $('sec4-lock').hidden = open;
+    if (!open) { durGroup.innerHTML = ''; startGroup.innerHTML = ''; return; }
+
+    /* ⭐ ก้อน C2: เวลาที่ครูเสนอ = ข้อตกลงที่ล็อกแล้ว ห้ามให้ย่นคาบให้สั้นลงตรงนี้
+       (ย่นได้ = จ่ายน้อยลงกว่าที่ครูตกลง แล้วครูไม่รู้ตัว) */
+    if (OFFER && OFFER.counter && !counterGone) {
+      state.dur = OFFER.counter.len;
+      state.start = OFFER.counter.start;
+      durGroup.innerHTML = '<label class="chip"><input type="radio" name="dur" checked disabled>' + hoursText(state.dur) + '</label>';
+      durHelp.textContent = 'ความยาวคาบล็อกไว้ตามที่ครูเสนอ (' + hoursText(state.dur) + ') — เปลี่ยนในขั้นนี้ไม่ได้';
+      startGroup.innerHTML = '<label class="chip"><input type="radio" name="start" checked disabled>' + toHHMM(state.start) + '</label>';
+      startHelp.textContent = 'เวลาที่ครูล็อกไว้ให้คุณ · คาบจบเวลา ' + toHHMM(state.start + state.dur);
+      $('young-tip').hidden = true;
+      return;
+    }
+
+    var minDur = minMin(state.mode);
+    var blockLen = state.block[1] - state.block[0];
+
+    durGroup.innerHTML = '';
+    DURATIONS.forEach(function (dur) {
+      var can = dur >= minDur && startsFor(state.block, dur).length > 0;
+      var lab = document.createElement('label');
+      lab.className = 'chip';
+      lab.innerHTML = '<input type="radio" name="dur" value="' + dur + '"' +
+        (state.dur === dur ? ' checked' : '') + (can ? '' : ' disabled') + '>' + hoursText(dur);
+      if (!can) lab.title = dur < minDur ? 'ครูตั้งขั้นต่ำไว้ ' + hoursText(minDur) : 'ช่วงที่เลือกยาวไม่พอ';
+      durGroup.appendChild(lab);
+    });
+    durHelp.textContent = 'ครูตั้งขั้นต่ำของ' + MODE_LABEL[state.mode] + ' ไว้ ' + hoursText(minDur) + ' · ช่วงที่เลือกยาว ' + hoursText(blockLen) +
+      ' (' + toHHMM(state.block[0]) + '–' + toHHMM(state.block[1]) + ')';
+
+    /* คำแนะนำ ไม่ใช่ข้อบังคับ — ผู้ปกครองตัดสินใจเอง ระบบแค่บอกสิ่งที่รู้
+       [researched 2026-08-16] เด็ก 6-10 ขวบโฟกัสได้ดีที่สุดราว 30-45 นาที · 60 นาทีขึ้นไปมักยาวเกินสำหรับเด็กประถม */
+    var youngTip = $('young-tip');
+    var isYoung = YOUNG_LEVELS.indexOf(kidLevel()) > -1;
+    youngTip.hidden = !(isYoung && state.dur !== null && state.dur > 90);
+    if (!youngTip.hidden) {
+      youngTip.innerHTML = '<div class="note"><span class="note-mark" aria-hidden="true">◷</span><span>' +
+        '<strong>' + kid().nick + ' อยู่ ' + kid().grade + ' — ' + hoursText(state.dur) + ' อาจนานไปสำหรับวัยนี้</strong>' +
+        'เด็กวัยประถมมักโฟกัสได้ดีที่สุดราว 30-45 นาทีต่อรอบ · จองยาวได้ถ้าครูมีวิธีพักเบรกให้ แต่ถ้ายังไม่เคยเรียนกับครูคนนี้ ' +
+        '<b>ลองเริ่มที่ ' + hoursText(Math.max(minDur, 60)) + ' ก่อน</b>แล้วค่อยเพิ่มทีหลังก็ได้</span></div>';
+    }
+
+    startGroup.innerHTML = '';
+    var list = startsFor(state.block, state.dur);
+    if (!state.dur) {
+      startHelp.textContent = 'เลือกความยาวคาบก่อน แล้วเวลาเริ่มที่เป็นไปได้จะขึ้นมา';
+    } else if (!list.length) {
+      startHelp.textContent = 'ช่วงนี้ยาวไม่พอสำหรับ ' + hoursText(state.dur) + ' — เลือกความยาวที่สั้นลง หรือเลือกช่วงอื่นในขั้นที่ 3';
+    } else {
+      list.forEach(function (s) {
+        var lab = document.createElement('label');
+        lab.className = 'chip';
+        lab.innerHTML = '<input type="radio" name="start" value="' + s + '"' + (state.start === s ? ' checked' : '') + '>' +
+          toHHMM(s) + '<span class="sr-only">–' + toHHMM(s + state.dur) + '</span>';
+        startGroup.appendChild(lab);
+      });
+      startHelp.textContent = 'เลือกได้ ' + list.length + ' จุดเริ่ม · คาบจะจบเวลา ' +
+        (state.start !== null ? toHHMM(state.start + state.dur) : toHHMM(list[0] + state.dur) + ' ถ้าเริ่ม ' + toHHMM(list[0]));
+    }
+  }
+
+  durGroup.addEventListener('change', function (e) {
+    if (e.target.name !== 'dur') return;
+    state.dur = +e.target.value;
+    if (state.start !== null && startsFor(state.block, state.dur).indexOf(state.start) < 0) state.start = null;
+    renderAll();
+  });
+  startGroup.addEventListener('change', function (e) {
+    if (e.target.name !== 'start') return;
+    state.start = +e.target.value;
+    renderAll();
+  });
+
+  /* ---------- ขั้น 5 · สรุป ---------- */
+  function summaryRows() {
+    var k = kid(), lv = kidLevel(), p = rate();
+    var when = '—';
+    if (state.dateKey && state.start !== null && state.dur) {
+      var d = dateFromKey(state.dateKey);
+      when = fmtDay(d) + ' ' + fmtDate(d) + ' · ' + toHHMM(state.start) + '–' + toHHMM(state.start + state.dur);
+    } else if (state.dateKey) {
+      var d2 = dateFromKey(state.dateKey);
+      when = fmtDay(d2) + ' ' + fmtDate(d2) + ' · ยังไม่ได้เลือกเวลา';
+    }
+    var place = state.mode ? MODE_LABEL[state.mode] : '—';
+    if (state.mode === 'home') {
+      var dis = $('district').value.trim(), pv = provSel.value;
+      place += (dis || pv) ? ' · ' + [dis, pv].filter(Boolean).join(' ') : ' · ยังไม่ได้กรอกที่อยู่';
+    }
+    return [
+      ['ครูผู้สอน', TEACHER.name],
+      ['วิชา', state.subj || '—'],
+      ['ผู้เรียน', k ? k.nick + ' · ' + k.grade + (lv ? ' (' + LEVEL_LABEL[lv] + ')' : '') : '—'],
+      ['รูปแบบ', place],
+      ['วันเวลา', when],
+      ['ค่าเรียน', p !== null && state.dur ? baht(p) + ' × ' + hoursText(state.dur) + ' = ' + baht(p * state.dur / 60) : '—']
+    ];
+  }
+  function renderSummary(target) {
+    var rows = summaryRows();
+    target.innerHTML = rows.map(function (r) {
+      var empty = r[1] === '—' || r[1].indexOf('ยังไม่ได้') > -1;
+      return '<li><span class="k">' + esc(r[0]) + '</span><span class="v' + (empty ? ' empty' : '') + '">' + esc(r[1]) + '</span></li>';
+    }).join('');
+  }
+  function renderPriceBox() {
+    var p = rate();
+    $('p-rate').textContent = p !== null ? baht(p) + ' / ชม.' : '—';
+    $('p-hours').textContent = state.dur ? hoursText(state.dur) : '—';
+    $('p-total').textContent = (p !== null && state.dur) ? baht(p * state.dur / 60) : '—';
+  }
+  function renderDock() {
+    var p = rate(), done = p !== null && state.dur && state.start !== null && state.dateKey;
+    var what = '—', total = '—';
+    if (done) {
+      var d = dateFromKey(state.dateKey);
+      what = kid().nick + ' · ' + fmtDate(d) + ' ' + toHHMM(state.start) + '–' + toHHMM(state.start + state.dur);
+      total = baht(p * state.dur / 60);
+    } else {
+      what = 'ยังเลือกไม่ครบ';
+    }
+    $('dock-what').textContent = what;
+    $('dock-total').textContent = total;
+    $('side-what').textContent = what;
+    $('side-total').textContent = total;
+    $('dock').hidden = false;
+  }
+
+  /* ค่าที่เลือกไว้อาจใช้ไม่ได้แล้วเมื่อเปลี่ยนเด็ก/เปลี่ยนโหมด (ช่วงว่างเปลี่ยนเพราะเวลาเดินทาง)
+     → ต้องล้างของที่ค้างทิ้ง ไม่ใช่ปล่อยให้สรุปโชว์ค่าที่จองไม่ได้จริง */
+  var clearedNote = null;   /* ข้อความอธิบายว่าทำไมช่วงที่เลือกไว้หายไป */
+
+  function revalidate() {
+    if (!state.mode) { state.block = null; state.dateKey = null; state.start = null; state.dur = null; return; }
+    if (state.dur !== null && state.dur < minMin(state.mode)) state.dur = null;
+    if (state.dateKey && state.block) {
+      var d = dateFromKey(state.dateKey);
+      var still = freeBlocks(state.dateKey, d.getDay(), state.mode).some(function (r) {
+        return r[0] === state.block[0] && r[1] === state.block[1];
+      });
+      if (!still) {
+        /* fmtDay คืน "วันอังคาร" มาแล้ว ห้ามเติมคำว่า "วัน" ซ้ำอีก */
+        clearedNote = 'ช่วง ' + toHHMM(state.block[0]) + '–' + toHHMM(state.block[1]) + ' ' + fmtDay(d) + ' ' + fmtDate(d) +
+          ' ที่เลือกไว้ ใช้กับ' + MODE_LABEL[state.mode] + 'ไม่ได้ — ครูตั้งขั้นต่ำของรูปแบบนี้ไว้ ' + hoursText(minMin(state.mode)) +
+          ' และต้องเว้นเวลาเดินทางให้ครู 60 นาที ก่อน-หลังคาบอื่น · เลือกช่วงใหม่จากปฏิทินด้านล่างได้เลย';
+        state.block = null; state.dateKey = null; state.start = null;
+      }
+    }
+    if (state.block && state.dur !== null && startsFor(state.block, state.dur).indexOf(state.start) < 0) state.start = null;
+  }
+
+  function renderAll() {
+    renderPriceState();
+    renderAddr();
+    renderCal();
+    renderTime();
+    renderSummary(summary);
+    renderPriceBox();
+    renderDock();
+    if (submitted) validate(false);
+  }
+
+  /* ---------- ตรวจฟอร์ม ---------- */
+  function setErr(el, msg) {
+    el.hidden = !msg;
+    el.textContent = msg || '';
+  }
+  function validate(focusFirst) {
+    var problems = [];
+    setErr($('err-learner'), '');
+    setErr($('err-subj'), '');
+    setErr($('err-day'), '');
+    setErr($('err-time'), '');
+    ['addr', 'prov', 'district'].forEach(function (id) {
+      var el = $(id); el.removeAttribute('aria-invalid');
+      var h = document.querySelector('.helper[data-for="' + id + '"]');
+      if (h) h.classList.remove('err');
+    });
+
+    if (!kid()) { setErr($('err-learner'), 'เลือกผู้เรียนก่อน'); problems.push($('sec1')); }
+    if (!state.subj) { setErr($('err-subj'), 'เลือกวิชาที่จะเรียนคาบนี้'); problems.push($('sec1')); }
+    if (!state.mode) { problems.push($('sec2')); }
+    else if (rate() === null) { problems.push($('sec2')); }
+
+    if (state.mode === 'home') {
+      [['addr', 'กรอกที่อยู่ที่ให้ครูไปสอน'], ['prov', 'เลือกจังหวัด'], ['district', 'กรอกเขต/อำเภอ']].forEach(function (pair) {
+        var el = $(pair[0]);
+        if (!el.value.trim()) {
+          el.setAttribute('aria-invalid', 'true');
+          var h = document.querySelector('.helper[data-for="' + pair[0] + '"]');
+          if (h) { h.classList.add('err'); h.textContent = pair[1]; }
+          problems.push($('sec2'));
+        }
+      });
+    }
+    if (!state.dateKey || !state.block) { setErr($('err-day'), 'เลือกวันและช่วงเวลาที่ครูเปิดรับ'); problems.push($('sec3')); }
+    else if (state.dur === null || state.start === null) { setErr($('err-time'), 'เลือกความยาวคาบและเวลาเริ่ม'); problems.push($('sec4')); }
+    else {
+      /* 🔴 ยามชั้นสุดท้ายตอนกดส่ง — เปิดหน้าค้างไว้จนช่วงที่เลือกใกล้เกิน 24 ชม. ต้องส่งไม่ได้
+         (interval อาจถูกเบราว์เซอร์หยุดตอนสลับแท็บ จึงเช็คซ้ำที่นี่ ไม่พึ่งนาฬิกาอย่างเดียว) */
+      var stillOk = freeBlocks(state.dateKey, dateFromKey(state.dateKey).getDay(), state.mode)
+        .some(function (r) { return state.start >= r[0] && state.start + state.dur <= r[1]; });
+      if (!stillOk) {
+        setErr($('err-time'), 'ช่วงเวลานี้จองไม่ได้แล้ว — ต้องจองล่วงหน้าอย่างน้อย 24 ชม. เลือกช่วงใหม่ในขั้นที่ 3');
+        problems.push($('sec3'));
+      }
+    }
+
+    var ok = problems.length === 0;
+    formError.hidden = ok;
+    if (!ok) formError.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด — ดูข้อความสีแดงในแต่ละขั้น';
+    if (!ok && focusFirst && problems[0] && problems[0].scrollIntoView) problems[0].scrollIntoView({ block: 'start' });
+    return ok;
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    submitted = true;
+    if (!validate(true)) return;
+    renderSummary($('success-summary'));
+    startRequest();
+    form.hidden = true;
+    $('dock').hidden = true;
+    $('success').style.display = 'block';
+    window.scrollTo({ top: 0 });
+  });
+  /* ---------- ยามที่อยู่ในช่อง "เขต/อำเภอ" (ก้อน C1ข ข้อ 10) ----------
+     ทำไมต้องมี: ค่าในช่องนี้ถูกส่งต่อไปหน้าโพสต์หาครู (ค้น 'district=' ในไฟล์นี้) ซึ่งเป็นโพสต์สาธารณะ
+     ที่อยู่เต็มจึงห้ามหลุดเข้ามาทางช่องนี้ · 🔴 ชุดจับเดียวกับ signup-parent.html (ค้น looksLikeAddress)
+     ถ้าแก้ที่นั่นต้องแก้ที่นี่ด้วย · maxlength กันไม่ได้ ("199/45 ซอยอ่อนนุช 17" = 20 ตัว) */
+  var DISTRICT_BASE = 'ส่วนนี้ครูเห็นก่อนตัดสินใจรับคาบ';
+  /* 🔴 สำเนาชุดกลาง — ต้นฉบับอยู่ signup-parent.html (ค้น looksLikeAddress) แก้ที่นั่นต้องแก้ที่นี่ด้วย */
+  function looksLikeAddress(t) {
+    var x = (t || '').trim();
+    return /(บ้านเลขที่|เลขที่)\s*[\d๐-๙]/.test(x)
+        || /(ซอย|ซ\.|ถนน|ถ\.|หมู่ที่|หมู่)[^\d๐-๙]{0,20}[\d๐-๙]/.test(x)
+        || /(ชั้น|ห้อง|อาคาร|ตึก|คอนโด)\s*\S{0,10}[\d๐-๙]/.test(x)
+        || /[\d๐-๙]{1,4}\/[\d๐-๙]{1,4}/.test(x);
+  }
+  /* เบอร์โทรก็ห้ามหลุดลงช่องนี้เหมือนกัน — ชุดเดียวกับ post-job.html (ค้น contactRisk) */
+  function looksLikePhone(t) {
+    return /0\d(?:[\s.\-]?\d){7,8}/.test((t || '').replace(/ออนไลน์/g, ' '));
+  }
+  function guardDistrict() {
+    var el = $('district');
+    var h = document.querySelector('.helper[data-for="district"]');
+    if (!h) return;
+    var msg = '';
+    if (looksLikeAddress(el.value)) msg = 'ตรงนี้ขอแค่เขต/อำเภอ ไม่ต้องใส่บ้านเลขที่ เลขซอย หรือชั้น/ห้อง — ครูเห็นที่อยู่เต็มหลังชำระเงินแล้วเท่านั้น';
+    else if (looksLikePhone(el.value)) msg = 'ไม่ต้องใส่เบอร์โทรตรงนี้ — ระบบส่งเบอร์ให้กันทาง LINE OA หลังชำระเงินแล้ว';
+    if (msg) {
+      h.textContent = msg;
+      h.classList.add('err');
+    } else if (h.textContent !== DISTRICT_BASE) {
+      /* 🔴 ต้องล้างแม้ช่องจะว่าง — พิมพ์ผิดแล้วลบทิ้งจนหมด ข้อความแดงต้องหายด้วย
+         (setErr ต้องมี clearErr คู่กันเสมอ · ผลตรวจ security 2026-08-20) */
+      h.textContent = DISTRICT_BASE;
+      h.classList.remove('err');
+      if (!el.value.trim() && submitted) validate(false);   /* ช่องว่าง+กดส่งไปแล้ว = ต้องกลับไปเป็นแดง "ต้องกรอก" */
+    }
+  }
+
+  ['addr', 'prov', 'district'].forEach(function (id) {
+    $(id).addEventListener('input', function () { if (submitted) validate(false); renderSummary(summary); if (id === 'district') guardDistrict(); });
+    $(id).addEventListener('change', function () { if (submitted) validate(false); renderSummary(summary); });
+  });
+
+  /* ---------- รับค่าจาก URL (มาจากปุ่มในหน้าโปรไฟล์ครู) ----------
+     booking.html?t=ploy&d=2026-08-18&s=960&e=1320
+     ⚠️ ช่วงที่ส่งมาคำนวณจากมุม "ออนไลน์" (ไม่มีเวลาเดินทาง) — ถ้าผู้ใช้เปลี่ยนเป็นสอนที่บ้าน
+        ช่วงอาจหดหรือหายไป revalidate() จะล้างให้เอง แล้วผู้ใช้เลือกใหม่ในปฏิทิน */
+  function applyUrl() {
+    var p;
+    try { p = new URLSearchParams(location.search); } catch (err) { return; }
+    /* วิชายกมาจากหน้าค้นหา/โปรไฟล์ — ตรวจก่อนว่าครูคนนี้สอนจริงไหม (ทางที่ 1 ของ renderSubjects) */
+    var sj = p.get('subj');
+    if (sj && TEACHER.subjects.indexOf(sj) > -1) state.subj = sj;
+
+    /* ⭐ ก้อน C②: รูปแบบเรียนที่ยกมาจากโพสต์ (?mode=online) — ติ๊กมาให้เลย ถ้าครูคนนี้รับจริง
+       ห้ามเชื่อ URL ตรง ๆ · ถ้าครูไม่รับรูปแบบนั้น ปล่อยว่างให้ผู้ใช้เลือกเอง revalidate() จะจัดการต่อ */
+    var md = (p.get('mode') || '').trim();
+    if (md && TEACHER.modes.indexOf(md) > -1) {
+      state.mode = md;
+      state.dur = minMin(md);
+    }
+
+    /* ผู้เรียนที่เลือกไว้ตั้งแต่หน้าค้นหา (?kid=k2) — ต้องมีอยู่จริงในบัญชีเท่านั้น ห้ามเชื่อ URL ตรง ๆ
+       เรียกก่อน renderLearners() อยู่แล้ว (ดูท้ายไฟล์: applyUrl -> renderLearners) จึงติ๊กมาให้ตั้งแต่เปิดหน้า */
+    var kd = (p.get('kid') || '').trim();
+    if (kd && KIDS.some(function (k) { return k.id === kd; })) state.kidId = kd;
+    else if (kd) kidNotFound = true;   /* ส่งรหัสมาแต่ไม่มีในบัญชี → ขึ้นข้อความให้เลือกเอง ห้ามเงียบ */
+
+    /* ⭐ ก้อน C2: วัน-เวลามาจากใบที่ครูเสนอ -> ติ๊กมาให้ครบ ไม่ต้องเลือกอะไรอีก
+       ตรวจกับปฏิทินจริงก่อนเสมอ ห้ามเชื่อ URL ตรง ๆ · ไม่ผ่าน = ปล่อยว่างแล้วให้ข้อความบนแถบอธิบาย */
+    if (OFFER && OFFER.counter) {
+      var cLen = OFFER.counter.len, cStart = OFFER.counter.start, cKey = OFFER.counter.dateKey;
+      var cDate = dateFromKey(cKey);
+      var modeOk = state.mode && TEACHER.modes.indexOf(state.mode) > -1;
+      if (!modeOk) state.mode = TEACHER.modes[0];
+      if (DURATIONS.indexOf(cLen) > -1 && cStart % STEP === 0 && !isNaN(cDate.getTime())) {
+        var hit = freeBlocks(cKey, cDate.getDay(), state.mode).filter(function (r) {
+          return r[0] <= cStart && r[1] >= cStart + cLen;
+        })[0];
+        if (hit) {
+          state.dateKey = cKey;
+          state.block = hit;
+          state.dur = cLen;
+          state.start = cStart;
+          /* 🔴 ต้องเลื่อนปฏิทินไปสัปดาห์ของวันนั้นด้วย ไม่งั้นผู้เรียนเห็นสัปดาห์นี้ที่ว่างเปล่า
+             (ผลตรวจ perf 2026-08-23 · ครูเสนอวันที่ +8 ถึง +10 ได้จริงจากแผงฝั่งครู) */
+          var _base = new Date(); _base.setHours(0, 0, 0, 0);
+          weekOffset = Math.max(0, Math.floor(Math.round((cDate - _base) / 86400000) / 7));
+        } else {
+          counterGone = true;   /* ช่วงที่ครูล็อกไว้ใช้ไม่ได้แล้ว — ต้องบอกตรง ๆ ห้ามเงียบ */
+        }
+      } else {
+        counterGone = true;
+      }
+      return;
+    }
+
+    /* 🔴 กลับมาจ่ายเงินรอบสอง (from=offer) — ติ๊กวัน-เวลาที่ผู้เรียนเคยเลือกไว้กลับมาให้
+       (Owner เจอจริง 2026-08-25: เลือกเวลา -> ไปหน้าจ่ายเงิน -> กลับมาหน้างานของฉัน
+        -> กดไปชำระเงินอีกที แล้วโดนให้เลือกสถานที่+เวลาใหม่ทั้งหมด)
+       ต่างจากบล็อก OFFER.counter ข้างบน: อันนั้นครูล็อกเวลาให้ ใช้ไม่ได้ = ต้องบอกว่าเวลาหาย (counterGone)
+       อันนี้เป็นค่าที่ผู้เรียนเลือกเอง ใช้ไม่ได้ = ปล่อยว่างให้เลือกใหม่เงียบ ๆ ไม่ต้องเตือน */
+    if (OFFER && !OFFER.counter) {
+      var rKey = (p.get('date') || '').trim();
+      var rStart = Number(p.get('start')), rLen = Number(p.get('len'));
+      if (/^\d{4}-\d{2}-\d{2}$/.test(rKey) && isFinite(rStart) && isFinite(rLen)
+          && DURATIONS.indexOf(rLen) > -1 && rStart % STEP === 0) {
+        var rDate = dateFromKey(rKey);
+        if (!isNaN(rDate.getTime())) {
+          if (!state.mode || TEACHER.modes.indexOf(state.mode) < 0) state.mode = TEACHER.modes[0];
+          var rHit = freeBlocks(rKey, rDate.getDay(), state.mode).filter(function (r) {
+            return r[0] <= rStart && r[1] >= rStart + rLen;
+          })[0];
+          if (rHit) {
+            state.dateKey = rKey; state.block = rHit; state.dur = rLen; state.start = rStart;
+            var rBase = new Date(); rBase.setHours(0, 0, 0, 0);
+            weekOffset = Math.max(0, Math.floor(Math.round((rDate - rBase) / 86400000) / 7));
+          }
+        }
+      }
+      return;
+    }
+
+    var d = p.get('d'), s = p.get('s'), e = p.get('e');
+    if (!d || s === null || e === null) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+    var dd = dateFromKey(d);
+    if (isNaN(dd.getTime())) return;
+    state.mode = TEACHER.modes.indexOf('online') > -1 ? 'online' : TEACHER.modes[0];
+    state.dur = minMin(state.mode);
+    /* ต้องเป็นช่วงที่มีอยู่จริงในปฏิทินเท่านั้น ห้ามเชื่อ URL ตรง ๆ */
+    var match = freeBlocks(d, dd.getDay(), state.mode).filter(function (r) { return r[0] === +s && r[1] === +e; })[0];
+    if (match) { state.dateKey = d; state.block = match; }
+  }
+
+  /* ---------- สารบัญซ้าย: ไฮไลต์ขั้นที่กำลังอ่าน (ตัวเดียวกับหน้าอื่น) ---------- */
+  var navLinks = document.querySelectorAll('.sidenav a');
+  var secs = [].map.call(navLinks, function (a) { return document.querySelector(a.getAttribute('href')); });
+  if (window.IntersectionObserver) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          var id = '#' + en.target.id;
+          [].forEach.call(navLinks, function (a) { a.classList.toggle('active', a.getAttribute('href') === id); });
+        }
+      });
+    }, { rootMargin: '-40% 0px -50% 0px' });
+    secs.forEach(function (s) { if (s) spy.observe(s); });
+  }
+
+  /* ==========================================================================
+     ⭐ ก้อน B (2026-08-18) — เลือกครูหลายคน · ระบบสถานะ · ขั้นชำระเงิน (โครง)
+     ต้นฉบับกติกา: SYSTEM_สถานะงาน.md ข้อ 3 (จองตรง) · ข้อ 8 (คำสถานะกลาง) · ข้อ 12 (หน่วยเดียว = ใบคำขอ)
+     🔴 รหัสอังกฤษคือของจริง · ข้อความไทยเป็นแค่ป้ายบนจอ (ข้อ 8 กติกาข้อ 1)
+     ========================================================================== */
+
+  /* ป้ายสถานะฝั่งผู้เรียน — ลอกจาก SYSTEM ข้อ 8 ห้ามตั้งคำใหม่เอง */
+  var STATUS_LABEL = {
+    pending:               'รอครูตอบ',
+    awaiting_payment:      'ครูรับแล้ว — ชำระเงิน',
+    confirmed:             'ยืนยันแล้ว',
+    completed:             'เรียนแล้ว',
+    declined_by_teacher:   'ครูไม่ว่างช่วงนี้',
+    expired:               'ไม่มีครูตอบรับทัน',
+    lost_to_other_teacher: 'ปิดแล้ว (ครูคนอื่นรับไปก่อน)',
+    payment_timeout:       'ไม่ได้ชำระในเวลา คำขอถูกยกเลิก',
+    withdrawn:             'คุณถอนคำขอแล้ว'
+  };
+  var STATUS_TONE = { pending:'wait', awaiting_payment:'act', confirmed:'ok', completed:'ok' };
+
+  /* คำขอ 1 ชุด = กดส่ง 1 ครั้ง · ใบย่อย 1 ใบต่อครู 1 คน (SYSTEM ข้อ 12) */
+  var req = null;
+
+  function altById(id) {
+    if (id === TEACHER.id) return TEACHER;
+    return ALT_TEACHERS.filter(function (t) { return t.id === id; })[0] || null;
+  }
+  /* ครูที่เลือกเสริมได้: ต้องรับรูปแบบนี้ + มีราคาสำหรับช่วงชั้นนี้ + ขั้นต่ำต่อคาบไม่เกินที่ผู้เรียนจอง */
+  function altStatus(t) {
+    var lv = kidLevel();
+    if (!state.mode || !lv) return { ok:false, why:'เลือกรูปแบบและผู้เรียนก่อน' };
+    if (t.modes.indexOf(state.mode) < 0) return { ok:false, why:'ไม่รับสอน' + MODE_LABEL[state.mode] };
+    var p = priceOfTeacher(t, state.mode, lv);
+    if (p === null) return { ok:false, why:'ไม่เปิดรับ' + (LEVEL_LABEL[lv] || 'ช่วงชั้นนี้') };
+    var mn = (t.minMinutes && t.minMinutes[state.mode]) || 60;
+    if (state.dur !== null && state.dur < mn) return { ok:false, why:'รับขั้นต่ำ ' + hoursText(mn) + ' ต่อคาบ' };
+    return { ok:true, price:p };
+  }
+
+  /* ครูที่ยังเพิ่มเข้าคำขอนี้ได้ — โผล่เฉพาะตอนยังไม่มีใครกดรับ */
+  function renderAddMore() {
+    var wrap = $('add-more');
+    if (!wrap) return;
+    var open = !!req && anyPending() && !winner();
+    wrap.hidden = !open;
+    if (!open) return;
+    var have = req.tickets.map(function (t) { return t.id; });
+    var rows = ALT_TEACHERS.filter(function (t) { return have.indexOf(t.id) < 0; }).map(function (t) {
+      var st = altStatus(t);
+      return '<li class="ticket' + (st.ok ? '' : ' alt--off') + '">' +
+        '<span class="alt-ava" aria-hidden="true">' + esc(t.initial) + '</span>' +
+        '<span class="ticket-name">' + esc(t.name) + '</span>' +
+        '<span class="alt-price' + (st.ok ? '' : ' alt-price--off') + '">' + (st.ok ? baht(st.price) + ' / ชม.' : st.why) + '</span>' +
+        '<button type="button" class="btn btn-secondary btn-sim" data-add="' + esc(t.id) + '"' + (st.ok ? '' : ' disabled') + '>ส่งคำขอให้ด้วย</button>' +
+        '</li>';
+    }).join('');
+    $('add-list').innerHTML = rows || '<li class="helper">ส่งถึงครูที่เข้าเงื่อนไขครบทุกคนแล้ว</li>';
+  }
+
+  /* เพิ่มครูเข้าคำขอชุดเดิม = ออกใบใหม่ 1 ใบ สถานะ pending (SYSTEM ข้อ 12: ใบเดียวต่อครู 1 คน) */
+  function addTeacher(id) {
+    if (!req || winner() || !anyPending()) return;   /* คำขอที่ตายแล้วห้ามเพิ่มครู */
+    if (req.tickets.some(function (t) { return t.id === id; })) return;
+    var t = altById(id);
+    if (!t) return;
+    var st = altStatus(t);
+    if (!st.ok) return;
+    req.tickets.push({ id: id, name: t.name, initial: t.initial, status: 'pending', price: st.price });
+    renderReq();
+  }
+
+  /* ---------- ส่งคำขอ  /* ---------- ส่งคำขอ → สร้างใบย่อยตามจำนวนครูที่เลือก ---------- */
+  function startRequest() {
+    var k = kid();
+    /* 🔴 แช่ความต้องการลงใบตั้งแต่ตอนกดส่ง — หลังจากนี้หน้าติดตามคำขอห้ามอ่านจาก state อีก
+       (ผู้ใช้กลับไปแก้ฟอร์มได้ ถ้าอ่าน state สด ยอดเงิน/วันเวลาบนใบจะเปลี่ยนตามโดยไม่มีใครสั่ง) */
+    req = {
+      code: '#BK-' + (2000 + Math.floor(Math.random() * 900)),
+      want: {
+        kidId: k ? k.id : '', kidNick: k ? k.nick : '', kidGrade: k ? k.grade : '', level: kidLevel(),
+        subj: state.subj,
+        mode: state.mode, dateKey: state.dateKey, start: state.start, dur: state.dur,
+        addr: $('addr').value.trim(), prov: $('prov').value, district: $('district').value.trim()
+      },
+      /* ⭐ ก้อน C②: มาจากการกดรับข้อเสนอ = ครูตอบรับล่วงหน้าไปแล้วตอนยื่นข้อเสนอ (SYSTEM ข้อ 4 ③)
+         -> ข้ามขั้น "รอครูตอบ" ไปที่ awaiting_payment เลย ห้ามให้รอครูกดรับซ้ำอีกรอบ */
+      tickets: [{ id: TEACHER.id, name: TEACHER.name, initial: TEACHER.initial,
+                  status: OFFER ? 'awaiting_payment' : 'pending', price: rate() }],
+      fromOffer: !!OFFER,
+      fromCounter: !!(OFFER && OFFER.counter),
+      jobId: OFFER ? OFFER.jobId : '',
+      paid: false
+    };
+    /* 🔴 มาจากการกดรับข้อเสนอ = ใบเข้าสถานะ awaiting_payment ทันที
+       ต้องจำ "วัน-เวลาที่เพิ่งเลือก" กลับไปให้ my-jobs เดี๋ยวนี้ ไม่ใช่รอตอนจ่ายเงินสำเร็จ
+       (Owner เจอจริง 2026-08-25: เลือกเวลาแล้วกลับไปหน้างานของฉัน กดไปชำระเงินอีกที
+        แล้วโดนให้เลือกสถานที่+เวลาใหม่ทั้งหมด เพราะไม่มีใครจำของที่เลือกไว้)
+       เดิม stampOfferProgress ถูกเรียกแค่ตอน paid / timedOut เท่านั้น */
+    if (OFFER) {
+      stampOfferProgress({
+        when: bookedWhenText(),
+        dateKey: req.want.dateKey, start: req.want.start, len: req.want.dur,
+        mode: req.want.mode
+      });
+    }
+    $('req-code').textContent = req.code;
+    renderReq();
+  }
+
+  /* ใบที่ "ถืองานอยู่" (รวมใบที่จ่ายไม่ทันด้วย — ใช้แสดงผล) */
+  function holder() {
+    return req ? req.tickets.filter(function (t) { return ['awaiting_payment','confirmed','completed','payment_timeout'].indexOf(t.status) > -1; })[0] : null;
+  }
+  /* ใบที่ยังถืองานอยู่จริง (ใช้เป็นยามของ accept/addTeacher) */
+  function winner() {
+    return req ? req.tickets.filter(function (t) { return ['awaiting_payment','confirmed','completed'].indexOf(t.status) > -1; })[0] : null;
+  }
+  function anyPending() { return req ? req.tickets.some(function (t) { return t.status === 'pending'; }) : false; }
+
+  /* สถานะรวมของคำขอ 1 ชุด — คำนวณจากใบลูกเสมอ ห้ามเก็บเป็นตัวแปรแยก (SYSTEM ข้อ 12) */
+  function stage() {
+    if (!req) return 'none';
+    var t = req.tickets;
+    if (t.some(function (x) { return x.status === 'confirmed' || x.status === 'completed'; })) return 'confirmed';
+    if (t.some(function (x) { return x.status === 'awaiting_payment'; })) return 'awaiting_payment';
+    if (t.some(function (x) { return x.status === 'payment_timeout'; })) return 'payment_timeout';
+    if (t.some(function (x) { return x.status === 'pending'; })) return 'pending';
+    if (t.every(function (x) { return x.status === 'withdrawn' || x.status === 'lost_to_other_teacher'; })) return 'withdrawn';
+    return 'unfilled';   /* ครูปฏิเสธ/หมดเวลาทุกใบ = ระบบหาให้ไม่ได้ ต้องมีทางไปต่อเสมอ */
+  }
+
+  /* 🔴 ทุกฟังก์ชันด้านล่างต้องเช็คสถานะของ "ใบนั้น" ก่อนเปลี่ยนเสมอ
+     ห้ามเปลี่ยนใบที่ตายแล้ว (expired/withdrawn/declined/lost) กลับมามีชีวิต — กฎแม่ข้อ 2 */
+  function ticketById(id) { return req ? req.tickets.filter(function (t) { return t.id === id; })[0] : null; }
+
+  function accept(id) {
+    if (!req || winner()) return;
+    var target = ticketById(id);
+    if (!target || target.status !== 'pending') return;
+    req.tickets.forEach(function (t) {
+      if (t.id === id) t.status = 'awaiting_payment';
+      else if (t.status === 'pending') t.status = 'lost_to_other_teacher';
+    });
+    renderReq();
+  }
+  function decline(id) {
+    var target = ticketById(id);
+    if (!target || target.status !== 'pending') return;
+    target.status = 'declined_by_teacher';
+    renderReq();
+  }
+  function expireAll() {
+    if (!req || winner()) return;
+    req.tickets.forEach(function (t) { if (t.status === 'pending') t.status = 'expired'; });
+    renderReq();
+  }
+  function payTimeout() {
+    var w = winner();
+    if (!w || w.status !== 'awaiting_payment') return;
+    w.status = 'payment_timeout';
+    stampOfferProgress({ timedOut: true, when: bookedWhenText() });
+    renderReq();
+  }
+  function payNow() {
+    var w = winner();
+    if (!w || w.status !== 'awaiting_payment') return;
+    w.status = 'confirmed';
+    req.paid = true;
+    /* ⭐ ก้อน C②: บอก my-jobs.html ว่างานใบนี้จ่ายแล้ว + คาบตกลงเป็นวันไหนกี่โมง */
+    stampOfferProgress({ paid: true, when: bookedWhenText() });
+    renderReq();
+  }
+  /* วันเวลาที่ตกลงกันจริงของคำขอชุดนี้ — อ่านจากค่าที่แช่ไว้บนใบ ไม่ใช่จาก state สด */
+  function bookedWhenText() {
+    if (!req || !req.want.dateKey || req.want.start === null) return '';
+    var d = dateFromKey(req.want.dateKey);
+    return fmtDay(d) + ' ' + fmtDate(d) + ' · ' + toHHMM(req.want.start) + '–' + toHHMM(req.want.start + req.want.dur);
+  }
+  function withdrawAll() {
+    if (!req) return;
+    req.tickets.forEach(function (t) { if (t.status === 'pending') t.status = 'withdrawn'; });
+    renderReq();
+  }
+
+    /* โพสต์หาครูด้วยข้อมูลเดิม — SYSTEM ข้อ 12 ข้อ 4 · ห้ามให้กรอกใหม่แม้แต่ช่องเดียว */
+  function postJobUrl() {
+    if (!req) return 'post-job.html';
+    var w = req.want, q = [];
+    /* 🔴 ส่ง "รหัส" ผู้เรียน ไม่ใช่ชื่อเล่นที่เป็นข้อความไทย — post-job.html เลือกผู้เรียนด้วย id (k1/k2/k3)
+       ชุด KIDS ของ 2 หน้าต้องเป็นครอบครัวเดียวกัน (CLAUDE.md กฎ 8 ข้อ 3) · ชื่อเล่นส่งไปด้วยไว้ใช้แสดงผลเท่านั้น */
+    if (w.kidId) q.push('kid=' + encodeURIComponent(w.kidId));
+    /* 🔴 ห้ามส่งชื่อเล่นเด็ก/ระดับชั้นทาง URL — post-job.html ดึงจากโปรไฟล์ด้วย kid= อยู่แล้ว
+       ส่งไปก็ไม่มีใครอ่าน แต่ทำให้ข้อมูลเด็กไปค้างใน address bar · ประวัติเบราว์เซอร์ · log เซิร์ฟเวอร์
+       (LEGAL_BGT ข้อ 1: ชื่อเล่น + ชั้นเรียน + ผูกกับบัญชีผู้ปกครอง = ข้อมูลส่วนบุคคลของเด็กเต็มตัว) */
+    if (w.subj) q.push('subj=' + encodeURIComponent(w.subj));
+    if (w.mode) q.push('mode=' + w.mode);
+    if (w.dateKey) q.push('d=' + w.dateKey);
+    if (w.start !== null) q.push('s=' + w.start);
+    if (w.dur !== null) q.push('dur=' + w.dur);
+    /* ที่อยู่ต้องไปด้วย — Owner: "ห้ามให้กรอกใหม่แม้แต่ช่องเดียว" (SYSTEM ข้อ 12.4)
+       🔴 ยกเว้น addr (บ้านเลขที่/ซอย/ถนน) จงใจไม่ส่ง — post-job.html ไม่มีช่องรับ และเขียนกำกับไว้เองว่า
+          "ไม่ต้องใส่บ้านเลขที่ ใส่แค่ย่านพอ" (post-job.html ค้น zone-detail) เพราะโพสต์นั้นครูทุกคนเห็น
+          ส่งไปก็ไม่มีที่ลง มีแต่ทำให้ที่อยู่บ้านเด็กไปโผล่บนกระดานสาธารณะ */
+    if (w.mode === 'home') {
+      if (w.prov) q.push('prov=' + encodeURIComponent(w.prov));
+      if (w.district) q.push('district=' + encodeURIComponent(w.district));
+    }
+    var t0 = req.tickets[0];
+    if (t0 && t0.price !== null) q.push('budget=' + t0.price);   /* งบตั้งต้น = ราคาครูที่เพิ่งขอไป */
+    q.push('from=' + encodeURIComponent(req.code));
+    return 'post-job.html?' + q.join('&');
+  }
+
+    function renderReq() {
+    if (!req) return;
+    var st = stage(), h = holder();
+    $('ticket-list').innerHTML = req.tickets.map(function (t) {
+      var tone = STATUS_TONE[t.status] || 'off';
+      return '<li class="ticket">' +
+        '<span class="alt-ava" aria-hidden="true">' + esc(t.initial) + '</span>' +
+        '<span class="ticket-name">' + esc(t.name) + (t.price !== null && t.price !== undefined ? ' <small>' + baht(t.price) + '/ชม.</small>' : '') + '</span>' +
+        '<span class="st st--' + tone + '">' + (STATUS_LABEL[t.status] || t.status) + '</span>' +
+        '</li>';
+    }).join('');
+
+    var head = $('req-head'), lead = $('req-lead');
+    if (st === 'confirmed') {
+      head.textContent = 'ยืนยันแล้ว — ' + h.name + ' รับสอนคาบนี้';
+      lead.innerHTML = 'ชำระเงินเรียบร้อย · ระบบส่งรายละเอียด + <b>เบอร์ติดต่อ</b> ให้ทั้ง 2 ฝั่งทาง LINE OA แล้ว (เบอร์เปิดเผยตอนจ่ายเงินเท่านั้น)';
+    } else if (st === 'awaiting_payment') {
+      /* ⭐ ก้อน C②: 2 เส้นทางมาถึงขั้นนี้คนละแบบ ข้อความต้องพูดความจริงของเส้นทางตัวเอง
+         (SYSTEM ข้อ 7 ข้อ 2: ข้อความต้องพูดความจริง) */
+      if (req.fromCounter) {
+        head.textContent = (OFFER && OFFER.counter && OFFER.counter.via === 'fixed')
+          ? h.name + ' รับคาบที่คุณขอไว้แล้ว — ชำระเงินเพื่อยืนยัน'
+          : 'คุณรับเวลาที่ ' + h.name + ' เสนอแล้ว — ชำระเงินเพื่อยืนยันคาบ';
+        lead.innerHTML = 'ครูล็อกช่วงเวลานี้ไว้ให้คุณตั้งแต่ตอนเสนอ ไม่ต้องรอเขาตอบอีกรอบ · ' +
+          '<b>ชำระเงินภายใน ' + PAY_WINDOW_MIN + ' นาที</b> ไม่งั้นช่วงที่ล็อกไว้ถูกปลดคืน และต้อง<b>เริ่มหาครูใหม่</b> · ' +
+          'จ่ายแล้วระบบส่งเบอร์ให้ทั้ง 2 ฝั่งทาง LINE OA';
+      } else if (req.fromOffer) {
+        head.textContent = 'คุณรับข้อเสนอของ ' + h.name + ' แล้ว — ชำระเงินเพื่อยืนยันคาบ';
+        lead.innerHTML = 'ครูตอบรับไปตั้งแต่ตอนยื่นข้อเสนอ ไม่ต้องรอเขาตอบอีกรอบ · ' +
+          'ข้อเสนอของครูคนอื่นในงานนี้<b>ปิดไปแล้วตั้งแต่คุณกดรับ</b> · ' +
+          '<b>ชำระเงินภายใน ' + PAY_WINDOW_MIN + ' นาที</b> ไม่งั้นคำขอถูกยกเลิก และต้อง<b>เริ่มหาครูใหม่</b>';
+      } else {
+        head.textContent = h.name + ' รับงานแล้ว — ชำระเงินเพื่อยืนยัน';
+        lead.innerHTML = 'ใบของครูคนอื่นปิดไปแล้วทันทีที่มีคนกดรับ · <b>ชำระเงินภายใน ' + PAY_WINDOW_MIN + ' นาที</b> ไม่งั้นช่องเวลาถูกคืนให้ครู';
+      }
+    } else if (st === 'payment_timeout') {
+      head.textContent = 'คำขอถูกยกเลิก — ไม่ได้ชำระในเวลา';
+      lead.innerHTML = h.name + ' รับงานไว้แล้ว แต่ไม่ได้ชำระเงินในเวลา · <b>ช่องเวลาถูกคืนให้ครูแล้ว</b> — จองใหม่ได้เลย หรือโพสต์หาครูด้วยข้อมูลเดิม';
+    } else if (st === 'withdrawn') {
+      head.textContent = 'คุณถอนคำขอนี้แล้ว';
+      lead.innerHTML = 'ไม่มีใบไหนค้างอยู่ที่ครูแล้ว · จองใหม่ได้ทันที';
+    } else if (st === 'unfilled') {
+      head.textContent = 'ยังไม่มีครูรับคาบนี้';
+      lead.innerHTML = 'เราแจ้งให้แล้วทาง LINE · <b>กดปุ่มเดียวเพื่อเอาข้อมูลชุดเดิมไปโพสต์หาครู</b> ไม่ต้องกรอกใหม่';
+    } else {
+      head.textContent = 'ส่งคำขอจองแล้ว — รอครูตอบ';
+      lead.innerHTML = 'ครูมีเวลาตอบ <b>1-2 ชั่วโมง</b> (นาฬิกาหยุดเดิน 22:00–07:00) · เราแจ้งผลทาง LINE ทันทีที่มีครูกดรับ · ' +
+        'ช่วงเวลานี้ยัง<b>ไม่ถูกล็อก</b>จนกว่าจะมีคนกดรับ';
+    }
+
+    /* ขั้นชำระเงิน — โครงเปล่า ยังไม่ตัดเงินจริง */
+    var pay = $('pay-box');
+    pay.hidden = (st !== 'awaiting_payment');
+    if (!pay.hidden) {
+      /* ยอดคิดจากค่าที่แช่ไว้บนใบ ไม่ใช่จาก state สด (กันยอดเปลี่ยนเองตอนผู้ใช้ย้อนกลับไปแก้ฟอร์ม) */
+      var total = (h.price !== null ? h.price * req.want.dur / 60 : 0);
+      $('pay-total').textContent = baht(total);
+      $('pay-who').textContent = h.name;
+    }
+
+    /* ปุ่มที่ผู้ใช้ทำได้จริงในแต่ละสถานะ */
+    var acts = [];
+    if (st === 'pending') {
+      acts.push('<button type="button" class="btn btn-secondary" id="act-edit">ถอนใบเดิมแล้วกลับไปแก้</button>');
+      acts.push('<button type="button" class="btn btn-ghost" id="act-withdraw">ถอนคำขอ</button>');
+    }
+    if (st === 'unfilled' || st === 'payment_timeout' || st === 'withdrawn') {
+      acts.push('<a class="btn btn-primary" href="' + postJobUrl() + '">โพสต์หาครูด้วยข้อมูลเดิม</a>');
+      acts.push('<a class="btn btn-secondary" href="teacher-search.html">หาครูคนอื่นเอง</a>');
+    }
+    if (st === 'confirmed') acts.push('<a class="btn btn-secondary" href="teacher-search.html">จองคาบถัดไป</a>');
+    /* ⭐ Owner เคาะ 2026-08-21 (LOG 138 ข้อ 13): หน้านี้ยังโชว์หน้าติดตามคำขอเหมือนเดิม ไม่รื้อ
+       แต่ต้องมีปุ่มพาไป my-jobs.html ซึ่งเป็น "บ้านหลัก" ของทุกงาน ไม่งั้นผู้เรียนหาทางกลับไม่เจอ */
+    acts.push('<a class="btn btn-secondary" href="my-jobs.html">ดูการจองทั้งหมดของฉัน</a>');
+    renderAddMore();
+    $('req-actions').innerHTML = acts.join('');
+    if ($('act-edit')) $('act-edit').addEventListener('click', backToForm);
+    if ($('act-withdraw')) $('act-withdraw').addEventListener('click', withdrawAll);
+
+    /* แผงจำลอง — ต้นแบบเท่านั้น ของจริงมาจากฝั่งครู/นาฬิกาเซิร์ฟเวอร์ */
+    var sim = [];
+    req.tickets.forEach(function (t) {
+      if (t.status === 'pending') {
+        sim.push('<button type="button" class="btn btn-ghost btn-sim" data-sim="accept" data-id="' + t.id + '">' + t.name + ' กดรับ</button>');
+        sim.push('<button type="button" class="btn btn-ghost btn-sim" data-sim="decline" data-id="' + t.id + '">' + t.name + ' ปฏิเสธ</button>');
+      }
+    });
+    if (st === 'pending') sim.push('<button type="button" class="btn btn-ghost btn-sim" data-sim="expire">ไม่มีใครตอบจนหมดเวลา</button>');
+    if (st === 'awaiting_payment') sim.push('<button type="button" class="btn btn-ghost btn-sim" data-sim="timeout">ไม่ชำระจนหมดเวลา</button>');
+    $('sim').innerHTML = sim.length
+      ? '<span class="sim-label">แผงจำลอง (ต้นแบบ) — ของจริงมาจากฝั่งครูและนาฬิกาเซิร์ฟเวอร์</span><div class="sim-row">' + sim.join('') + '</div>'
+      : '';
+  }
+
+  function backToForm() {
+    /* 🔴 ใบที่ยังค้างอยู่ที่ครูต้องถูกถอนก่อนเสมอ — ห้ามปล่อยให้ผู้เรียนมี 2 คำขอทับช่องเดียวกัน (กฎแม่ข้อ 2) */
+    withdrawAll();
+    $('success').style.display = 'none';
+    form.hidden = false;
+    $('dock').hidden = false;
+    $('sec5').scrollIntoView({ block: 'start' });
+  }
+
+  document.addEventListener('click', function (e) {
+    var add = e.target.closest ? e.target.closest('[data-add]') : null;
+    if (add) { addTeacher(add.getAttribute('data-add')); return; }
+    var b = e.target.closest ? e.target.closest('[data-sim]') : null;
+    if (!b) return;
+    var what = b.getAttribute('data-sim'), id = b.getAttribute('data-id');
+    if (what === 'accept') accept(id);
+    else if (what === 'decline') decline(id);
+    else if (what === 'expire') expireAll();
+    else if (what === 'timeout') payTimeout();
+  });
+  $('pay-btn').addEventListener('click', payNow);
+  /* ---------- เริ่มทำงาน ---------- */
+  /* 🔴 ลำดับสำคัญ: applyUrl() เป็นคนตั้ง state จาก URL และตั้งธง counterGone
+     ต้องรันก่อนโค้ดที่อ่านค่าพวกนั้น (แถบข้อความ/พาดหัว) เสมอ */
+  applyUrl();
+  if (KIDS.length === 1) state.kidId = KIDS[0].id;
+  $('who-name').textContent = TEACHER.name;
+  $('who-ava').textContent = TEACHER.initial;                /* เปลี่ยนครูแล้วตัวย่อต้องเปลี่ยนตาม ไม่ใช่ค้างเป็น "พ" */
+  $('who-sub').textContent = TEACHER.subjects.join(' · ');   /* ห้ามพิมพ์วิชาทับใน HTML — เปลี่ยนครูแล้วต้องเปลี่ยนตาม */
+
+  /* ⭐ ก้อน C②: มาจากการกดรับข้อเสนอ — เปลี่ยนคำพาดหัวให้ตรงความจริง แล้วขึ้นแถบสรุปข้อเสนอ */
+  if (OFFER) {
+    document.querySelector('.intro h1').innerHTML =
+      'เลือก<span class="underline">วัน-เวลาแน่นอน</span>จากช่วงที่ครูเสนอ แล้วชำระเงิน';
+    document.querySelector('.intro > p').textContent =
+      'ครูตอบรับไปแล้วตั้งแต่ตอนยื่นข้อเสนอ ขั้นนี้จึงไม่ต้องรอเขาตอบอีกรอบ — เหลือแค่ล็อกวันเวลาแล้วชำระเงินเพื่อยืนยันคาบ';
+    var bits = [];
+    /* ⭐ ก้อน C2 — เส้นทางนี้ไม่ได้ให้เลือกเวลา แต่มา 'ยืนยันเวลาที่ครูล็อกไว้' ข้อความต้องพูดตรงนั้น */
+    if (OFFER.counter) {
+      document.querySelector('.intro h1').innerHTML = OFFER.counter.via === 'fixed'
+        ? 'ครูรับคาบนี้แล้ว — <span class="underline">ชำระเงิน</span>เพื่อยืนยัน'
+        : 'ยืนยัน<span class="underline">เวลาที่ครูเสนอ</span> แล้วชำระเงิน';
+      document.querySelector('.intro > p').textContent = OFFER.counter.via === 'fixed'
+        ? 'ครูกดรับวัน-เวลาที่คุณขอไว้แล้ว — ขั้นนี้เหลือแค่ตรวจรายละเอียดแล้วชำระเงินเพื่อยืนยันคาบ'
+        : 'ครูล็อกช่วงเวลานี้ไว้ให้คุณแล้วตั้งแต่ตอนกดเสนอ — ขั้นนี้เหลือแค่ตรวจรายละเอียดแล้วชำระเงินเพื่อยืนยันคาบ';
+      if (counterGone) {
+        bits.push('<strong>ช่วงเวลาที่ ' + esc(TEACHER.name) + ' เสนอไว้ ใช้ไม่ได้แล้ว</strong>');
+        bits.push('อาจถูกจองทับไปก่อน หรือเหลือเวลาก่อนเรียนไม่ถึง 24 ชั่วโมง · เลือกช่วงอื่นในปฏิทินด้านล่าง หรือกลับไปหาครูใหม่ที่หน้าการจองของฉัน');
+      } else {
+        bits.push('<strong>' + esc(TEACHER.name) +
+          (OFFER.counter.via === 'fixed' ? ' รับคาบที่คุณขอไว้แล้ว' : ' เสนอเวลานี้ให้คุณ') +
+          (OFFER.price !== null ? ' ที่ ' + esc(baht(OFFER.price)) + '/ชม.' : '') +
+          (OFFER.counter.via === 'fixed' ? ' · ช่วงเวลานี้ถูกล็อกไว้ให้คุณแล้ว</strong>' : ' และล็อกช่วงนี้ไว้แล้ว</strong>'));
+        bits.push('วัน-เวลาและความยาวคาบล็อกตามที่ตกลง เปลี่ยนตรงนี้ไม่ได้ · ' +
+          '<b>ชำระเงินภายใน ' + PAY_WINDOW_MIN + ' นาที</b> ไม่งั้นช่วงที่ล็อกไว้ถูกปลดคืนให้คนอื่นจอง');
+      }
+      if (OFFER.tid !== 'ploy') {
+        bits.push('<br><b>หมายเหตุต้นแบบ:</b> ตอนนี้มีตารางว่างจริงเฉพาะครูพลอย — ช่องเวลาของครูคนอื่นเป็นตารางจำลองชุดเดียวกันไปก่อน');
+      }
+      $('offer-band-text').innerHTML = bits.join('');
+      $('offer-band').hidden = false;
+      document.title = (OFFER.counter.via === 'fixed'
+        ? 'ยืนยันคาบกับ' + TEACHER.name
+        : 'ยืนยันเวลาที่' + TEACHER.name + 'เสนอ') + ' — BGT Tutor';
+      [].forEach.call(document.querySelectorAll('.back-link[href="teacher-profile.html"]'), function (a) {
+        a.setAttribute('href', 'my-jobs.html');
+        a.textContent = 'กลับไปการจองของฉัน';
+      });
+      bits = null;
+    }
+    if (bits) {
+    bits.push('<strong>คุณรับข้อเสนอของ ' + esc(TEACHER.name)
+      + (OFFER.price !== null ? ' ที่ ' + esc(baht(OFFER.price)) + '/ชม.' : '') + ' แล้ว</strong>');
+    if (OFFER.slots.length) {
+      bits.push('ปฏิทินด้านล่างจะเหลือเฉพาะ<b>ช่วงที่ครูเสนอ ('
+        + esc(OFFER.slots.map(function (s) { return SLOT_TH[s]; }).join(' / ')) + ')</b> · ');
+    }
+    bits.push('ยังใช้กติกาจองล่วงหน้าอย่างน้อย <b>24 ชั่วโมง</b> เหมือนเดิม · เลือกเสร็จแล้วต้อง<b>ชำระเงินภายใน '
+      + PAY_WINDOW_MIN + ' นาที</b>');
+    /* 🔴 ทาง A มีปฏิทินจริงแค่ครูพลอย — ต้องบอกตรง ๆ ห้ามให้ผู้ใช้เข้าใจว่านี่คือคิวจริงของครูคนนั้น */
+    if (OFFER.tid !== 'ploy') {
+      bits.push('<br><b>หมายเหตุต้นแบบ:</b> ตอนนี้มีตารางว่างจริงเฉพาะครูพลอย — ช่องเวลาของครูคนอื่นเป็นตารางจำลองชุดเดียวกันไปก่อน');
+    }
+    $('offer-band-text').innerHTML = bits.join('');
+    $('offer-band').hidden = false;
+    /* 🔴 ชื่อครูอยู่ใน <title> ด้วย — เปลี่ยนครูแล้วต้องเปลี่ยนตาม ไม่งั้นแท็บยังขึ้นชื่อครูพลอย */
+    document.title = 'เลือกวัน-เวลากับ' + TEACHER.name + ' — BGT Tutor';
+    /* ลิงก์ "กลับไปหน้าครู" ใช้ได้เฉพาะครูพลอย (ทาง A มีหน้าโปรไฟล์หน้าเดียว)
+       มาจากเส้นทางข้อเสนอ ทางกลับที่ถูกต้องคือกลับไปหน้างานของฉัน ไม่ใช่โปรไฟล์ครูคนอื่น */
+    [].forEach.call(document.querySelectorAll('.back-link[href="teacher-profile.html"]'), function (a) {
+      a.setAttribute('href', 'my-jobs.html');
+      a.textContent = 'กลับไปการจองของฉัน';
+    });
+    }   /* ปิด if (bits) — เส้นทางข้อเสนอบนกระดาน (from=offer) */
+  }
+  renderLearners();
+  renderSubjects();
+  renderModes();
+  renderAll();
+
+  /* เปิดหน้าค้างข้ามเที่ยงคืน วันที่ต้องขยับเอง ไม่งั้นป้าย "วันนี้" ค้างเป็นเมื่อวาน
+     และช่วงเวลาของ "วันนี้" ที่เลยไปแล้วต้องหายไปด้วย */
+  var calToday = ymd(new Date());
+  /* ลายเซ็นของ "สิ่งที่ทำให้ปฏิทินต้องเปลี่ยนหน้าตา" — วัน · เพดาน 24 ชม. ที่ขยับ · สิ่งที่ผู้ใช้เลือกไว้
+     ผลตรวจ perf 2026-08-21: เดิมวาดปฏิทิน+ช่องเวลาใหม่ทั้งก้อนทุก 60 วินาทีโดยไม่มีเงื่อนไข
+     ต้นทุน CPU ไม่ใช่ปัญหา แต่มันทำลายปุ่มที่ผู้ใช้กำลังโฟกัส/กำลังแตะอยู่ ทุกนาที */
+  function calSignature() {
+    return [ymd(new Date()), leadCutoff(ymd(new Date())), state.dateKey, state.start, state.dur, state.mode, state.kidId].join('|');
+  }
+  var lastCalSig = calSignature();
+  var calTick = function () {
+    var now = ymd(new Date());
+    var dayChanged = (now !== calToday);
+    if (dayChanged) { calToday = now; weekOffset = 0; }
+    /* 🔴 ต้อง revalidate ทุกนาที ไม่ใช่เฉพาะตอนข้ามวัน — เพดาน 24 ชม. ขยับทุกนาที
+       เปิดหน้าค้างไว้ 1 ชม. แล้วกดส่ง = คาบห่างไม่ถึง 24 ชม. (SYSTEM ข้อ 7.3 สิ่งที่โชว์ต้องจริง ณ วินาทีนั้น)
+       revalidate ยังทำทุกนาทีเหมือนเดิม — ที่ข้ามได้คือ "การวาดใหม่" เมื่อผลลัพธ์ไม่เปลี่ยน */
+    revalidate();
+    var sig = calSignature();
+    if (!dayChanged && sig === lastCalSig) return false;
+    lastCalSig = sig;
+    renderAll();
+    return dayChanged;
+  };
+  setInterval(calTick, 60000);
+
+  /* PROTOTYPE: เปิดไว้ให้เทสต์อัตโนมัติเรียก — ตอนต่อ DB จริงในงาน B เอาบรรทัดนี้ออก */
+  window.__bk = {
+    state: state, tick: calTick, render: renderAll, revalidate: revalidate,
+    freeBlocks: freeBlocks, startsFor: startsFor, priceFor: priceFor, gradeToLevel: gradeToLevel,
+    set: function (patch) { Object.keys(patch).forEach(function (k) { state[k] = patch[k]; }); revalidate(); renderAll(); },
+    leadCutoff: leadCutoff, req: function () { return req; },
+    sim: { accept: accept, decline: decline, expire: expireAll, pay: payNow, timeout: payTimeout }
+  };
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

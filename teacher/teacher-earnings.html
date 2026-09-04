@@ -1,0 +1,566 @@
+<!doctype html>
+<!-- 🔴 ก้อน 4 (2026-09-01) — หน้าใหม่ตามจอ ④ ในหน้า landing (`#v4` ใน index.html)
+     ที่มา: เดิมยอดเงินยัดอยู่บนหัว teacher-jobs.html เป็นตัวเลข 3 ก้อน คนละหน้าตากับจอ
+            สเปกสั่งให้ย้ายออกมาเป็นหน้าของตัวเอง -> ไฟล์นี้
+     🔴 ตัวเลขทุกตัวคิดจาก shared/lessons-seed.js ชุดเดียวกับ teacher-jobs.html
+        ห้ามคิดสูตรเงินใหม่ในหน้านี้ ไม่งั้น 2 หน้าจะบอกยอดไม่ตรงกัน
+     🔴 ห้ามประกาศวันรอบโอนที่ Owner ยังไม่เคาะ (MODEL ข้อ 8.4 · SYSTEM ข้อ 5) -->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผลงานของฉัน — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
+<script src="../shared/lessons-seed.js"></script>
+<!-- 🔴 2026-09-04 — วิชา/ราคา/ตารางว่าง มาจากไฟล์กลาง หน้านี้อ่านอย่างเดียว -->
+<script src="../shared/teacher-data.js"></script>
+<style>
+body{margin:0;background:var(--color-paper);color:var(--color-ink);
+  font-family:var(--font-body);line-height:1.6}
+.wrap{max-width:960px;margin:0 auto;padding:0 var(--space-6)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.logo{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;
+  color:inherit;text-decoration:none}
+.logo-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;
+  background:var(--color-amber-deep);color:var(--color-surface);font-size:.9rem}
+.site-footer{margin-top:var(--space-10);padding:var(--space-6) 0;border-top:1px solid var(--color-rule);
+  color:var(--color-ink-2);font-size:.86rem}
+.site-footer .wrap{display:flex;gap:var(--space-5);flex-wrap:wrap;align-items:center}
+.site-footer a{color:inherit}
+.foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+
+/* ── กล่องตัวเลข (ท่า .mtile ของจอ ④) ── */
+.mtiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-4);
+  margin:0 0 var(--space-6)}
+.mtile{border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--space-5);
+  background:var(--color-surface)}
+.mtile.is-hi{background:var(--color-accent-soft);border-color:transparent}
+.mtile b{display:block;font-family:var(--font-display);font-weight:700;font-size:1.9rem;
+  line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.mtile span{display:block;font-size:.82rem;color:var(--color-ink-2);margin-top:4px}
+
+/* ── แถบสัดส่วน (ท่า .mbar ของจอ ④) ── */
+h4.sec{font-family:var(--font-display);font-weight:700;font-size:.9rem;color:var(--color-ink-2);
+  margin:var(--space-6) 0 var(--space-3)}
+.mbars{display:flex;flex-direction:column;gap:var(--space-4)}
+.mbar-row{display:grid;grid-template-columns:1fr auto;gap:var(--space-3) var(--space-4);align-items:center}
+.mbar-k{font-size:.92rem}
+.mbar-k small{display:block;color:var(--color-ink-2);font-size:.8rem}
+.mbar{grid-column:1 / -1;height:10px;border-radius:var(--radius-pill);
+  background:var(--color-paper-2);overflow:hidden}
+.mbar > i{display:block;height:100%;border-radius:var(--radius-pill);background:var(--color-amber)}
+.mbar-row.is-ok .mbar > i{background:var(--color-ok)}
+.mbar-row.is-mute .mbar > i{background:var(--color-ink-2);opacity:.35}
+
+/* ── ตารางรายคาบ ── */
+.money-row{display:grid;grid-template-columns:1fr auto;gap:var(--space-3);align-items:center;
+  border-top:1px solid var(--color-rule);padding-block:var(--space-3)}
+.money-row:first-child{border-top:0}
+.money-k b{display:block;font-family:var(--font-display);font-weight:700}
+.money-k small{display:block;color:var(--color-ink-2);font-size:.82rem}
+.money-v{text-align:end;font-variant-numeric:tabular-nums}
+.money-v b{display:block;font-family:var(--font-display);font-weight:700}
+.money-v small{display:block;color:var(--color-ink-2);font-size:.8rem}
+.note{margin-top:var(--space-5);padding:var(--space-4);border-radius:var(--radius-md);
+  background:var(--color-paper-2);color:var(--color-ink-2);font-size:.88rem}
+.note b{color:var(--color-ink)}
+.empty{padding:var(--space-8) 0;color:var(--color-ink-2);text-align:center}
+/* ── ระดับครู (2026-09-01) ── */
+.rank{border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);background:var(--color-surface)}
+.rank-top{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.rank-now{font-family:var(--font-display);font-weight:700;font-size:1.25rem}
+.rank-next{color:var(--color-ink-2);font-size:.88rem}
+.rank-bar{height:12px;border-radius:var(--radius-pill);background:var(--color-paper-2);
+  overflow:hidden;margin:var(--space-4) 0 var(--space-2)}
+.rank-bar > i{display:block;height:100%;border-radius:var(--radius-pill);background:var(--color-amber)}
+.rank-scale{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-4)}
+.rank-step{font-size:.76rem;padding:4px 10px;border-radius:var(--radius-pill);
+  background:var(--color-paper-2);color:var(--color-ink-2)}
+.rank-step.is-got{background:var(--color-ok-soft);color:var(--color-ok);font-weight:600}
+.rank-step.is-now{background:var(--color-ink);color:var(--color-surface);font-weight:700}
+/* ── ยอดเงินแบบเรียบ ไม่มีหลอด % (Owner: ไม่มีกฎยอดขั้นต่ำถึงจะถอนได้) ── */
+.money-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:var(--space-4)}
+.money-cell{border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--space-4)}
+.money-cell.is-ok{border-color:transparent;background:var(--color-ok-soft)}
+.money-cell b{display:block;font-family:var(--font-display);font-weight:700;font-size:1.35rem;
+  font-variant-numeric:tabular-nums}
+.money-cell span{display:block;font-size:.82rem;color:var(--color-ink-2);margin-top:2px}
+/* ── แถบเลือกช่วงวัน (2026-09-01) ── */
+.range-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.range-head .sec{margin-bottom:var(--space-3)}
+.range-label{font-size:.86rem;color:var(--color-ink-2)}
+.range-bar{display:flex;flex-direction:column;gap:var(--space-3);margin-bottom:var(--space-4)}
+.range-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rchip{min-height:44px;padding:0 var(--space-4);font:inherit;font-size:.86rem;
+  font-family:var(--font-display);font-weight:600;cursor:pointer;
+  border:1px solid var(--color-rule);border-radius:var(--radius-pill);
+  background:var(--color-surface);color:var(--color-ink-2)}
+.rchip.is-on{background:var(--color-ink);border-color:var(--color-ink);color:var(--color-surface)}
+.rchip:hover:not(.is-on){background:var(--color-paper-2);color:var(--color-ink)}
+.rchip:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.range-custom{display:flex;gap:var(--space-4);flex-wrap:wrap}
+/* 🔴 กับดักที่รู้แล้ว: attribute hidden แพ้ display:flex -> ต้องเขียนทับให้ชัด
+   (เจอจริง 2026-09-04: เลือก “ทั้งหมด” แล้วช่องปฏิทินยังโผล่) */
+.range-custom[hidden]{display:none}
+.fldx{display:flex;flex-direction:column;gap:4px}
+.fldx > span{font-size:.8rem;color:var(--color-ink-2)}
+.fldx input{font:inherit;min-height:44px;padding:0 var(--space-3);border-radius:var(--radius-md);
+  border:1px solid var(--color-rule-2);background:var(--color-surface);color:var(--color-ink)}
+/* ── ตารางตัวเลขผลงาน (2026-09-04) — ท่าเดียวกับหน้า "ข้อมูล" ของ TikTok/Shopee
+   Owner: "ไม่ต้องทำกราฟ ผมต้องการเป็นตัวเลขมากกว่า" ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-4)}
+.stat{border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);background:var(--color-surface)}
+.stat.is-hi{background:var(--color-accent-soft);border-color:transparent}
+/* 🔴 2026-09-04 (Owner) — เงินที่ได้รับแล้วเป็นสีเขียว "ให้รู้สึกถึงตัวเลขที่ได้รับบวกมาจากการทำงาน"
+   ใช้ --color-ok ตัวเดียวกับป้าย "เรียบร้อย" ทั้งเว็บ ไม่คิดสีใหม่ */
+.stat.is-hi .stat-v{color:var(--color-ok)}
+.stat-k{font-size:.82rem;color:var(--color-ink-2);line-height:1.4}
+.stat-v{display:block;font-family:var(--font-display);font-weight:700;
+  font-size:1.75rem;line-height:1.15;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;margin-top:6px}
+.stat-d{display:inline-block;margin-top:6px;font-size:.78rem;font-weight:700;
+  font-variant-numeric:tabular-nums}
+.stat-d.up{color:var(--color-ok)}
+.stat-d.down{color:var(--color-danger,#b3261e)}
+.stat-d.flat{color:var(--color-ink-2);font-weight:400}
+.stat-sub{display:block;margin-top:4px;font-size:.74rem;color:var(--color-ink-2)}
+/* ป้าย "ยังไม่ได้รับ" — ใช้แทนวงเล็บ เพราะ (784) ในงานบัญชีแปลว่าติดลบ */
+.stat-tag{display:inline-block;margin-inline-start:6px;padding:1px 7px;border-radius:var(--radius-pill);
+  background:var(--color-paper-2);color:var(--color-ink-2);font-size:.68rem;font-weight:700;white-space:nowrap}
+.stat.is-wait .stat-v{color:var(--color-ink-2)}
+/* ── บล็อก "ที่ตั้งไว้ตอนนี้" — อ่านจาก shared/teacher-data.js ── */
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--space-3)}
+.setup-row{display:flex;align-items:baseline;gap:var(--space-3);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-3) var(--space-4);background:var(--color-surface)}
+.setup-k{flex:none;font-size:.82rem;color:var(--color-ink-2)}
+.setup-v{font-family:var(--font-display);font-weight:700;min-width:0}
+.setup-v small{display:block;font-family:var(--font-body);font-weight:400;
+  font-size:.8rem;color:var(--color-ink-2)}
+</style>
+</head>
+<body>
+
+  <!-- 🔴 แถบบนฝั่งครู — ชุดเดียวกันทุกหน้า (แก้ 2026-09-01)
+       Owner จับได้ว่าเดิมแต่ละหน้ามีลิงก์ไม่เท่ากันและอยู่คนละตำแหน่ง
+       เพราะผมเขียนใหม่ทีละก้อนโดยไม่ย้อนไปแก้หน้าเก่า
+       🔴 เพิ่ม/ลบเมนู ต้องแก้ให้ครบทั้ง 4 หน้าเสมอ — ต้นฉบับลำดับอยู่ที่คอมเมนต์นี้:
+          กระดานงาน · ตารางสอนของฉัน · ผลงาน · โปรไฟล์ของฉัน
+       🔴 หน้าที่เปิดอยู่ต้องมี aria-current="page" ไม่งั้นคนหลงว่าตัวเองอยู่หน้าไหน -->
+  <header class="topbar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <nav class="topnav" aria-label="เมนูครู">
+      <a href="job-board.html">กระดานงาน</a>
+      <a href="teacher-jobs.html">ตารางสอนของฉัน</a>
+      <a href="teacher-earnings.html" aria-current="page" class="is-here">ผลงาน</a>
+      <a href="teacher-settings.html">โปรไฟล์ของฉัน</a>
+    </nav>
+  </header>
+
+<div class="page-head">
+  <div class="wrap">
+    <h1>ผลงานของฉัน</h1>
+    <p>ตัวเลขทั้งหมดเป็น<b>ตัวอย่างสมมติ</b> — ยังไม่ได้ต่อระบบจ่ายเงินจริง</p>
+  </div>
+</div>
+
+<section class="jb">
+  <div class="wrap">
+    <h2 class="sr-only">ผลงานของฉัน</h2>
+
+    <div class="jb-tabs" role="tablist" aria-label="ผลงานของฉัน">
+      <button type="button" class="jb-tab is-on" role="tab" aria-selected="true"
+              aria-controls="panel-sum" id="tab-sum">ภาพรวม</button>
+      <button type="button" class="jb-tab" role="tab" aria-selected="false"
+              aria-controls="panel-each" id="tab-each">รายคาบ<span class="jb-n" id="n-each">0</span></button>
+    </div>
+
+    <div class="jb-panel" id="panel-sum" role="tabpanel" aria-labelledby="tab-sum" tabindex="-1">
+
+      <!-- 🔴 แถบช่วงเวลา คุมเฉพาะ "ตัวเลขผลงานในช่วงนั้น"
+           ระดับครูกับของที่ตั้งไว้ = สะสม/ค่าปัจจุบัน ไม่ผูกช่วงเวลา -->
+      <div class="range-bar">
+        <div class="range-chips" role="group" aria-label="ช่วงเวลา">
+          <button type="button" class="rchip" data-range="today">วันนี้</button>
+          <button type="button" class="rchip" data-range="7d">7 วัน</button>
+          <button type="button" class="rchip is-on" data-range="this-month">เดือนนี้</button>
+          <button type="button" class="rchip" data-range="last-month">เดือนที่แล้ว</button>
+          <button type="button" class="rchip" data-range="all">ทั้งหมด</button>
+          <button type="button" class="rchip" data-range="custom">กำหนดเอง</button>
+        </div>
+        <div class="range-custom" id="range-custom" hidden>
+          <label class="fldx"><span>ตั้งแต่</span><input type="date" id="range-from"></label>
+          <label class="fldx"><span>ถึง</span><input type="date" id="range-to"></label>
+        </div>
+        <p class="range-label" id="range-label">—</p>
+      </div>
+
+      <div class="stat-grid" id="stats"></div>
+      <p class="helper" id="stat-note"></p>
+
+      <h4 class="sec">ระดับครู</h4>
+      <div class="rank" id="rank"></div>
+
+      <h4 class="sec">ที่ตั้งไว้ตอนนี้</h4>
+      <div class="setup" id="setup"></div>
+
+      <p class="note" id="payout-note"></p>
+    </div>
+
+    <div class="jb-panel" id="panel-each" role="tabpanel" aria-labelledby="tab-each" tabindex="-1" hidden>
+      <div id="money-list"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span class="foot-brand">BGT Tutor</span>
+    <span>คนกลางที่ทำให้ครูกับผู้เรียนเจอกันได้จริง</span>
+    <nav aria-label="ลิงก์ทางกฎหมาย">
+      <a href="#">ข้อตกลงการใช้งาน</a>
+      <a href="#">นโยบายความเป็นส่วนตัว</a>
+      <a href="#">ติดต่อเรา</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;   /* 🔴 textContent เท่านั้น ห้าม innerHTML */
+    return n;
+  }
+
+  /* 🔴 ค่าคงที่เรื่องเงินมาจากไฟล์กลาง — ห้ามประกาศทับที่นี่ */
+  var CONFIG = window.BGT_LESSON_CONFIG;
+  var SEED   = window.BGT_LESSON_SEED;
+
+  var STATUS_LABEL = {
+    confirmed: 'ยืนยันแล้ว รอถึงเวลา', in_progress: 'กำลังสอน',
+    taught: 'รอผู้เรียนยืนยัน', completed: 'เรียบร้อย', disputed: 'ระหว่างตรวจสอบ'
+  };
+  var MODE_LABEL = { online: 'ออนไลน์', home: 'ที่บ้าน', public: 'สถานที่อื่นๆ' };
+
+  /* ── กระเป๋าสถานะคาบ: ชุดเดียวกับ teacher-jobs.html (localStorage · อายุ 2 ชม.) ──
+     🔴 อ่านอย่างเดียว หน้านี้ไม่เขียนสถานะ — คนกดเริ่ม/จบคาบคือหน้าตารางสอน */
+  var LESSON_KEY = 'bgt_lessons';
+  var LESSON_TTL = 2 * 60 * 60 * 1000;
+  function readBox() {
+    var raw = null;
+    try { raw = localStorage.getItem(LESSON_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !o.lessons || typeof o.lessons !== 'object') return null;
+    if (!o.ts || (Date.now() - o.ts) > LESSON_TTL) return null;
+    return o;
+  }
+
+  function build() {
+    var box = readBox();
+    var base = Date.now();
+    return SEED.map(function (s) {
+      var startAt = base + s.offsetMin * 60000;
+      var L = {
+        id: s.id, jobId: s.jobId, learner: s.learner, subject: s.subject,
+        mode: s.mode, len: s.len, price: s.price,
+        startAt: startAt, endAt: startAt + s.len * 60000,
+        status: s.status, taughtAt: null, closedAt: null, closedBy: null, reason: null
+      };
+      if (s.status === 'taught') L.taughtAt = base - (s.taughtAgoH || 1) * 3600000;
+      if (s.status === 'completed') { L.taughtAt = L.endAt; L.closedAt = L.endAt + 3600000; L.closedBy = s.confirmedBy || 'learner'; }
+      var e = box && box.lessons ? box.lessons[s.id] : null;
+      if (e && e.status) {
+        L.status = e.status;
+        if (e.taughtAt != null) L.taughtAt = e.taughtAt;
+        if (e.closedAt != null) L.closedAt = e.closedAt;
+        if (e.closedBy != null) L.closedBy = e.closedBy;
+        if (e.reason  != null) L.reason  = e.reason;
+      }
+      return L;
+    });
+  }
+
+  /* ── สูตรเงิน: ต้องเหมือน teacher-jobs.html เป๊ะ ── */
+  function gross(L) { return L.price * (L.len / 60); }
+  function fee(L)   { return gross(L) * CONFIG.feeSingle; }
+  function net(L)   { return Math.round(gross(L) - fee(L)); }
+  function baht(n)  { return '฿' + Math.round(n).toLocaleString('th-TH'); }
+
+  var LESSONS = build();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     แดชบอร์ดครู (2026-09-04)
+     🔴 Owner สั่ง: "ไม่ต้องทำกราฟ ทำเป็นหลอด/ตัวเลข" + "ต้องดูได้ตั้งแต่ 0"
+        -> ครูที่ยังไม่มีคาบสักคาบ ต้องเปิดหน้านี้แล้วอ่านรู้เรื่อง ไม่ใช่จอว่าง
+     🔴 ตัวเลขทุกตัวคำนวณจากคาบจริงใน shared/lessons-seed.js + สถานะใน localStorage
+        ไม่มีตัวเลขไหนพิมพ์ตายไว้เพื่อให้ดูสวย
+     ══════════════════════════════════════════════════════════════════════ */
+  var TD = window.BGT_TEACHER;
+
+  function ymd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function startOfDay(iso) { return new Date(iso + 'T00:00:00').getTime(); }
+  function endOfDay(iso)   { return new Date(iso + 'T23:59:59.999').getTime(); }
+
+  function presetRange(kind) {
+    var t = new Date();
+    if (kind === 'today')      return [ymd(t), ymd(t)];
+    if (kind === '7d')         return [ymd(new Date(t.getFullYear(), t.getMonth(), t.getDate() - 6)), ymd(t)];
+    if (kind === 'this-month') return [ymd(new Date(t.getFullYear(), t.getMonth(), 1)), ymd(new Date(t.getFullYear(), t.getMonth() + 1, 0))];
+    if (kind === 'last-month') return [ymd(new Date(t.getFullYear(), t.getMonth() - 1, 1)), ymd(new Date(t.getFullYear(), t.getMonth(), 0))];
+    return null;   /* all */
+  }
+
+  var TH_MONTH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  function thDate(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    /* 🔴 พ.ศ. = ค.ศ. + 543 เฉย ๆ (เคยใส่สูตรเกินจนได้ปี 3069) */
+    return d.getDate() + ' ' + TH_MONTH[d.getMonth()] + ' ' + (d.getFullYear() + 543);
+  }
+
+  /* ── รวมตัวเลขของช่วงหนึ่ง ── */
+  function sumRange(from, to) {
+    var r = { earned: 0, pending: 0, held: 0, future: 0, fee: 0, done: 0, hours: 0, learners: {} };
+    LESSONS.forEach(function (L) {
+      if (from && to && (L.startAt < startOfDay(from) || L.startAt > endOfDay(to))) return;
+      /* 🔴 taught ≠ completed — รายได้นับเฉพาะคาบที่ผู้เรียนยืนยันแล้ว (SYSTEM ข้อ 8) */
+      if (L.status === 'completed') {
+        r.earned += net(L); r.fee += gross(L) - net(L);
+        r.done++; r.hours += L.len / 60; r.learners[L.learnerId || L.learner] = 1;
+      } else if (L.status === 'taught') r.pending += net(L);
+      /* 🔴 เงินทุกบาทต้องอยู่ในช่องใดช่องหนึ่ง — disputed ห้ามหายจากจอ */
+      else if (L.status === 'disputed') r.held += net(L);
+      else if (L.status === 'confirmed' || L.status === 'in_progress') r.future += net(L);
+    });
+    r.nLearners = Object.keys(r.learners).length;
+    return r;
+  }
+
+  /* ── ช่วงก่อนหน้าที่ "ยาวเท่ากัน" เอาไว้เทียบ % ── */
+  function prevRange(from, to) {
+    if (!from || !to) return null;
+    var f = startOfDay(from), t = endOfDay(to);
+    var len = t - f + 1;
+    return [ymd(new Date(f - len)), ymd(new Date(f - 1))];
+  }
+
+  function delta(now, before) {
+    /* ไม่มีของเทียบ = ไม่โม้ ขึ้นขีดไปเลย */
+    if (before == null || before === 0) return { txt: now > 0 ? 'ใหม่' : '—', cls: now > 0 ? 'up' : 'flat' };
+    var p = Math.round((now - before) / before * 100);
+    if (p === 0) return { txt: 'เท่าเดิม', cls: 'flat' };
+    return { txt: (p > 0 ? '+' : '') + p + '%', cls: p > 0 ? 'up' : 'down' };
+  }
+
+  function statCard(label, value, d, hi, sub, tag) {
+    var c = el('div', 'stat' + (hi ? ' is-hi' : '') + (tag ? ' is-wait' : ''));
+    var head = el('span', 'stat-k');
+    head.appendChild(document.createTextNode(label));
+    if (tag) head.appendChild(el('span', 'stat-tag', tag));
+    c.appendChild(head);
+    c.appendChild(el('b', 'stat-v', value));
+    if (d) c.appendChild(el('span', 'stat-d ' + d.cls, d.txt));
+    if (sub) c.appendChild(el('span', 'stat-sub', sub));
+    return c;
+  }
+
+  function paintStats(from, to) {
+    var cur = sumRange(from, to);
+    var pv = prevRange(from, to);
+    var old = pv ? sumRange(pv[0], pv[1]) : null;
+
+    var box = $('stats');
+    box.textContent = '';
+    /* 🔴 2026-09-04 (Owner) — เลิกใช้คำว่า "ปลดล็อก" มันเป็นศัพท์ระบบ ครูอ่านไม่ออก
+       ใช้ "รายได้ที่ได้รับแล้ว" + บอกต่อว่ารอรอบโอน จะได้ไม่เข้าใจว่าเงินเข้าบัญชีแล้ว
+       🔴 เงินที่ครูยังไม่ได้ ไม่ใส่วงเล็บ — ในงานบัญชี (784) แปลว่าติดลบ คนอ่านผิดแน่
+          ใช้ป้าย "ยังไม่ได้รับ" กำกับแทน ชัดกว่าและไม่ชนกับความหมายเดิม */
+    box.appendChild(statCard('รายได้ที่ได้รับแล้ว', baht(cur.earned), old ? delta(cur.earned, old.earned) : null, true, 'รอรอบโอนเข้าบัญชี'));
+    box.appendChild(statCard('คาบที่สอนจบ', String(cur.done), old ? delta(cur.done, old.done) : null));
+    box.appendChild(statCard('ชั่วโมงที่สอน', String(Math.round(cur.hours * 10) / 10), old ? delta(cur.hours, old.hours) : null));
+    box.appendChild(statCard('ผู้เรียนที่สอน', String(cur.nLearners), old ? delta(cur.nLearners, old.nLearners) : null));
+    box.appendChild(statCard('รอผู้เรียนยืนยัน', baht(cur.pending), null, false, null, 'ยังไม่ได้รับ'));
+    box.appendChild(statCard('ระหว่างตรวจสอบ', baht(cur.held), null, false, null, 'ยังไม่ได้รับ'));
+    box.appendChild(statCard('คาบที่ยังไม่ถึงเวลา', baht(cur.future), null, false, null, 'ยังไม่ได้รับ'));
+    box.appendChild(statCard('ค่าแพลตฟอร์มที่หัก', baht(cur.fee), null, false, 'หักจากยอดที่ผู้เรียนจ่าย'));
+
+    $('range-label').textContent = (from && to ? thDate(from) + ' – ' + thDate(to) : 'ตั้งแต่เริ่มใช้งาน')
+      + (pv ? ' · เทียบกับ ' + thDate(pv[0]) + ' – ' + thDate(pv[1]) : '');
+
+    /* 🔴 ข้อความตอนยังไม่มีคาบ — ครูเปิดวันแรกต้องไม่เจอจอว่างเปล่า */
+    $('stat-note').textContent = cur.done === 0
+      ? 'ช่วงนี้ยังไม่มีคาบที่สอนจบ — ตัวเลขจะเริ่มขยับทันทีที่ผู้เรียนยืนยันคาบแรก'
+      : 'เปอร์เซ็นต์เทียบกับช่วงก่อนหน้าที่ยาวเท่ากัน · รายได้เป็นยอดหลังหักค่าแพลตฟอร์มแล้ว';
+  }
+
+  /* ══ ระดับครู — สะสมทั้งชีวิต ไม่ผูกช่วงเวลา ══
+     🔴 ยังไม่ผูกส่วนลดค่า GP: MODEL ข้อ 8.5 เขียนล็อกไว้เองว่า "ข้อเสนอ ไม่ใช่ข้อสรุป
+        Owner ยังไม่เคาะ · ห้ามเอาตัวเลขในข้อนี้ขึ้นหน้าเว็บ" -> เคาะแล้วเติม fee ในตารางนี้ */
+  var TIERS = [
+    { at: 0,   name: 'ครูใหม่' },
+    { at: 50,  name: 'ครูประจำ' },
+    { at: 150, name: 'ครูชำนาญ' },
+    { at: 300, name: 'ครูอาวุโส' },
+    { at: 600, name: 'ครูผู้เชี่ยวชาญ' }
+  ];
+  (function paintRank() {
+    var all = sumRange(null, null);
+    var hours = all.hours;
+    var i = 0;
+    for (var k = 0; k < TIERS.length; k++) if (hours >= TIERS[k].at) i = k;
+    var cur = TIERS[i], next = TIERS[i + 1] || null;
+
+    var box = $('rank');
+    var top = el('div', 'rank-top');
+    top.appendChild(el('span', 'rank-now', cur.name));
+    top.appendChild(el('span', 'rank-next', next
+      ? 'อีก ' + (Math.round((next.at - hours) * 10) / 10) + ' ชม. ถึงระดับ “' + next.name + '”'
+      : 'ถึงระดับสูงสุดแล้ว'));
+    box.appendChild(top);
+
+    /* หลอดวิ่งจากขั้นปัจจุบันไปขั้นถัดไป ไม่ใช่จาก 0 — ครูระดับสูงจะได้ไม่เห็นหลอดเต็มตลอด */
+    var from = cur.at, to = next ? next.at : Math.max(hours, cur.at + 1);
+    var pct = next ? Math.max(0, Math.min(100, Math.round((hours - from) / (to - from) * 100))) : 100;
+    var bar = el('div', 'rank-bar');
+    var fill = el('i');
+    fill.style.width = pct + '%';
+    bar.appendChild(fill);
+    box.appendChild(bar);
+    box.appendChild(el('p', 'helper', 'สอนสะสมแล้ว ' + (Math.round(hours * 10) / 10) + ' ชั่วโมง'
+      + ' · ' + all.done + ' คาบ · ผู้เรียน ' + all.nLearners + ' คน'
+      + (next ? ' · ' + pct + '% ของระดับนี้' : '')));
+
+    var scale = el('div', 'rank-scale');
+    TIERS.forEach(function (t, k) {
+      scale.appendChild(el('span', 'rank-step' + (k === i ? ' is-now' : (k < i ? ' is-got' : '')),
+        t.name + ' · ' + t.at + '+ ชม.'));
+    });
+    box.appendChild(scale);
+    box.appendChild(el('p', 'helper',
+      'นับเฉพาะคาบที่สอนจบและผู้เรียนยืนยันแล้ว — คาบที่ยังรอยืนยันจะยังไม่ถูกนับ'));
+  })();
+
+  /* ══ ที่ตั้งไว้ตอนนี้ — อ่านจาก shared/teacher-data.js (หน้าโปรไฟล์เขียน) ══ */
+  (function paintSetup() {
+    var d = TD.read(), box = $('setup');
+    function row(k, v, sub) {
+      var r = el('div', 'setup-row');
+      r.appendChild(el('span', 'setup-k', k));
+      var val = el('span', 'setup-v');
+      val.appendChild(document.createTextNode(v));
+      if (sub) val.appendChild(el('small', null, sub));
+      r.appendChild(val);
+      box.appendChild(r);
+    }
+    var subj = TD.openSubjects(d), gr = TD.openGrades(d), md = TD.openModes(d);
+    var pr = TD.priceRange(d);
+    row('วิชาที่เปิดสอน', subj.length ? subj.length + ' วิชา' : 'ยังไม่ได้เปิด', subj.join(' · ') || 'เปิดวิชาก่อน ผู้เรียนถึงจะเจอคุณ');
+    row('ระดับชั้น', gr.length ? gr.length + ' ช่วงชั้น' : 'ยังไม่ได้เลือก', gr.join(' · '));
+    row('รูปแบบการสอน', md.length ? md.join(' · ') : 'ยังไม่ได้เลือก', '');
+    row('ราคาที่ตั้งไว้', pr ? (pr.min === pr.max ? baht(pr.min) : baht(pr.min) + ' – ' + baht(pr.max)) : 'ยังไม่ได้ตั้ง',
+        pr ? pr.n + ' รายการ · ต่อชั่วโมง' : 'ตั้งราคาก่อน ผู้เรียนถึงจะกดจองได้');
+    row('เวลาว่างต่อสัปดาห์', TD.weeklyHours(d) + ' ชม.', TD.openDays(d) + ' วันที่เปิดรับ');
+    row('ยืนยันตัวตน', d.profile.verified ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน',
+        d.profile.verified ? 'ตรวจเมื่อ ' + d.profile.verifiedAt : 'ส่งเอกสารในหน้าโปรไฟล์');
+    row('ประสบการณ์สอน', (d.profile.expYears || 0) + ' ปี', TD.age() != null ? 'อายุ ' + TD.age() + ' ปี' : '');
+  })();
+
+  /* 🔴 ห้ามเขียนวันโอนเป็นคำสัญญาจนกว่า Owner จะเคาะ (กฎเหล็กข้อ 1) */
+  $('payout-note').appendChild(document.createTextNode('ยอดที่ปลดล็อกแล้วจะเข้า'));
+  $('payout-note').appendChild(el('b', null, CONFIG.payoutRoundTh + ' (ยังไม่ประกาศ)'));
+  $('payout-note').appendChild(document.createTextNode(
+    ' · ค่าแพลตฟอร์มหักจากยอดที่ผู้เรียนจ่าย ' + Math.round(CONFIG.feeSingle * 100) + '% ไม่ได้บวกเพิ่มกับผู้เรียน'
+    + ' · ยอดจะปลดล็อกเมื่อผู้เรียนยืนยัน หรือครบ ' + CONFIG.confirmWindowH + ' ชั่วโมงแล้วระบบยืนยันให้เอง'));
+
+  /* ── แถบเลือกช่วง ── */
+  (function setupRange() {
+    var KEY = 'bgt_earn_range';
+    var chips = [].slice.call(document.querySelectorAll('.rchip'));
+    var custom = $('range-custom'), fromEl = $('range-from'), toEl = $('range-to');
+
+    function apply(kind) {
+      chips.forEach(function (c) { c.classList.toggle('is-on', c.getAttribute('data-range') === kind); });
+      custom.hidden = kind !== 'custom';
+      var r;
+      if (kind === 'custom') {
+        if (!fromEl.value || !toEl.value) { var p = presetRange('this-month'); fromEl.value = p[0]; toEl.value = p[1]; }
+        /* กรอกกลับหัว = สลับให้เอง ดีกว่าขึ้น error */
+        if (fromEl.value > toEl.value) { var t = fromEl.value; fromEl.value = toEl.value; toEl.value = t; }
+        r = [fromEl.value, toEl.value];
+      } else {
+        r = presetRange(kind);
+        if (r) { fromEl.value = r[0]; toEl.value = r[1]; }
+      }
+      paintStats(r ? r[0] : null, r ? r[1] : null);
+      try { sessionStorage.setItem(KEY, kind); } catch (e) {}
+    }
+
+    chips.forEach(function (c) { c.addEventListener('click', function () { apply(c.getAttribute('data-range')); }); });
+    [fromEl, toEl].forEach(function (i) { i.addEventListener('change', function () { apply('custom'); }); });
+
+    var saved = null;
+    try { saved = sessionStorage.getItem(KEY); } catch (e) {}
+    var ok = ['today','7d','this-month','last-month','all','custom'];
+    apply(saved && ok.indexOf(saved) > -1 ? saved : 'this-month');
+  })();
+
+  /* ── แท็บ "รายคาบ" ── */
+  var money = $('money-list');
+  var withMoney = LESSONS.slice().sort(function (a, b) { return b.startAt - a.startAt; });
+  $('n-each').textContent = String(withMoney.length);
+  if (!withMoney.length) {
+    money.appendChild(el('p', 'empty', 'ยังไม่มีคาบเรียน'));
+  } else {
+    withMoney.forEach(function (L) {
+      var row = el('div', 'money-row');
+      var k = el('span', 'money-k');
+      k.appendChild(el('b', null, L.learner + ' · ' + L.subject));
+      k.appendChild(el('small', null,
+        [STATUS_LABEL[L.status] || L.status, MODE_LABEL[L.mode] || L.mode, (L.len / 60) + ' ชม.'].join(' · ')));
+      row.appendChild(k);
+      var v = el('span', 'money-v');
+      v.appendChild(el('b', null, baht(net(L))));
+      v.appendChild(el('small', null, 'ผู้เรียนจ่าย ' + baht(gross(L))));
+      row.appendChild(v);
+      money.appendChild(row);
+    });
+  }
+
+  /* ── สลับแท็บ (ชุดเดียวกับอีก 2 หน้า · hidden ตรง ๆ ห้ามใส่ transition) ── */
+  var TABS = ['sum', 'each'];
+  function goTab(name) {
+    if (TABS.indexOf(name) === -1) name = 'sum';
+    TABS.forEach(function (t) {
+      var btn = $('tab-' + t), panel = $('panel-' + t), on = t === name;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      panel.hidden = !on;
+    });
+  }
+  TABS.forEach(function (t) { $('tab-' + t).addEventListener('click', function () { goTab(t); }); });
+  $('tab-sum').parentNode.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    var cur = TABS.filter(function (t) { return $('tab-' + t).classList.contains('is-on'); })[0] || 'sum';
+    var i = TABS.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : -1);
+    var next = TABS[(i + TABS.length) % TABS.length];
+    goTab(next); $('tab-' + next).focus(); e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>

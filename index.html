@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<!--
+  หน้าแรกตัวจริง v2 — สร้าง 2026-08-27 · รื้อรอบ 2 ตามแนว Apple 2026-08-28
+
+  🔴 ประวัติการเลือกธีม (อย่าวนกลับไปเสนอของที่ตกไปแล้ว):
+     - "ครามสด" (คราม+ปะการัง พื้นสว่าง) -> ❌ Owner ตีตก: "ดูงานเขียนเว็บปี ค.ศ.2000-2002"
+     - "หมึกกลางคืน" (พื้นเข้ม+เขียวมิ้นต์) -> ✅ ชอบพื้นเข้ม / ❌ เขียวมิ้นต์ "ประหลาดสำหรับเว็บการศึกษา"
+     -> ธีมที่ใช้ = พื้นเข้มโทนอุ่น + เหลืองอำพัน (แสงโคมไฟอ่านหนังสือ)
+
+  🍎 รอบ 2 — Owner สั่ง "ไปศึกษาเว็บ Apple" (LOG 186) สิ่งที่เอามาใช้:
+     1. ซอยหน้าเป็น "แผ่น" (slab) เรียงลงมา แต่ละแผ่นจบในตัว มีพื้นหลังของตัวเอง
+     2. แผ่นสลับพื้นหลัง — เข้ม / เข้มอ่อนลง / **แทรกแผ่นสว่าง 1 แผ่นกลางหน้า**
+     3. หัวเรื่องแต่ละแผ่นใหญ่มากและวางกลาง + คำอธิบายบรรทัดเดียว
+     4. CTA เป็นลิงก์ตัวหนังสือ + ลูกศร ไม่ใช่ปุ่มทึบ
+     5. ทิ้งการ์ดขอบบาง -> เปลี่ยนเป็นแผ่นทึบมุมโค้งใหญ่ ไม่มีขอบ
+     ❌ ไม่เอามา: รูปสินค้าเป็นพระเอก (เราไม่มีรูปจริง ใส่รูปสต็อกจะดูโหลกว่าเดิม)
+
+  🔴 สำหรับ session ถัดไป:
+  1. หน้านี้ประกาศสีเองใน :root "ทับ" tokens.css โดยตั้งใจ -> 10 หน้าที่ approve ไม่ถูกกระทบ
+     ถ้า Owner เคาะ ต้องย้าย :root ไปทับ tokens.css + แก้ design.md + ไล่ดูทั้ง 11 หน้า
+  2. กฎ design.md ที่แหกไว้: ข้อ 4 (พื้นเข้ม · สมอสี 72 · สีเน้น 2 ตัว · มีตารางเส้น+แสงจาง)
+     ข้อ 5 (Kanit+Noto Sans Thai) · ข้อ 7 (motion 4 ชิ้น) · ข้อ 8 (ไม่มีปุ่มทึบเลย)
+  3. ครูตัวอย่างเป็นข้อมูลสมมติ ห้ามใส่ตัวเลขที่ยังไม่มีจริง
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>BGT Tutor — หาครูสอนพิเศษที่ใช่ สำหรับลูกคุณ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300..700&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R4 V5
+ * genre: atmospheric x modern-minimal · macrostructure: Marquee Hero + Feature Stack (แผ่นเรียง)
+ * theme: หมึกอุ่น-อำพัน · nav: N5 Floating pill ติดหนึบ · footer: Ft2
+ * enrichment: Tier-A pure CSS (ตารางเส้น + แสงอุ่น) · ไม่มีไฟล์รูปสักไฟล์
+ * motion 4 ชิ้น: hero settle · reveal ตอนเลื่อน · แผ่นย่อยยก · ลูกศร FAQ หมุน
+ */
+
+/* ═══════ ธีม "น้ำเงินแบรนด์ + อำพัน" (v3 · 2026-08-30) ═══════
+   🔴 ที่มา: Owner ส่งภาพ GoStudent + Outschool มาแล้วบอกว่าชอบทั้งคู่
+   สิ่งที่ 2 เว็บนั้นมีเหมือนกันและของเดิม (v2) ไม่มี:
+     1. พื้นไม่ใช่ "เทาเข้มกลาง ๆ" แต่เป็น **สีแบรนด์สด** เต็มพื้นที่
+     2. สลับแผ่นสี <-> แผ่นสว่าง ตลอดหน้า
+     3. รูปถ่ายจริงของคนเรียน + ป้ายกลมลอยบนรูป
+     4. ตัวหนังสือหัวเรื่องหนากว่าปกติมาก
+   -> v3 = เอาอำพันที่ Owner ผ่านแล้วมาวางบนพื้นน้ำเงินแทนพื้นเกือบดำ
+      (อำพันบนน้ำเงิน = คู่สีเดียวกับปุ่มเหลืองบนพื้นม่วงของ Outschool)
+   ⚠️ ห้ามขยับ lightness โดยไม่ตรวจ contrast ซ้ำ */
+:root{
+  /* 🔑 สีแบรนด์ทั้งชุดคุมด้วย 2 ตัวเลขนี้ตัวเดียว — เปลี่ยน 2 บรรทัดนี้ = เปลี่ยนสีทั้งเว็บ
+     --bh = องศาสี (hue) · --bc = ความสด (chroma)
+     ชุดสีสำเร็จอยู่ในบล็อก [data-theme] ข้างล่าง (แถบเลือกสีมุมจอเรียกใช้) */
+  --bh: 264;      /* น้ำเงิน */
+  --bc: 0.130;
+
+  --paper:      oklch(32%   var(--bc)                       var(--bh));
+  --paper-2:    oklch(27%   calc(var(--bc) * .92)           var(--bh));
+  --surface:    oklch(37%   calc(var(--bc) * .88)           var(--bh));
+  --surface-2:  oklch(42%   calc(var(--bc) * .81)           var(--bh));
+
+  --ink:        oklch(98%   0.005 var(--bh));
+  --ink-2:      oklch(89%   0.020 var(--bh));
+  /* 82.5% ไม่ใช่ 81% — ที่ 81% ชุดสี teal ตกเกณฑ์ที่ 4.45:1 (วัดจริง 2026-08-30) */
+  --muted:      oklch(82.5% 0.030 var(--bh));
+
+  --accent:      oklch(85%   0.145 82);   /* เหลืองอำพัน — สีเน้นเดิมที่ Owner ผ่านแล้ว */
+  --accent-text: oklch(85%   0.145 82);
+  --accent-ink:  oklch(24%   0.060 70);
+  --accent-soft: oklch(42%   0.090 72);
+
+  --accent-2:      oklch(84% 0.145 158);  /* เขียวมิ้นต์ = สีรอง แยกฝั่งครู (ท่า GoStudent) */
+  --accent-2-text: oklch(84% 0.145 158);
+  --accent-2-soft: oklch(40% 0.080 158);
+
+  --rule:    oklch(46% calc(var(--bc) * .7) var(--bh));
+  --rule-2:  oklch(64% calc(var(--bc) * .7) var(--bh));
+  --focus:   oklch(85% 0.145 82);
+  --subject: oklch(84% 0.145 158);
+  --subject-ink: oklch(24% 0.060 158);
+
+  /* 🔤 ฟอนต์ชุดใหม่ 2026-08-30 (LOG 193) — เลิกใช้ Kanit
+     เหตุผล: Owner ว่า "ฟอนต์มันดูไม่มืออาชีพเลย" · Kanit เป็นฟอนต์ display ที่ใช้เกลื่อน
+     ในโฆษณาไทย/ปกคลิป เลยอ่านแล้วรู้สึกทั่วไป ยิ่งน้ำหนัก 700 ยิ่งชัด
+     🔑 เรียง Manrope ไว้หน้า Anuphan โดยตั้งใจ:
+        Manrope ไม่มีชุดอักษรไทย -> ตัวอังกฤษกับตัวเลขได้ Manrope (ฟอนต์ตัวจริงของ GoStudent)
+        ส่วนตัวไทยตกไปใช้ Anuphan (Cadson Demak) โดยอัตโนมัติ = ได้ทั้งสองอย่างในสแตกเดียว
+     ⚠️ ห้ามสลับลำดับ ถ้าเอา Anuphan ขึ้นก่อน ตัวอังกฤษจะไม่ได้ Manrope */
+  --f-display: 'Manrope','Anuphan','Noto Sans Thai',system-ui,sans-serif;
+  --f-body:    'Manrope','Anuphan','Noto Sans Thai','Leelawadee UI',Tahoma,sans-serif;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+  --s8:32px; --s10:40px; --s12:48px; --s16:64px; --s20:80px; --s24:104px; --s32:136px;
+
+  --r-sm:8px; --r-md:12px; --r-lg:18px; --r-xl:26px; --r-pill:999px;
+
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --dur-1:130ms; --dur-2:220ms; --dur-3:520ms;
+
+  --lift-1:0 1px 2px oklch(12% .09 var(--bh)/.55);
+  --lift-2:0 6px 18px -8px oklch(12% .09 var(--bh)/.75);
+  --lift-3:0 22px 46px -22px oklch(12% .09 var(--bh)/.9);
+}
+
+/* ═══════ แผ่นสว่าง — ท่าของ Apple: แทรกแผ่นสว่างกลางหน้ามืด ═══════
+   สลับค่า token เฉพาะในขอบเขตนี้ ไม่ได้แตะ :root
+   ผ่าน WCAG ครบ 9 คู่ — เนื้อความ 16.37:1 · ลิงก์อำพันเข้ม 6.11:1 · ขอบ 3.29:1 */
+.slab--light{
+  --paper:      oklch(96.5% 0.008 78);
+  --paper-2:    oklch(93.5% 0.010 78);
+  --surface:    oklch(99%   0.004 78);
+  --surface-2:  oklch(93.5% 0.010 78);
+  --ink:        oklch(20%   0.015 68);
+  --ink-2:      oklch(42%   0.014 70);
+  --muted:      oklch(52%   0.014 70);
+  --accent-text:   oklch(48% 0.125 62);   /* อำพันเข้มขึ้น เพื่ออ่านออกบนพื้นสว่าง */
+  --accent-soft:   oklch(93% 0.045 72);
+  --accent-2-text: oklch(45% 0.115 250);
+  --accent-2-soft: oklch(92% 0.040 250);
+  --rule:    oklch(86% 0.013 78);   /* เข้มขึ้นนิดเพื่อให้ขอบการ์ดขาวยังเห็นบนพื้นไล่สี */
+  --rule-2:  oklch(62% 0.014 78);
+  --focus:   oklch(48% 0.125 62);
+  --subject: oklch(45% 0.100 152);
+  --subject-ink: oklch(99% 0.004 78);
+  --lift-1:0 1px 2px oklch(20% .015 68/.08);
+  --lift-2:0 8px 22px -10px oklch(20% .015 68/.22);
+  --lift-3:0 22px 46px -22px oklch(20% .015 68/.3);
+  color:var(--ink);
+  /* ลูกเล่นที่ยืมจาก orange-thailand: พื้นไล่สีอุ่นอ่อน ๆ ไม่ใช่พื้นเรียบตัน
+     ⚠️ จุดที่เข้มสุดของไล่สี = oklch(93.5%) -> หมึก 20% ยังได้ 14.9:1 (เกณฑ์ 4.5) */
+  background:
+    radial-gradient(120% 90% at 50% 0%, oklch(98.5% .012 78) 0%, transparent 60%),
+    radial-gradient(90% 70% at 50% 100%, oklch(93.5% .028 72) 0%, transparent 62%),
+    var(--paper);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;overflow-x:clip}
+html{scroll-behavior:smooth;background:oklch(16.5% .010 68)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--f-body);
+  line-height:1.7;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:var(--r-sm)}
+.wrap{width:min(1180px,100% - 44px);margin-inline:auto}
+@media(max-width:430px){.wrap{width:min(1180px,100% - 28px)}}
+
+.skip{position:absolute;left:-9999px}
+.skip:focus{
+  left:var(--s4);top:var(--s4);z-index:600;background:var(--surface);color:var(--ink);
+  padding:var(--s3) var(--s4);border-radius:var(--r-md);box-shadow:var(--lift-3);
+  min-height:44px;display:inline-flex;align-items:center;
+}
+
+/* ── แถบพูดความจริงว่ายังเป็นต้นแบบ (SYSTEM ข้อ 7) ────────────── */
+.proto{background:var(--accent-2-soft);color:var(--ink);font-size:.875rem;border-bottom:1px solid var(--rule)}
+.proto .wrap{padding:10px 0;display:flex;gap:var(--s2);align-items:flex-start}
+
+/* ── N5 Floating pill · ติดหนึบบนสุด ────────────────────────── */
+.nav{position:sticky;top:0;z-index:200;padding-block:var(--s4);transition:padding var(--dur-2) var(--ease-out)}
+.nav::before{content:"";position:absolute;inset:0;background:oklch(16.5% .010 68);opacity:0;
+  transition:opacity var(--dur-2) var(--ease-out)}
+.nav.is-stuck{padding-block:var(--s2)}
+.nav.is-stuck::before{opacity:1}
+.pill{
+  position:relative;width:min(1180px,100% - 44px);margin-inline:auto;
+  display:flex;align-items:center;gap:var(--s4);
+  background:oklch(22.5% .013 68);border:1px solid oklch(30% .012 68);border-radius:var(--r-pill);
+  padding:var(--s2) var(--s3) var(--s2) var(--s4);min-height:60px;box-shadow:var(--lift-1);
+  transition:box-shadow var(--dur-2) var(--ease-out),border-color var(--dur-2) var(--ease-out);
+  color:oklch(98% .005 260);
+}
+.nav.is-stuck .pill{box-shadow:0 6px 18px -8px oklch(12% .09 264/.75);border-color:oklch(64% .09 264)}
+@media(max-width:430px){.pill{width:min(1180px,100% - 28px);border-radius:var(--r-lg)}}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:500;min-height:44px}
+.logo-mark{
+  width:34px;height:34px;border-radius:10px;flex:none;
+  background:oklch(85% .145 82);color:oklch(24% .06 70);
+  display:grid;place-items:center;font-family:var(--f-display);font-weight:600;font-size:18px;
+  box-shadow:0 0 18px -4px oklch(80% .135 72/.55);
+}
+.logo-text{font-family:var(--f-display);font-weight:500;font-size:1.2rem;letter-spacing:-.01em}
+.nav-links{margin-inline-start:auto;display:flex;align-items:center;gap:var(--s2) var(--s5);
+  font-size:.9rem;flex-wrap:wrap;justify-content:flex-end}
+.nav-links a{
+  min-height:44px;display:inline-flex;align-items:center;text-decoration:none;
+  color:oklch(79% .012 78);white-space:nowrap;position:relative;
+}
+.nav-links a::after{
+  content:"";position:absolute;left:0;right:0;bottom:11px;height:2px;background:oklch(85% .145 82);
+  transform:scaleX(0);transform-origin:left;transition:transform var(--dur-2) var(--ease-out);
+}
+.nav-links a:hover{color:oklch(98% .005 260)}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-side{color:oklch(81% .03 260);white-space:nowrap;font-size:.86rem}
+@media(max-width:700px){.nav-links .hide-sm{display:none}}
+
+/* ══════════════ แผ่น (slab) — หน่วยหลักของหน้านี้ ══════════════
+   Apple: แต่ละก้อนจบในตัว มีพื้นหลังของตัวเอง เว้นบน-ล่างเยอะ */
+.slab{padding-block:var(--s32);position:relative;overflow:clip}
+@media(max-width:760px){.slab{padding-block:var(--s20)}}
+.slab--dim{background:var(--paper-2)}
+.slab--tight{padding-block:var(--s24)}
+
+/* หัวแผ่น — ชิดซ้าย (ท่า Orange · อ่านลื่นกว่าวางกลาง)
+   ลำดับ: หมุดคำใหญ่ -> ป้ายเล็ก -> หัวเรื่อง -> บรรทัดขยาย */
+.slab-head{text-align:left;max-width:34ch;margin-bottom:var(--s16)}
+@media(max-width:760px){.slab-head{margin-bottom:var(--s10)}}
+.slab-head.is-wide{max-width:42ch}
+
+/* 🔴 หมุดคำใหญ่ — ยืมท่า Orange (เขาใช้ 68-85px หนา 900 ถ่าง 15px)
+   ⚠️ ใช้ "คำอังกฤษ" เท่านั้น ห้ามใช้ภาษาไทย — ถ่างตัวอักษรกว้างแบบนี้
+      จะทำให้สระบน-ล่าง/วรรณยุกต์ของไทยหลุดจากพยัญชนะ (กับดักเดียวกับตัวหนังสือแนวตั้ง)
+   เว็บ Orange เองก็เป็นเว็บไทยแต่ใช้หมุดเป็นอังกฤษเหมือนกัน */
+.slab-mark{
+  display:block;font-family:var(--f-display);font-weight:700;
+  font-size:clamp(2.4rem,7vw,5.2rem);line-height:.95;letter-spacing:.07em;
+  color:var(--ink);opacity:.13;margin:0 0 var(--s2);
+  text-transform:lowercase;user-select:none;
+}
+/* ❌ .eyebrow-sm ถูกตัดทิ้ง 2026-08-28 — 2 เหตุผล:
+   1. ซ้ำซ้อนกับหมุดคำใหญ่ที่บอกหมวดอยู่แล้ว
+   2. 🔴 ป้ายเป็นภาษาไทยแต่ถ่างตัวอักษรกว้างแบบ Orange (.26em) -> สระบน-ล่างหลุดจากพยัญชนะ
+      (กับดักเดียวกับ HP1 vertical-rail ที่ Owner ทักไปแล้ว) */
+/* น้ำหนัก 500 ไม่ใช่ 600 — ท่า Orange: ความเด่นมาจาก "ขนาด" ไม่ใช่ "ความหนา" */
+/* ⚠️ ใช้ break-word ไม่ใช่ anywhere — anywhere ตัดกลางคำไทยได้ (สระ/วรรณยุกต์แยกจากพยัญชนะ)
+   break-word ตัดเฉพาะตอนคำยาวเกินกล่องจริง ๆ และปล่อยให้เบราว์เซอร์ตัดคำไทยตามหลักภาษา */
+.slab-head h2{
+  font-family:var(--f-display);font-weight:700;
+  font-size:clamp(1.9rem,4.6vw,3.3rem);line-height:1.22;letter-spacing:-.025em;
+  margin:0;overflow-wrap:break-word;
+}
+.slab-head h2 em{font-style:normal;color:var(--accent-text);position:relative}   /* คำเน้นสีอำพัน 1 คำต่อหัวข้อ */
+/* จุดกลมเล็กท้ายหัวข้อ — ลายเซ็นที่ยืมจาก orange-thailand
+   🔴 ต้องเป็น position:absolute เท่านั้น
+      ลองมาแล้ว 2 แบบและพังทั้งคู่ (2026-08-28): ::after ของ h2 และ inline-block ใน em
+      -> จุดกินความกว้างบรรทัด แล้วตกไปอยู่บรรทัดใหม่คนเดียว (วัดได้ em มี 2 กล่อง คนละบรรทัด)
+      absolute = ไม่เข้าไปยุ่งกับการตัดบรรทัดเลย */
+.slab-head h2 em::after{
+  content:"";position:absolute;left:100%;bottom:.24em;
+  width:.15em;height:.15em;border-radius:50%;background:var(--accent-text);
+  margin-inline-start:.16em;
+}
+.slab-sub{
+  margin:var(--s5) 0 0;max-width:54ch;color:var(--muted);font-size:.98rem;line-height:1.75;
+}
+
+/* ลิงก์แบบ Apple: ตัวหนังสือ + ลูกศร ไม่มีกล่อง ไม่มีพื้น */
+.chevlink{
+  font-family:var(--f-display);font-weight:600;font-size:1rem;color:var(--accent-text);
+  text-decoration:none;min-height:44px;display:inline-flex;align-items:center;gap:6px;
+}
+.chevlink .arw{transition:transform var(--dur-2) var(--ease-out);font-size:1.15em;line-height:1}
+.chevlink:hover .arw{transform:translateX(4px)}
+.chevlink:hover{text-decoration:underline;text-underline-offset:6px}
+.chevlink--2{color:var(--accent-2-text)}
+.link-row{display:flex;gap:var(--s4) var(--s8);flex-wrap:wrap;margin-top:var(--s10)}
+
+/* ปุ่มทึบทรงแคปซูล — ท่า Orange (เขาใช้ "GET A QUOTE" สีทอง)
+   🔴 มีได้ปุ่มเดียวทั้งหน้า และต้องไม่ใช่ปุ่มเลือกฝั่ง (2 ประตูต้องเท่ากัน ห้ามชี้นำ)
+      -> วางไว้ที่แถบบน ทำหน้าที่แค่ "พาลงไปที่ช่องเลือกฝั่ง" ไม่ได้เลือกฝั่งแทนคน */
+.btn-pill{
+  background:oklch(85% .145 82);color:oklch(24% .06 70);
+  /* 700 ไม่ใช่ 600 — Owner สั่ง 2026-08-30 "ฟอนต์ไทยในปุ่มขอตัวหนาหน่อย ให้สะดุดตา แต่ไม่หนาเกินไป"
+     Anuphan ที่น้ำหนักเดียวกันดูบางกว่า Manrope อยู่แล้ว ปุ่มไทยเลยต้องขยับขึ้นหนึ่งขั้น */
+  font-family:var(--f-display);font-weight:700;font-size:.9rem;
+  border-radius:var(--r-pill);padding:0 var(--s5);min-height:42px;
+  display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap;
+  transition:transform var(--dur-1) var(--ease-out),box-shadow var(--dur-2) var(--ease-out);
+}
+.btn-pill:hover{transform:translateY(-1px);box-shadow:0 6px 18px -6px oklch(80% .135 72/.5)}
+.btn-pill:active{transform:translateY(0)}
+.nav-links a.btn-pill::after{display:none}
+/* 🔴 ต้องเขียน .nav-links a.btn-pill (ไม่ใช่ .btn-pill เฉย ๆ)
+   เพราะ .nav-links a มีน้ำหนัก selector สูงกว่า จะทับสีตัวหนังสือของปุ่มจนเหลือ 1.01:1
+   (Owner เจอเอง 2026-08-28 — ปุ่ม "เริ่มใช้งาน" กลืนกับพื้นปุ่ม)
+   ⚠️ ห้ามเปลี่ยนเป็นสีขาว: ขาวบนอำพัน = 1.85:1 ยังตกเกณฑ์ · น้ำตาลเข้มนี้ = 9.52:1 */
+.nav-links a.btn-pill,
+.nav-links a.btn-pill:hover{color:oklch(24% .06 70)}
+
+/* ══════ แผ่น "ฝั่งครูทำอะไรได้บ้าง" — ท่า Bobbin (Owner ส่งภาพมา 2026-08-30) ══════
+   โครงที่ยืมมา: ซ้าย = รายการพับได้ · ขวา = หน้าจอจำลองของแอปที่สลับตามหัวข้อที่เปิด
+   ใบที่เปิด = การ์ดสว่าง + รายการติ๊กถูก + เส้นอำพันปิดท้ายใบ
+   🔴 หน้าจอจำลองวาดด้วย CSS ล้วน ไม่มีไฟล์รูป — และต้องตรงกับของที่ระบบทำได้จริงเท่านั้น
+      ห้ามวาดฟีเจอร์ที่ยังไม่มี (กฎเหล็กข้อ 1: ห้ามขึ้นจอเป็นคำสัญญา) */
+.feat{display:grid;gap:var(--s8);grid-template-columns:minmax(0,1fr);align-items:start}
+@media(min-width:980px){.feat{grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:var(--s10)}}
+.feat-list{display:flex;flex-direction:column;gap:var(--s3)}
+
+.fcard{
+  background:var(--surface);border-radius:var(--r-lg);overflow:hidden;
+  transition:background var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out);
+}
+.fcard[open]{background:var(--surface-2);box-shadow:var(--lift-2)}
+.fcard summary{
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:var(--s4);
+  padding:var(--s6);min-height:44px;
+  font-family:var(--f-display);font-weight:600;font-size:1.08rem;letter-spacing:-.02em;
+}
+.fcard summary::-webkit-details-marker{display:none}
+.fcard .ftitle{flex:1 1 auto;min-width:0}
+.fcard .flabel{
+  display:block;font-family:var(--f-body);font-weight:400;font-size:.86rem;
+  color:var(--muted);margin-bottom:2px;
+}
+/* ปุ่มกลม + -> × (ท่าเดียวกับ Bobbin: ปิดเป็นวงเปล่า เปิดเป็นวงอำพันทึบ) */
+.fx{
+  flex:none;position:relative;width:30px;height:30px;border-radius:50%;
+  border:1px solid var(--rule-2);
+  transition:transform var(--dur-2) var(--ease-out),background var(--dur-2) var(--ease-out),
+             border-color var(--dur-2) var(--ease-out);
+}
+.fx::before,.fx::after{
+  content:"";position:absolute;left:50%;top:50%;width:11px;height:2px;border-radius:2px;
+  background:var(--accent);transform:translate(-50%,-50%);
+}
+.fx::after{transform:translate(-50%,-50%) rotate(90deg)}
+.fcard[open] .fx{transform:rotate(135deg);background:var(--accent);border-color:var(--accent)}
+.fcard[open] .fx::before,.fcard[open] .fx::after{background:var(--accent-ink)}
+.fcard-body{padding:0 var(--s6) var(--s6)}
+.fcard-body>p{margin:0 0 var(--s5);color:var(--ink-2);font-size:.96rem;line-height:1.75}
+.fticks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s3)}
+.fticks li{display:flex;align-items:flex-start;gap:var(--s3);font-size:.94rem;color:var(--ink-2);line-height:1.6}
+.fticks .tk{
+  flex:none;width:20px;height:20px;border-radius:6px;margin-top:1px;
+  background:var(--accent-2);color:oklch(24% .06 158);
+  display:grid;place-items:center;font-size:12px;font-weight:700;
+}
+/* เส้นอำพันปิดท้ายใบที่เปิด — ลายเซ็นของ Bobbin */
+.fcard[open] .fcard-body::after{
+  content:"";display:block;height:3px;border-radius:3px;background:var(--accent);
+  margin-top:var(--s6);
+}
+
+/* ── หน้าจอจำลอง (ขวา) ─────────────────────────────────────── */
+.feat-view{
+  position:relative;border-radius:var(--r-xl);padding:var(--s5);
+  background:var(--surface);box-shadow:var(--lift-2);
+}
+@media(min-width:980px){.feat-view{position:sticky;top:96px}}
+.mock{
+  --m-paper:oklch(98.5% .004 var(--bh));
+  --m-line: oklch(90%   .012 var(--bh));
+  --m-ink:  oklch(24%   .020 var(--bh));
+  --m-ink2: oklch(48%   .020 var(--bh));
+  background:var(--m-paper);color:var(--m-ink);
+  border-radius:var(--r-lg);padding:var(--s5);min-height:330px;
+  font-size:.9rem;
+}
+.mock[hidden]{display:none}
+.mock-tabs{display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s5)}
+.mock-tab{
+  font-family:var(--f-display);font-weight:500;font-size:.82rem;
+  padding:6px 12px;border-radius:var(--r-pill);color:var(--m-ink2);
+}
+.mock-tab.is-on{background:var(--m-ink);color:var(--m-paper)}
+.mock h4{font-family:var(--f-display);font-weight:600;font-size:.92rem;margin:0 0 var(--s3);color:var(--m-ink2)}
+/* auto-fit ไม่ใช่ repeat(3) — ที่จอ 320px ช่องจะแคบเหลือ 63px ตัวเลขเบียดกัน (วัดจริง 2026-08-30) */
+.mock-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:var(--s3);margin-bottom:var(--s5)}
+.mtile{border:1px solid var(--m-line);border-radius:var(--r-md);padding:var(--s4);text-align:center}
+.mtile.is-hi{background:var(--accent);border-color:var(--accent)}
+.mtile b{display:block;font-family:var(--f-display);font-weight:600;font-size:1.3rem;letter-spacing:-.02em}
+.mtile span{display:block;font-size:.74rem;color:var(--m-ink2);margin-top:2px}
+.mtile.is-hi span{color:oklch(30% .05 70)}
+.mrow{display:flex;align-items:center;gap:var(--s3);padding-block:var(--s3);border-top:1px solid var(--m-line)}
+.mrow:first-of-type{border-top:0}
+.mrow .mav{
+  flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--f-display);font-weight:600;font-size:.78rem;
+  background:var(--accent-soft);color:var(--m-paper);
+}
+.mrow .mtxt{flex:1 1 auto;min-width:0;line-height:1.4}
+.mrow .mtxt small{display:block;color:var(--m-ink2);font-size:.76rem}
+.mbadge{
+  flex:none;font-family:var(--f-display);font-weight:600;font-size:.74rem;
+  padding:4px 10px;border-radius:var(--r-pill);
+  background:var(--accent);color:var(--accent-ink);
+}
+.mbadge.is-wait{background:oklch(93% .03 var(--bh));color:var(--m-ink2)}
+.mbadge.is-ok{background:var(--accent-2);color:oklch(24% .06 158)}
+.mbar{flex:1 1 auto;height:8px;border-radius:99px;background:oklch(93% .012 var(--bh));overflow:hidden}
+.mbar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.mchips{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s4)}
+.mchip{font-size:.76rem;padding:4px 10px;border-radius:var(--r-pill);border:1px solid var(--m-line);color:var(--m-ink2)}
+.mchip.is-on{background:var(--m-ink);color:var(--m-paper);border-color:var(--m-ink)}
+.mock-note{margin:var(--s4) 0 0;font-size:.74rem;color:var(--m-ink2)}
+
+/* ══════ ชุดสีแบรนด์ 6 แบบ (Owner ขอ 2026-08-30: "อยากมีสีให้เลือกมากกว่านี้") ══════
+   เปลี่ยนแค่ 2 ตัวเลข = เปลี่ยนทั้งเว็บ · สีตัวหนังสือ/อำพัน/เขียวมิ้นต์ไม่ขยับ
+   🔴 ทุกชุดวัด contrast แล้ว ผ่านเกณฑ์ตัวหนังสือทั้งหมด (ดู LOG 190)
+   ⚠️ ห้ามเพิ่มชุดใหม่โดยไม่วัด contrast ซ้ำ — chroma สูงขึ้น = พื้นสว่างขึ้น = ตัวหนังสือตกได้ */
+:root[data-theme="blue"]   { --bh:264; --bc:0.130 }  /* น้ำเงิน (ค่าเริ่มต้น) */
+:root[data-theme="violet"] { --bh:292; --bc:0.145 }  /* ม่วง — ท่า Outschool */
+:root[data-theme="indigo"] { --bh:276; --bc:0.150 }  /* คราม-ม่วง สดกว่าน้ำเงิน */
+:root[data-theme="teal"]   { --bh:205; --bc:0.105 }  /* ฟ้าอมเขียว */
+:root[data-theme="forest"] { --bh:165; --bc:0.085 }  /* เขียวเข้ม */
+:root[data-theme="plum"]   { --bh:340; --bc:0.115 }  /* ม่วงแดง/บานเย็น */
+
+/* ── แถบเลือกสี (ของทดลอง จะถอดออกก่อนขึ้นใช้จริง) ──────────── */
+.swatchbar{
+  position:fixed;right:14px;bottom:14px;z-index:60;
+  display:flex;align-items:center;gap:8px;
+  background:oklch(18% .05 var(--bh)/.92);
+  border:1px solid var(--rule-2);border-radius:var(--r-pill);
+  padding:8px 12px;box-shadow:var(--lift-3);
+  backdrop-filter:blur(8px);
+}
+.swatchbar b{
+  font-family:var(--f-display);font-weight:600;font-size:.76rem;
+  color:var(--ink-2);white-space:nowrap;padding-inline-end:2px;
+}
+.swatch{
+  width:26px;height:26px;border-radius:50%;flex:none;cursor:pointer;
+  border:2px solid transparent;padding:0;position:relative;
+  transition:transform var(--dur-1) var(--ease-out),border-color var(--dur-1) var(--ease-out);
+}
+/* พื้นที่แตะ 44px โดยไม่ทำให้วงกลมอ้วน */
+.swatch::after{content:"";position:absolute;inset:-9px}
+.swatch:hover{transform:scale(1.14)}
+.swatch[aria-pressed="true"]{border-color:var(--accent);transform:scale(1.14)}
+.swatch:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+@media(max-width:560px){
+  .swatchbar{right:8px;bottom:8px;padding:7px 9px;gap:6px}
+  .swatchbar b{display:none}
+}
+
+/* ── HERO ────────────────────────────────────────────────────────
+   พื้นหลัง CSS ล้วน: แสงอุ่นจาง ๆ ไล่ลงล่าง + แสงอำพันหลังหัวเรื่อง
+   🔴 ตารางเส้น (grid 78px) ถูกถอดออก 2026-08-30 — Owner: "ธีมสีเข้ม มี grid ผมไม่ค่อยชอบ"
+      ห้ามเอากลับมาใส่อีกโดยไม่ได้สั่ง (ทั้ง hero และแผ่นปิดท้าย) */
+.hero-shell{position:relative;isolation:isolate;overflow:clip}
+.hero-shell::before{
+  content:"";position:absolute;inset:0 0 auto;height:min(880px,100%);z-index:-2;
+  background:linear-gradient(to bottom, oklch(27% .12 264), transparent 78%);
+  pointer-events:none;
+}
+.hero-shell::after{
+  content:"";position:absolute;z-index:-1;pointer-events:none;
+  left:-12%;top:-30%;width:min(820px,90%);aspect-ratio:1;
+  background:radial-gradient(circle, oklch(80% .135 72/.14), transparent 66%);
+}
+.hero{
+  display:grid;gap:var(--s10);grid-template-columns:minmax(0,1fr);
+  padding-block:var(--s16) var(--s20);
+}
+@media(min-width:1000px){
+  .hero{grid-template-columns:minmax(0,1fr) minmax(0,26rem);gap:var(--s24);
+    align-items:start;padding-block:var(--s24) var(--s32)}
+}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:var(--s2);margin:0 0 var(--s6);
+  font-family:var(--f-display);font-weight:500;font-size:.82rem;letter-spacing:.01em;
+  color:var(--accent);background:var(--accent-soft);
+  border:1px solid oklch(45% .07 72);border-radius:var(--r-pill);padding:6px 14px;
+}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;
+  box-shadow:0 0 10px 1px oklch(80% .135 72/.8)}
+h1{
+  font-family:var(--f-display);font-weight:700;
+  /* line-height 1.16 ไม่ใช่ 1.02 — Anuphan วางสระบน+วรรณยุกต์สูงกว่า Kanit
+     ที่ 1.02 บรรทัดไทย 2 บรรทัดจะเบียดกัน (วัดจริง: กล่องตัวหนังสือล้นกล่องบรรทัดบน 15px ล่าง 13px) */
+  font-size:clamp(2.35rem,6.2vw,4.9rem);line-height:1.16;letter-spacing:-.03em;
+  margin:0;max-width:14ch;overflow-wrap:anywhere;min-width:0;
+}
+.mark{position:relative;white-space:nowrap;color:var(--accent)}
+.mark::after{
+  content:"";position:absolute;left:-.03em;right:-.03em;bottom:.02em;height:.08em;
+  background:var(--accent);border-radius:2px;opacity:.4;
+}
+.lede{margin:var(--s6) 0 0;max-width:44ch;font-size:1.18rem;color:var(--ink-2)}
+@media(max-width:560px){.lede{font-size:1.02rem}}
+.assure{margin:var(--s8) 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;
+  gap:var(--s3) var(--s6);font-size:.9rem;color:var(--ink-2)}
+.assure li{display:flex;align-items:center;gap:var(--s2)}
+.assure .tick{
+  width:19px;height:19px;border-radius:50%;flex:none;
+  background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-size:11px;font-weight:700;
+}
+
+/* ── ประตู 2 ใบ ─────────────────────────────────────────────────
+   Owner ทัก 2026-08-28: "มันดูจืดไม่มี style เลย" — ของเดิมคือกล่องเปล่า+อีโมจิ+ตัวหนังสือ
+   รอบนี้ให้การ์ดมี "โครง" 4 ชั้น: แผ่นไอคอน → หัวข้อ → คำอธิบาย → เส้นคั่น + แถวลิงก์
+   + แสงสีประจำฝั่งที่มุมขวาบน (ทำให้การ์ดมีทิศทาง ไม่แบน)
+   🔴 2 ใบต้องน้ำหนักเท่ากันเสมอ ต่างกันได้แค่ "เฉดสี" ห้ามทำใบไหนเด่นกว่า */
+.doors{display:grid;gap:var(--s4)}
+.door{
+  position:relative;isolation:isolate;
+  display:grid;grid-template-columns:auto minmax(0,1fr);
+  gap:var(--s3) var(--s5);align-items:start;text-decoration:none;color:var(--ink);
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-xl);
+  padding:var(--s6);box-shadow:var(--lift-1);overflow:hidden;
+  transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out),
+             border-color var(--dur-1) var(--ease-out);
+}
+/* แสงสีประจำฝั่ง มุมขวาบน */
+.door::after{
+  content:"";position:absolute;z-index:-1;pointer-events:none;
+  right:-26%;top:-64%;width:78%;aspect-ratio:1;
+  background:radial-gradient(circle, color-mix(in oklch, var(--door-hue) 26%, transparent), transparent 70%);
+  opacity:.5;transition:opacity var(--dur-2) var(--ease-out);
+}
+/* แถบสีบางด้านซ้าย โผล่ตอนชี้เมาส์ */
+.door::before{
+  content:"";position:absolute;inset-block:0;inset-inline-start:0;width:3px;
+  background:var(--door-hue);transform:scaleY(0);transform-origin:top;
+  transition:transform var(--dur-2) var(--ease-out);
+}
+.door--learner{--door-hue:var(--accent)}
+.door--teacher{--door-hue:var(--accent-2)}
+.door:hover{transform:translateY(-4px);box-shadow:var(--lift-3);
+  border-color:color-mix(in oklch, var(--door-hue) 42%, transparent)}
+.door:hover::before{transform:scaleY(1)}
+.door:hover::after{opacity:1}
+.door:active{transform:translateY(-1px)}
+
+/* แผ่นไอคอน — วาดเป็น SVG เอง ไม่ใช้อีโมจิแล้ว (อีโมจิในการ์ด = อาการเว็บเก่า) */
+.door-icon{
+  grid-row:span 3;width:48px;height:48px;flex:none;
+  border-radius:15px;display:grid;place-items:center;
+  background:color-mix(in oklch, var(--door-hue) 15%, transparent);
+  border:1px solid color-mix(in oklch, var(--door-hue) 34%, transparent);
+  color:var(--door-hue);
+  transition:background var(--dur-2) var(--ease-out);
+}
+.door:hover .door-icon{background:color-mix(in oklch, var(--door-hue) 24%, transparent)}
+.door-icon svg{width:25px;height:25px;display:block}
+
+.door h2,.door h3{font-family:var(--f-display);font-weight:600;font-size:1.18rem;margin:0;letter-spacing:-.02em}
+.door p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.7}
+/* เส้นคั่นก่อนแถวลิงก์ = ชั้นที่ทำให้การ์ดอ่านว่า "ถูกจัดวาง" ไม่ใช่กองข้อความ */
+.door .go{
+  grid-column:2;margin-top:var(--s4);padding-top:var(--s4);
+  border-top:1px solid var(--rule);
+  font-family:var(--f-display);font-weight:600;font-size:.94rem;color:var(--door-hue);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+}
+.door .go .arw{
+  width:28px;height:28px;border-radius:50%;flex:none;
+  display:grid;place-items:center;font-size:1.05em;line-height:1;
+  background:color-mix(in oklch, var(--door-hue) 16%, transparent);
+  transition:transform var(--dur-2) var(--ease-out),background var(--dur-2) var(--ease-out);
+}
+.door:hover .go .arw{transform:translateX(4px);background:color-mix(in oklch, var(--door-hue) 30%, transparent)}
+.doors-note{margin:var(--s4) 0 0;font-size:.86rem;color:var(--muted);text-align:center}
+
+/* ── แถบวิชา — ตัววิ่ง ─────────────────────────────────────────
+   Owner สั่ง 2026-08-28: "อยากให้เป็นตัววิ่ง ซ้ายไปขวา · ตัวใหญ่ขึ้น · เว้นระยะ ไม่รกตา"
+   ของเดิมเป็นชิปขอบมน 10 อันเรียงกัน -> รกและตัวเล็ก
+   ตอนนี้: ตัวหนังสือล้วนตัวใหญ่ + จุดอำพันคั่น + จางหายที่ขอบซ้าย-ขวา
+   ♿ ตัววิ่งใส่ aria-hidden แล้วมีรายการจริงซ่อนไว้ให้โปรแกรมอ่านหน้าจอ */
+/* 🔴 แถบนี้ = จุดเดียวของหน้าที่ "ทาพื้นด้วยสีอำพันเต็มแถบ"
+   Owner สั่ง 2026-08-28: "มันกลืนไปหน่อย เล่นสีของแถบวิชาได้ไหม"
+   -> เปลี่ยนจากพื้นเข้ม (กลืนกับแผ่นรอบ ๆ) เป็นแถบอำพันทึบ ตัวหนังสือน้ำตาลเข้ม
+   ทำได้เพราะเป็นแถบบาง ๆ แถบเดียว ไม่ได้ทาทั้ง section
+   ⚠️ ห้ามเพิ่มแถบสีทึบที่อื่นอีก ไม่งั้นอำพันจะเฝือทั้งหน้า */
+/* Owner สั่ง 2026-08-30: "ขนาดกรอบสีเหลืองเล็กลงมานิดนึง" -> s5 (20px) เป็น s3 (12px) */
+.subjects{background:var(--accent);color:var(--accent-ink);padding-block:var(--s3)}
+.ticker{
+  overflow:clip;
+  -webkit-mask-image:linear-gradient(to right,transparent,oklch(0% 0 0) 7%,oklch(0% 0 0) 93%,transparent);
+          mask-image:linear-gradient(to right,transparent,oklch(0% 0 0) 7%,oklch(0% 0 0) 93%,transparent);
+}
+.ticker-track{
+  display:flex;align-items:center;width:max-content;
+  animation:roll 42s linear infinite;
+}
+/* ขวา -> ซ้าย แบบข่าววิ่งปกติ (Owner แก้ทิศทาง 2026-08-28)
+   ต้องมีชุดคำ 2 ชุดเหมือนกันเป๊ะใน track ไม่งั้นตอนวนกลับจะกระตุก */
+@keyframes roll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker-track span{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(.92rem,1.4vw,1.12rem);line-height:1.4;
+  color:var(--accent-ink);white-space:nowrap;padding-inline:var(--s6);
+  display:inline-flex;align-items:center;gap:var(--s6);
+}
+.ticker-track span::after{
+  content:"";width:5px;height:5px;border-radius:50%;background:var(--accent-ink);
+  opacity:.42;flex:none;
+}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+/* ── ขั้นตอน 1-2-3 ──────────────────────────────────────────── */
+.flow{display:grid;gap:var(--s12);grid-template-columns:minmax(0,1fr);position:relative;text-align:left}
+@media(min-width:880px){
+  .flow{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s10)}
+  .flow::before{content:"";position:absolute;top:26px;left:26px;right:26px;height:1px;
+    background:linear-gradient(to right,var(--rule-2),var(--rule-2) 70%,transparent)}
+}
+.node{position:relative}
+.node-n{
+  position:relative;display:inline-grid;place-items:center;width:52px;height:52px;
+  border-radius:50%;background:var(--surface);color:var(--accent-text);
+  font-family:var(--f-display);font-weight:600;font-size:1.25rem;margin-bottom:var(--s6);
+  box-shadow:0 0 0 10px var(--paper);
+}
+.node h3{font-family:var(--f-display);font-weight:600;font-size:1.24rem;margin:0 0 var(--s4);letter-spacing:-.02em}
+
+/* ── ช่องใส่รูปจริง (.shot) ─────────────────────────────────────
+   🔴 ตอนนี้ยังไม่มีไฟล์รูป — ในช่องเป็น "บล็อกรอรูป" ไว้ก่อน
+      พอได้รูปมา: ใส่ <img> เป็นลูกคนแรกของ .shot แล้วลบ .shot-ph ทิ้ง
+   ท่าที่ยืมมา: GoStudent = รูปมุมโค้ง + ป้ายกลมลอยมุมบนซ้าย
+                Outschool = รูปมุมโค้งมาก + ป้ายเม็ดยาสีเน้นทับขอบรูป */
+.shot{
+  position:relative;border-radius:var(--r-xl);overflow:hidden;
+  background:var(--surface);aspect-ratio:4/3;
+  box-shadow:var(--lift-2);
+}
+.shot img{width:100%;height:100%;object-fit:cover;display:block}
+/* บล็อกรอรูป — บอกชัดว่าต้องใส่รูปแบบไหน ไม่ใช่กล่องเทาเปล่า */
+.shot-ph{
+  position:absolute;inset:0;display:grid;place-items:center;gap:var(--s2);
+  padding:var(--s6);text-align:center;
+  background:
+    repeating-linear-gradient(135deg, oklch(48% .10 264/.55) 0 12px, transparent 12px 24px),
+    var(--surface);
+  color:var(--ink-2);font-size:.88rem;line-height:1.6;
+}
+.shot-ph b{display:block;font-family:var(--f-display);font-weight:600;font-size:1rem;color:var(--ink)}
+/* ป้ายกลมลอยบนรูป */
+.shot-pill{
+  position:absolute;left:var(--s4);top:var(--s4);z-index:2;
+  display:inline-flex;align-items:center;gap:var(--s2);
+  background:var(--accent);color:var(--accent-ink);
+  font-family:var(--f-display);font-weight:600;font-size:.84rem;
+  padding:7px 14px;border-radius:var(--r-pill);box-shadow:var(--lift-2);
+}
+.shot-pill.is-alt{background:var(--accent-2);color:oklch(24% .06 158)}
+.shot-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.7}
+
+/* รูปบนหัวการ์ด 3 ขั้นตอน (ท่า GoStudent) */
+.node .shot{aspect-ratio:5/4;margin-bottom:var(--s6)}
+
+/* ── แผ่น "เรียนแบบไหนก็ได้" · รูปคู่ ───────────────────────── */
+.ways{display:grid;gap:var(--s6);grid-template-columns:minmax(0,1fr)}
+@media(min-width:860px){.ways{grid-template-columns:1fr 1fr;gap:var(--s8)}}
+.way h3{font-family:var(--f-display);font-weight:600;font-size:1.3rem;margin:var(--s6) 0 var(--s3);letter-spacing:-.02em}
+.way p{margin:0;color:var(--muted);font-size:.98rem;line-height:1.75}
+/* เนื้อความเล็กและเทากว่าหัวข้อชัดเจน — ท่า Orange (เขาใช้ 13px สี #666) */
+.node p{margin:0;color:var(--muted);max-width:38ch;font-size:.96rem;line-height:1.75}
+
+/* ── ทำไมต้องที่นี่ · แผ่นทึบมุมโค้งใหญ่ ไม่มีขอบ ───────────── */
+.why{display:grid;gap:var(--s5);grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.why{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s6)}}
+.why-card{
+  background:var(--surface);border:0;border-radius:var(--r-xl);
+  padding:var(--s10) var(--s8);box-shadow:var(--lift-1);position:relative;overflow:hidden;
+  transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out),
+             background var(--dur-1) var(--ease-out);
+}
+.why-card:nth-child(1){--card-hue:var(--accent)}
+.why-card:nth-child(2){--card-hue:var(--accent-2)}
+.why-card:nth-child(3){--card-hue:var(--subject)}
+.why-card:hover{transform:translateY(-4px);box-shadow:var(--lift-3);background:var(--surface-2)}
+.why-n{
+  font-family:var(--f-display);font-weight:600;font-size:2.6rem;line-height:1;
+  color:var(--card-hue);display:block;margin-bottom:var(--s6);opacity:.9;letter-spacing:-.04em;
+}
+.why-card h3{font-family:var(--f-display);font-weight:600;font-size:1.26rem;margin:0 0 var(--s4);letter-spacing:-.02em}
+.why-card p{margin:0;color:var(--muted);font-size:.96rem;line-height:1.75}
+
+/* ── ครูในระบบ (แผ่นสว่าง) · แถบการ์ดเลื่อน ────────────────────
+   Owner สั่ง 2026-08-28: "อยากให้เป็นการโชว์การ์ดครู เลื่อนขวาไปซ้าย โชว์การ์ดทุกใบ"
+   ข้อมูลครูดึงมาจาก teacher-search.html ทั้งชุด (ชื่อ/วิชา/ระดับ/รูปแบบ/ราคา)
+   -> ห้ามแต่งครูใหม่ในหน้านี้ ต้องตรงกับหน้าค้นหาเสมอ ไม่งั้นเว็บขัดกันเอง
+   🔴 การ์ดมีลิงก์ข้างใน ต้องหยุดเลื่อนตอนชี้เมาส์ "และตอน tab เข้าไป" ไม่งั้นกดไม่ทัน */
+/* เลื่อนทีละหน้า หน้าละ 4 ใบ (แบบ orange-thailand) — ไม่ใช่วิ่งต่อเนื่องแล้ว
+   ใช้ scroll-snap เป็นตัวจริง + JS แค่สั่งเลื่อนกับอัปเดตจุด
+   -> ถ้า JS ไม่ทำงาน ยังปัดดูเองได้ปกติ ไม่พัง */
+.tcarousel{position:relative}
+.tcar-viewport{
+  display:flex;gap:var(--s5);overflow-x:auto;padding-block:var(--s2);
+  scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.tcar-viewport::-webkit-scrollbar{display:none}
+
+/* หน้าละ 4 ใบบนจอใหญ่ · 3 · 2 · 1 ตามความกว้าง */
+.tcard{
+  flex:0 0 calc((100% - 3 * var(--s5)) / 4);scroll-snap-align:start;
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--s3);
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-lg);
+  padding:var(--s8) var(--s5) var(--s6);text-decoration:none;color:var(--ink);box-shadow:var(--lift-1);
+  --card-hue:var(--accent-text);
+  transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2) var(--ease-out),
+             border-color var(--dur-1) var(--ease-out);
+}
+@media(max-width:1080px){.tcard{flex-basis:calc((100% - 2 * var(--s5)) / 3)}}
+@media(max-width:840px){.tcard{flex-basis:calc((100% - var(--s5)) / 2)}}
+@media(max-width:600px){.tcard{flex-basis:100%}}
+.tcard:nth-child(even){--card-hue:var(--accent-2-text)}
+/* แสงสีจาง ๆ ที่หัวการ์ด (หลังรูปวงกลม) — ทำให้การ์ดไม่ขาวตัน */
+.tcard::before{
+  content:"";position:absolute;inset:0 0 auto;height:170px;z-index:0;pointer-events:none;
+  background:radial-gradient(70% 100% at 50% 0%, color-mix(in oklch, var(--card-hue) 13%, transparent), transparent 72%);
+  opacity:.85;transition:opacity var(--dur-2) var(--ease-out);
+}
+.tcard{position:relative;isolation:isolate}
+.tcard > *{position:relative;z-index:1}
+.tcard:hover::before{opacity:1}
+.tcard:hover{transform:translateY(-6px);box-shadow:var(--lift-3);
+  border-color:color-mix(in oklch, var(--card-hue) 52%, transparent)}
+
+/* รูปวงกลมกลางการ์ด — ยังไม่มีรูปครูจริง ใช้ตัวย่อชื่อไปก่อน
+   ⚠️ ตรงนี้คือที่ที่จะใส่รูปจริงตอนมีครูจริง (ครอบเป็นวงกลม object-fit:cover)
+   ลูกเล่น: วงแหวนซ้อน 2 ชั้นแบบ orange (ขอบชิด + วงนอกเว้นระยะ) */
+.tavatar{
+  width:88px;height:88px;border-radius:50%;flex:none;
+  background:color-mix(in oklch, var(--card-hue) 15%, transparent);
+  color:var(--card-hue);
+  display:grid;place-items:center;font-family:var(--f-display);font-weight:600;font-size:2rem;
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--card-hue) 42%, transparent),
+    0 0 0 8px color-mix(in oklch, var(--card-hue) 11%, transparent);
+  transition:box-shadow var(--dur-2) var(--ease-out);
+}
+.tcard:hover .tavatar{
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--card-hue) 62%, transparent),
+    0 0 0 11px color-mix(in oklch, var(--card-hue) 16%, transparent);
+}
+.stars{display:flex;align-items:center;gap:3px;color:var(--accent-text);font-size:1.05rem;line-height:1;margin:var(--s2) 0 0}
+.stars .score{margin-inline-start:7px;font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+.tcard h3{font-family:var(--f-display);font-weight:500;font-size:1.1rem;margin:0;letter-spacing:-.015em}
+.tcard .subj{margin:0;font-size:.86rem;color:var(--muted)}
+/* 🔴 ข้อความครู = ของสมมติที่ AI แต่ง ยังไม่ใช่รีวิวจริง
+   ก่อนเปิดใช้จริงต้องเปลี่ยนเป็นคำพูดครูจริงทุกใบ (รีวิวปลอม = โฆษณาเกินจริง ผิดกฎหมาย) */
+.tcard blockquote{
+  margin:var(--s2) 0 0;color:var(--ink-2);font-size:.94rem;line-height:1.8;flex:1;
+}
+/* เครื่องหมายคำพูดตัวใหญ่จาง ๆ เหนือข้อความ — ตัวที่ทำให้อ่านว่า "คำพูดของคน" ทันที */
+.tcard blockquote::before{
+  content:"\201C";display:block;font-family:var(--f-display);font-weight:600;
+  font-size:2.8rem;line-height:.62;color:var(--card-hue);opacity:.3;
+  margin-bottom:var(--s3);transition:opacity var(--dur-2) var(--ease-out);
+}
+.tcard:hover blockquote::before{opacity:.55}
+.tcard .open{
+  margin-top:var(--s5);padding-top:var(--s4);border-top:1px solid var(--rule);width:100%;
+  font-family:var(--f-display);font-weight:500;font-size:.88rem;color:var(--card-hue);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.tcard .open .arw{transition:transform var(--dur-2) var(--ease-out)}
+.tcard:hover .open .arw{transform:translateX(4px)}
+
+/* ปุ่มเลื่อน + จุดบอกหน้า */
+.tcar-ctrl{display:flex;align-items:center;justify-content:center;gap:var(--s4);margin-top:var(--s6)}
+.tcar-btn{
+  width:44px;height:44px;border-radius:50%;flex:none;cursor:pointer;
+  background:var(--surface);border:1px solid var(--rule-2);color:var(--ink);
+  display:grid;place-items:center;font-size:1.1rem;line-height:1;
+  transition:background var(--dur-1) var(--ease-out),border-color var(--dur-1) var(--ease-out);
+}
+.tcar-btn:hover{background:var(--surface-2);border-color:var(--accent-text)}
+.tcar-btn[disabled]{opacity:.35;cursor:default}
+.tcar-dots{display:flex;gap:var(--s2);align-items:center}
+.tcar-dots button{
+  width:9px;height:9px;padding:0;border-radius:50%;cursor:pointer;
+  background:var(--rule-2);border:0;transition:background var(--dur-1) var(--ease-out),width var(--dur-2) var(--ease-out);
+  position:relative;
+}
+/* พื้นที่แตะ 44px โดยไม่ทำให้จุดอ้วน */
+.tcar-dots button::after{content:"";position:absolute;inset:-18px -8px}
+.tcar-dots button[aria-current="true"]{background:var(--accent-text);width:26px;border-radius:99px}
+
+.tlist-foot{display:flex;justify-content:space-between;align-items:center;gap:var(--s5);
+  margin-top:var(--s8);flex-wrap:wrap}
+.fake-note{margin:0;font-size:.88rem;color:var(--muted);max-width:48ch}
+
+/* ── FAQ ──────────────────────────────────────────────────────
+   ลูกเล่นชุดเดียวกับ carousel ครูที่ Owner ผ่านแล้ว (LOG 188):
+   เลขนำหน้า · แสงอำพันจาง · ปุ่ม + หมุนเป็น × · แถบสีข้างตอนเปิด
+   🔴 เลขใช้ตัวเลขอารบิกเท่านั้น (ถ่างตัวอักษรไทยไม่ได้ — กับดักหมุดคำใหญ่) */
+.faq{max-width:860px;counter-reset:faq}
+.faq details{
+  counter-increment:faq;position:relative;overflow:hidden;
+  border-bottom:1px solid var(--rule);border-radius:var(--r-lg);
+  transition:background var(--dur-2) var(--ease-out);
+}
+/* แสงอำพันจางหลังใบที่เปิดอยู่ — ไม่ให้แถวเปล่าตัน */
+.faq details::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
+  background:radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 62%);
+  transition:opacity var(--dur-3) var(--ease-out);
+}
+.faq details[open]{background:var(--surface);border-bottom-color:transparent}
+.faq details[open]::before{opacity:.55}
+/* แถบสีอำพันข้างซ้ายตอนเปิด — เลื่อนขึ้นมาจากล่าง */
+.faq details::after{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;z-index:1;
+  background:var(--accent);transform:scaleY(0);transform-origin:bottom;
+  transition:transform var(--dur-3) var(--ease-out);
+}
+.faq details[open]::after{transform:scaleY(1)}
+.faq summary{
+  cursor:pointer;list-style:none;padding:var(--s6) var(--s6) var(--s6) var(--s5);min-height:44px;
+  font-family:var(--f-display);font-weight:500;font-size:1.18rem;letter-spacing:-.02em;
+  display:flex;gap:var(--s4);align-items:center;position:relative;z-index:2;
+  transition:color var(--dur-1) var(--ease-out),padding-inline-start var(--dur-2) var(--ease-out);
+}
+.faq summary::-webkit-details-marker{display:none}
+/* เลขนำหน้าคำถาม 01-05 */
+.faq summary::before{
+  content:counter(faq,decimal-leading-zero);flex:none;
+  font-family:var(--f-display);font-weight:600;font-size:.95rem;line-height:1;
+  color:var(--accent-text);opacity:.78;letter-spacing:.04em;
+  transition:opacity var(--dur-2) var(--ease-out);
+}
+.faq details[open] summary::before{opacity:1}
+/* ปุ่มกลม + -> × (แทนลูกศรเส้นบางแบบเดิม) */
+.faq-x{
+  margin-inline-start:auto;flex:none;position:relative;
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--rule-2);
+  transition:transform var(--dur-2) var(--ease-out),border-color var(--dur-2) var(--ease-out),
+             background var(--dur-2) var(--ease-out);
+}
+.faq-x::before,.faq-x::after{
+  content:"";position:absolute;left:50%;top:50%;width:12px;height:2px;border-radius:2px;
+  background:var(--accent-text);transform:translate(-50%,-50%);
+}
+.faq-x::after{transform:translate(-50%,-50%) rotate(90deg)}
+.faq details[open] .faq-x{transform:rotate(135deg);border-color:var(--accent);background:var(--accent-soft)}
+.faq summary:hover{color:var(--accent-text);padding-inline-start:var(--s6)}
+.faq summary:hover .faq-x{border-color:var(--accent)}
+.faq p{
+  margin:0 0 var(--s6);padding-inline:var(--s5) var(--s6);position:relative;z-index:2;
+  color:var(--ink-2);max-width:64ch;font-size:1.02rem;
+}
+/* 🔴 ห้ามใส่ opacity ในคีย์เฟรมนี้ และห้ามใช้ fill-mode both
+   เหตุผล (กับดักเดิมของโปรเจกต์): ถ้าเฟรมไม่ถูกวาด แอนิเมชันจะค้างที่เฟรมแรก
+   -> ถ้าเฟรมแรกคือ opacity:0 คำตอบจะหายไปทั้งก้อน = ซ่อนเนื้อหาทิ้ง
+   ขยับตำแหน่งอย่างเดียว แย่สุดคือคำตอบเยื้องขึ้น 6px แต่ยังอ่านได้ */
+.faq details[open] p{animation:faqIn var(--dur-3) var(--ease-out)}
+@keyframes faqIn{from{transform:translateY(-6px)}to{transform:none}}
+
+/* ── แผ่นปิดท้าย ────────────────────────────────────────────── */
+.close{background:var(--paper-2);position:relative;overflow:hidden}
+/* 🔴 ตารางเส้นถูกถอดออก 2026-08-30 (Owner ไม่ชอบ) — เหลือแสงอุ่นไล่ขึ้นจากล่างแทน */
+.close::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(to top, oklch(27% .12 264), transparent 72%);
+}
+/* แสงอำพันจาง ๆ กลางแผ่นปิดท้าย — ท่าเดียวกับ hero (CSS ล้วน ไม่มีไฟล์รูป) */
+.close::after{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(58% 62% at 50% 12%, var(--accent-soft), transparent 68%);
+  opacity:.5;
+}
+/* เส้นแสงบาง ๆ ขอบบน = จุดตัดระหว่าง FAQ กับแผ่นปิด
+   ⚠️ ค่า -s24 ต้องเท่ากับ padding-block ของ .slab--tight เสมอ ถ้าแก้ padding ต้องแก้ตรงนี้ด้วย */
+.close .wrap::before{
+  content:"";position:absolute;top:calc(var(--s24) * -1);left:0;right:0;height:1px;
+  background:linear-gradient(to right, transparent, var(--rule-2) 22%, var(--accent) 50%, var(--rule-2) 78%, transparent);
+  opacity:.6;
+}
+.close .wrap{position:relative;z-index:1}
+.close .doors{grid-template-columns:minmax(0,1fr);max-width:940px}
+@media(min-width:900px){.close .doors{grid-template-columns:1fr 1fr;gap:var(--s5)}}
+
+/* แถบยืนยัน 3 ข้อใต้ 2 ประตู — จุดกลมอำพันแบบเดียวกับท้ายหัวข้อ
+   🔴 ห้ามใช้ชื่อคลาส .assure ซ้ำกับแถบติ๊กถูกใน hero (คนละตัว คนละหน้าตา) */
+.assure-end{
+  display:flex;flex-wrap:wrap;gap:var(--s4) var(--s8);justify-content:center;
+  margin:var(--s10) auto 0;max-width:940px;padding:0;list-style:none;
+}
+.assure-end li{
+  display:flex;align-items:center;gap:var(--s3);
+  color:var(--ink-2);font-size:.95rem;
+}
+.assure-end li::before{
+  content:"";flex:none;width:6px;height:6px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);
+}
+
+/* ── Ft2 footer 1 บรรทัด ────────────────────────────────────── */
+.site-footer{border-top:1px solid var(--rule);font-size:.875rem;color:var(--ink-2);background:var(--paper)}
+.site-footer .wrap{padding-block:var(--s6);display:flex;gap:var(--s2) var(--s6);flex-wrap:wrap;align-items:center}
+.site-footer nav{display:flex;gap:var(--s5);flex-wrap:wrap;margin-inline-start:auto}
+.site-footer a{position:relative;text-decoration:none;color:inherit}
+.site-footer a::after{content:"";position:absolute;inset-block:-14px;inset-inline:0}
+.site-footer a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+
+/* ── การเคลื่อนไหว ──────────────────────────────────────────── */
+.settle{opacity:0;transform:translateY(12px);animation:settle var(--dur-3) var(--ease-out) forwards}
+.d1{animation-delay:60ms}.d2{animation-delay:130ms}.d3{animation-delay:200ms}.d4{animation-delay:280ms}
+@keyframes settle{to{opacity:1;transform:none}}
+.js .reveal{opacity:0;transform:translateY(18px);transition:opacity 620ms var(--ease-out),transform 620ms var(--ease-out)}
+.js .reveal.is-in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion: reduce){
+  /* ปิดตัววิ่ง แล้วให้เลื่อนดูเองด้วยมือแทน (ห้ามซ่อนเนื้อหาทิ้ง) */
+  .ticker-track,.tcarousel-track{animation:none;transform:none}
+  .ticker,.tcarousel{overflow-x:auto}
+  .tcard:hover{transform:none}
+  .settle{animation-duration:150ms;transform:none}
+  .js .reveal{transition-duration:150ms;transform:none}
+  .door:hover,.why-card:hover{transform:none}
+  .door,.why-card,.trow,.pill,.nav::before{transition-duration:120ms}
+  .door .go .arw,.chevlink .arw{transition:none}
+  .faq details[open] p{animation:none}
+  .faq details,.faq details::before,.faq details::after,.faq summary,.faq-x{transition-duration:120ms}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหาหลัก</a>
+
+<div class="proto">
+  <div class="wrap">
+    <span aria-hidden="true">🧪</span>
+    <span><b>นี่คือเว็บตัวอย่างสำหรับทดลองใช้</b> — ครูและงานทั้งหมดเป็นข้อมูลสมมติ · ยังจ่ายเงินจริงไม่ได้ · ปิดเบราว์เซอร์แล้วข้อมูลจะหาย</span>
+  </div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="pill">
+    <a class="logo" href="index.html">
+      <span class="logo-mark" aria-hidden="true">B</span>
+      <span class="logo-text">BGT Tutor</span>
+    </a>
+    <div class="nav-links">
+      <span class="nav-side" id="side-note" hidden></span>
+      <a class="hide-sm" href="#how">ทำงานยังไง</a>
+      <a class="hide-sm" href="#why">ทำไมต้องที่นี่</a>
+      <a class="hide-sm" href="#faq">คำถามที่พบบ่อย</a>
+      <a class="btn-pill" href="#start">เริ่มใช้งาน<span aria-hidden="true">›</span></a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ═════ แผ่นที่ 1 · HERO ═════ -->
+  <div class="hero-shell">
+    <div class="wrap">
+      <section class="hero">
+        <div>
+          <p class="eyebrow settle"><span class="dot" aria-hidden="true"></span>เว็บหาครูสอนพิเศษที่จ่ายเงินทีหลัง</p>
+          <h1 class="settle d1">เจอครูที่ใช่<br>ก่อนจ่ายเงิน<span class="mark">สักบาท</span></h1>
+          <p class="lede settle d2">
+            คุยกับครูให้จบก่อน ตกลงวัน เวลา และราคากันให้เรียบร้อย
+            แล้วค่อยจ่าย — เงินถึงมือครูหลังสอนจบคาบเท่านั้น
+          </p>
+          <ul class="assure settle d3">
+            <li><span class="tick" aria-hidden="true">✓</span>สมัครฟรี ไม่มีค่าแรกเข้า</li>
+            <li><span class="tick" aria-hidden="true">✓</span>ครูตั้งราคาเอง</li>
+            <li><span class="tick" aria-hidden="true">✓</span>ยกเลิกก่อนตกลงได้ตลอด</li>
+          </ul>
+        </div>
+        <div class="settle d4">
+          <div class="doors">
+            <a class="door door--learner" href="student/signup-parent.html" data-gate="learner">
+              <span class="door-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 1.8 8.2 12 13.4l10.2-5.2z"/><path d="M5.6 10.4v5.1c0 1.9 2.9 3.4 6.4 3.4s6.4-1.5 6.4-3.4v-5.1"/><path d="M22.2 8.2v6"/></svg></span>
+              <h2>ฉันเป็นนักเรียน / ผู้ปกครอง</h2>
+              <p>หาครู เทียบราคา แล้วจองคาบจากปฏิทินว่างจริงของครู</p>
+              <span class="go">เข้าฝั่งผู้เรียน<span class="arw" aria-hidden="true">›</span></span>
+            </a>
+            <a class="door door--teacher" href="teacher/signup-teacher.html" data-gate="teacher">
+              <span class="door-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.6" y="3.2" width="18.8" height="12.4" rx="1.8"/><path d="M6.4 7.4h7.2M6.4 11h4.6"/><path d="M12 15.6v2.2"/><path d="M8.4 21.2 12 17.8l3.6 3.4"/></svg></span>
+              <h2>ฉันเป็นครู</h2>
+              <p>ตั้งวิชา ราคา และตารางว่างของตัวเอง แล้วรับงานสอน</p>
+              <span class="go">เข้าฝั่งครู<span class="arw" aria-hidden="true">›</span></span>
+            </a>
+          </div>
+          <p class="doors-note">เปลี่ยนฝั่งทีหลังได้เสมอ</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="subjects">
+    <div class="ticker">
+      <div class="ticker-track" aria-hidden="true">
+        <span>คณิตศาสตร์</span><span>ฟิสิกส์</span><span>เคมี</span><span>ชีววิทยา</span><span>ภาษาอังกฤษ</span><span>ภาษาไทย</span><span>สังคมศึกษา</span><span>ภาษาจีน</span><span>ดนตรี</span><span>กฎหมาย</span><span>ติวสอบเข้า</span>
+        <span>คณิตศาสตร์</span><span>ฟิสิกส์</span><span>เคมี</span><span>ชีววิทยา</span><span>ภาษาอังกฤษ</span><span>ภาษาไทย</span><span>สังคมศึกษา</span><span>ภาษาจีน</span><span>ดนตรี</span><span>กฎหมาย</span><span>ติวสอบเข้า</span>
+      </div>
+    </div>
+    <p class="sr-only">วิชาที่มีในระบบ: คณิตศาสตร์ · ฟิสิกส์ · เคมี · ชีววิทยา · ภาษาอังกฤษ · ภาษาไทย · สังคมศึกษา · ภาษาจีน · ดนตรี · กฎหมาย · ติวสอบเข้า</p>
+  </div>
+
+  <!-- ═════ แผ่นที่ 2 · ทำงานยังไง (พื้นเข้ม) ═════ -->
+  <section class="slab" id="how" aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">how it works</span>
+        <h2 id="how-h">เริ่มต้น<em>ยังไง</em></h2>
+        <p class="slab-sub">สามขั้น ตั้งแต่หาครู จนเรียนจบคาบ · ฝั่งผู้เรียนกับฝั่งครูเดินบนเส้นเดียวกัน แค่คนละมุมมอง</p>
+      </div>
+      <div class="flow">
+        <div class="node reveal">
+          <div class="shot"><span class="shot-pill">ขั้นที่ 1</span><div class="shot-ph"><span><b>รอรูปจริง</b>เด็ก/ผู้ปกครองกำลังค้นหาครูบนหน้าจอ</span></div></div>
+          <span class="node-n" aria-hidden="true">1</span>
+          <h3>บอกว่าต้องการอะไร</h3>
+          <p>ค้นหาครูจากวิชา ระดับชั้น เวลาที่สะดวก และงบ — หรือโพสต์บอกความต้องการไว้ แล้วให้ครูมายื่นข้อเสนอเอง</p>
+        </div>
+        <div class="node reveal">
+          <div class="shot"><span class="shot-pill">ขั้นที่ 2</span><div class="shot-ph"><span><b>รอรูปจริง</b>ครูกับผู้เรียนคุยตกลงเวลากัน</span></div></div>
+          <span class="node-n" aria-hidden="true">2</span>
+          <h3>ตกลงวันเวลาและราคา</h3>
+          <p>เลือกคาบจากปฏิทินว่างจริงของครู ต่อรองราคาได้ก่อนตกลง เห็นยอดที่ต้องจ่ายชัดเจนตั้งแต่ก่อนกดยืนยัน</p>
+        </div>
+        <div class="node reveal">
+          <div class="shot"><span class="shot-pill">ขั้นที่ 3</span><div class="shot-ph"><span><b>รอรูปจริง</b>เด็กเรียนอยู่กับครู · บรรยากาศตั้งใจเรียน</span></div></div>
+          <span class="node-n" aria-hidden="true">3</span>
+          <h3>เรียน แล้วค่อยยืนยัน</h3>
+          <p>ครูกดเริ่มและจบคาบ ผู้เรียนกดยืนยันว่าสอนจริง เงินถึงมือครูหลังจากนั้น ถ้าไม่มีใครกด ระบบยืนยันให้เองใน 48 ชั่วโมง</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ แผ่นที่ 3 · ทำไมต้องที่นี่ (เข้มอ่อนลง) ═════ -->
+  <section class="slab slab--dim" id="why" aria-labelledby="why-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">why us</span>
+        <h2 id="why-h">ทำไมต้อง<em>ที่นี่</em></h2>
+        <p class="slab-sub">สามเรื่องที่เราตั้งใจทำให้ต่างจากการไล่หาครูเอง</p>
+      </div>
+      <div class="why">
+        <div class="why-card reveal">
+          <span class="why-n" aria-hidden="true">01</span>
+          <h3>ไม่ต้องโอนก่อนเจอ</h3>
+          <p>เงินไม่ได้วิ่งตรงจากผู้ปกครองไปหาครู แต่พักไว้จนกว่าคาบจะสอนจบและมีการยืนยัน — ทั้งสองฝั่งจึงไม่ต้องเสี่ยงกับคนที่เพิ่งเจอกันครั้งแรก</p>
+        </div>
+        <div class="why-card reveal">
+          <span class="why-n" aria-hidden="true">02</span>
+          <h3>ปฏิทินว่างคือของจริง</h3>
+          <p>เวลาที่เห็นในหน้าครู คือเวลาที่ครูกดเปิดไว้เอง ไม่ใช่ช่วงกว้าง ๆ อย่าง “เย็นวันธรรมดา” ที่ต้องมาไล่ทักถามกันทีหลังว่าตกลงว่างจริงไหม</p>
+        </div>
+        <div class="why-card reveal">
+          <span class="why-n" aria-hidden="true">03</span>
+          <h3>ครูตั้งราคาของตัวเอง</h3>
+          <p>ครูกำหนดวิชา ราคา และตารางของตัวเอง เราไม่ได้เป็นคนจัดครูให้ — หน้าที่ของเราคือทำให้สองฝั่งเจอกันแล้วตกลงกันได้จบในที่เดียว</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ แผ่นที่ 3.5 · เรียนแบบไหนก็ได้ (ท่า GoStudent: Online / Vor Ort) ═════
+       🔴 รูป 2 ใบนี้คือหัวใจของ vibe ที่ Owner ชอบ — ตอนนี้ยังเป็นบล็อกรอรูป -->
+  <section class="slab" id="ways" aria-labelledby="ways-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">how you learn</span>
+        <h2 id="ways-h">เรียนแบบ<em>ไหนก็ได้</em></h2>
+        <p class="slab-sub">ครูแต่ละคนเลือกเองว่ารับสอนแบบไหน · ตัวกรองในหน้าค้นหาแยกให้ตั้งแต่แรก</p>
+      </div>
+      <div class="ways">
+        <div class="way reveal">
+          <div class="shot">
+            <span class="shot-pill">ออนไลน์</span>
+            <div class="shot-ph"><span><b>รอรูปจริง</b>เด็กนั่งเรียนออนไลน์หน้าโน้ตบุ๊ก เห็นครูอยู่ในจอ</span></div>
+          </div>
+          <h3>เรียนออนไลน์</h3>
+          <p>อยู่บ้านก็เรียนได้ ไม่ต้องเสียเวลาเดินทาง เลือกครูได้จากทั่วประเทศไม่จำกัดว่าต้องอยู่ใกล้กัน</p>
+        </div>
+        <div class="way reveal">
+          <div class="shot">
+            <span class="shot-pill is-alt">ที่บ้าน / นัดเจอ</span>
+            <div class="shot-ph"><span><b>รอรูปจริง</b>ครูนั่งสอนเด็กที่โต๊ะเดียวกัน มีหนังสือกับสมุดบนโต๊ะ</span></div>
+          </div>
+          <h3>เจอตัวจริง</h3>
+          <p>ครูไปสอนที่บ้าน หรือนัดเจอกันที่อื่นก็ได้ เหมาะกับเด็กเล็กที่ยังต้องมีคนนั่งข้าง ๆ</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ แผ่น · ฝั่งครูทำอะไรได้บ้าง (ท่า Bobbin — Owner ส่งภาพมา 2026-08-30) ═════
+       🔴 ทุกข้อในนี้ต้องเป็นของที่ระบบทำได้จริงแล้วเท่านั้น (มีหน้าจริงรองรับทุกข้อ)
+          teacher-profile / job-board / teacher-jobs · ห้ามเพิ่มข้อที่ยังไม่มีของ -->
+  <section class="slab slab--dim" id="for-teachers" aria-labelledby="ft-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">for teachers</span>
+        <h2 id="ft-h">ฝั่งครู<em>ทำอะไรได้บ้าง</em></h2>
+        <p class="slab-sub">เครื่องมือที่ครูได้ใช้จริงตั้งแต่รับงานจนเงินเข้า · กดดูทีละอันได้เลย</p>
+      </div>
+
+      <div class="feat reveal">
+        <div class="feat-list">
+
+          <details class="fcard" data-view="v1" open>
+            <summary>
+              <span class="ftitle"><span class="flabel">ตั้งของตัวเอง</span>วิชา ราคา และตารางว่าง</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>ครูเป็นคนกำหนดเองทั้งหมด ไม่มีใครมาจัดคิวให้ — เปิดช่วงเวลาที่ว่างจริงไว้ ผู้เรียนถึงจะจองเข้ามาได้</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>เลือกวิชาและระดับชั้นที่รับสอนเอง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ตั้งราคาต่อชั่วโมงของตัวเอง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>รับสอนออนไลน์ ที่บ้าน หรือนัดเจอที่อื่นก็ได้</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="fcard" data-view="v2">
+            <summary>
+              <span class="ftitle"><span class="flabel">หางานเอง</span>กระดานงานที่ตรงกับวิชาที่สอน</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>เห็นงานที่ผู้เรียนโพสต์ไว้ กรองเหลือเฉพาะวิชาที่ครูสอนจริง ไม่ต้องไล่อ่านโพสต์ที่ไม่เกี่ยว</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>ยื่นข้อเสนอเองได้ ไม่ต้องรอใครจัดคิวให้</li>
+                <li><span class="tk" aria-hidden="true">✓</span>เวลาที่ผู้เรียนขอมาไม่ว่าง เสนอเวลาอื่นกลับไปได้</li>
+                <li><span class="tk" aria-hidden="true">✓</span>เห็นโจทย์ของผู้เรียนก่อนตัดสินใจรับงาน</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="fcard" data-view="v3">
+            <summary>
+              <span class="ftitle"><span class="flabel">ระหว่างสอน</span>ตารางสอนและการยืนยันคาบ</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>ครูกดเริ่มคาบและจบคาบจากหน้าตารางสอน แล้วผู้เรียนกดยืนยันว่าสอนจริง</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>คาบทั้งหมดอยู่หน้าเดียว เห็นว่าคาบไหนถึงขั้นไหนแล้ว</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ถ้าไม่มีใครกดยืนยัน ระบบยืนยันให้เองใน 48 ชั่วโมง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ผู้เรียนแจ้งปัญหาได้ คาบนั้นจะเข้าช่องระหว่างตรวจสอบ</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="fcard" data-view="v4">
+            <summary>
+              <span class="ftitle"><span class="flabel">เรื่องเงิน</span>ยอดที่รออยู่กับยอดที่ถอนได้</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>แยกให้เห็นชัดว่ายอดไหนยังรอยืนยัน ยอดไหนปลดล็อกแล้ว ไม่ต้องมานั่งไล่ทวงเอง</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>เห็นค่าแพลตฟอร์มที่หักไปทุกคาบ ไม่มีค่าธรรมเนียมซ่อน</li>
+                <li><span class="tk" aria-hidden="true">✓</span>สมัครฟรี ไม่มีค่าแรกเข้าและไม่มีค่ารายเดือน</li>
+                <li><span class="tk" aria-hidden="true">✓</span>เงินปลดล็อกหลังคาบถูกยืนยันว่าสอนจริงแล้ว</li>
+              </ul>
+            </div>
+          </details>
+
+        </div>
+
+        <!-- หน้าจอจำลอง — วาดด้วย CSS ล้วน ไม่มีไฟล์รูป -->
+        <div class="feat-view">
+          <div class="mock" id="v1" role="img" aria-label="ตัวอย่างหน้าตั้งวิชา ราคา และตารางว่างของครู">
+            <div class="mock-tabs"><span class="mock-tab is-on">วิชาที่สอน</span><span class="mock-tab">ตารางว่าง</span><span class="mock-tab">ราคา</span></div>
+            <h4>วิชาที่เปิดรับ</h4>
+            <div class="mchips">
+              <span class="mchip is-on">คณิตศาสตร์</span><span class="mchip is-on">ฟิสิกส์</span>
+              <span class="mchip">เคมี</span><span class="mchip">ชีววิทยา</span><span class="mchip">ติวสอบเข้า</span>
+            </div>
+            <h4>ช่วงที่เปิดไว้สัปดาห์นี้</h4>
+            <div class="mrow"><span class="mav" aria-hidden="true">จ</span><span class="mtxt">จันทร์<small>17:00 – 20:00</small></span><span class="mbadge">เปิดรับ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">พ</span><span class="mtxt">พุธ<small>18:00 – 21:00</small></span><span class="mbadge">เปิดรับ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ส</span><span class="mtxt">เสาร์<small>09:00 – 12:00</small></span><span class="mbadge is-wait">ปิดไว้</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ตัวเลขเป็นตัวอย่าง</p>
+          </div>
+
+          <div class="mock" id="v2" hidden role="img" aria-label="ตัวอย่างกระดานงานฝั่งครู">
+            <div class="mock-tabs"><span class="mock-tab is-on">งานที่ตรงกับฉัน</span><span class="mock-tab">คำขอจองตรง</span><span class="mock-tab">ที่ยื่นไปแล้ว</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ม3</span><span class="mtxt">คณิตศาสตร์ · ม.3<small>ออนไลน์ · เสาร์ 10:00 · 2 ชม.</small></span><span class="mbadge">ยื่นข้อเสนอ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ม5</span><span class="mtxt">ฟิสิกส์ · ม.5<small>ที่บ้าน · อาทิตย์ 13:00 · 1.5 ชม.</small></span><span class="mbadge">ยื่นข้อเสนอ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ม6</span><span class="mtxt">ติวสอบเข้า · ม.6<small>ขอเวลา พฤ. 19:00 — ครูไม่ว่าง</small></span><span class="mbadge is-wait">เสนอเวลาอื่น</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · งานทั้งหมดเป็นตัวอย่างสมมติ</p>
+          </div>
+
+          <div class="mock" id="v3" hidden role="img" aria-label="ตัวอย่างหน้าตารางสอนและการยืนยันคาบ">
+            <div class="mock-tabs"><span class="mock-tab is-on">คาบวันนี้</span><span class="mock-tab">รอยืนยัน</span><span class="mock-tab">จบแล้ว</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ก</span><span class="mtxt">น้องกาย · คณิต ม.3<small>วันนี้ 17:00 – 19:00</small></span><span class="mbadge">กดเริ่มคาบ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">น</span><span class="mtxt">น้องนิว · ฟิสิกส์ ม.5<small>สอนจบแล้ว · รอผู้เรียนยืนยัน</small></span><span class="mbadge is-wait">เหลือ 41 ชม.</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">พ</span><span class="mtxt">น้องพลอย · เคมี ม.4<small>ยืนยันแล้ว เมื่อวาน</small></span><span class="mbadge is-ok">เรียบร้อย</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ชื่อและคาบเป็นตัวอย่างสมมติ</p>
+          </div>
+
+          <div class="mock" id="v4" hidden role="img" aria-label="ตัวอย่างหน้ายอดเงินของครู">
+            <div class="mock-tabs"><span class="mock-tab is-on">ยอดของฉัน</span><span class="mock-tab">รายคาบ</span></div>
+            <h4>เดือนนี้</h4>
+            <div class="mock-tiles">
+              <div class="mtile is-hi"><b>12</b><span>คาบที่สอนจบ</span></div>
+              <div class="mtile"><b>3</b><span>คาบที่รอยืนยัน</span></div>
+              <div class="mtile"><b>1</b><span>ระหว่างตรวจสอบ</span></div>
+            </div>
+            <h4>สถานะยอดเงิน</h4>
+            <div class="mrow"><span class="mtxt">ปลดล็อกแล้ว</span><span class="mbar"><i style="width:68%"></i></span><span class="mbadge is-ok">68%</span></div>
+            <div class="mrow"><span class="mtxt">รอผู้เรียนยืนยัน</span><span class="mbar"><i style="width:24%"></i></span><span class="mbadge is-wait">24%</span></div>
+            <div class="mrow"><span class="mtxt">ระหว่างตรวจสอบ</span><span class="mbar"><i style="width:8%"></i></span><span class="mbadge is-wait">8%</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ตัวเลขเป็นตัวอย่าง ยังไม่ใช่ยอดจริง</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- ═════ แผ่น · ฝั่งผู้เรียนทำอะไรได้บ้าง ═════
+       Owner สั่ง 2026-08-30 (LOG 191 ข้อ 3): "เราโชว์ฝั่งครูแล้ว แต่ขาดฝั่งนักเรียน"
+       🔴 ทุกข้อในนี้ต้องเป็นของที่ระบบทำได้จริงแล้วเท่านั้น — มีหน้าจริงรองรับครบทุกข้อ
+          post-job / teacher-search / teacher-profile / booking / my-jobs
+          ห้ามเพิ่มข้อที่ยังไม่มีของ (กฎเหล็กข้อ 1: ห้ามขึ้นจอเป็นคำสัญญา) -->
+  <section class="slab" id="for-students" aria-labelledby="fs-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">for learners</span>
+        <h2 id="fs-h">ฝั่งผู้เรียน<em>ทำอะไรได้บ้าง</em></h2>
+        <p class="slab-sub">ตั้งแต่บอกโจทย์ จนถึงยืนยันว่าเรียนจริงแล้ว · กดดูทีละอันได้เลย</p>
+      </div>
+
+      <div class="feat reveal">
+        <div class="feat-list">
+
+          <details class="fcard" data-view="s1" open>
+            <summary>
+              <span class="ftitle"><span class="flabel">บอกโจทย์ครั้งเดียว</span>โพสต์แล้วให้ครูเสนอเข้ามา</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>ไม่ต้องไล่ทักครูทีละคนแล้วเล่าเรื่องเดิมซ้ำ — เขียนครั้งเดียวว่าอยากเรียนอะไร ครูที่สอนวิชานั้นเห็นแล้วยื่นข้อเสนอกลับมาเอง</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>เห็นตัวอย่างสิ่งที่ครูจะเห็น ก่อนกดโพสต์จริง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ระบบเตือนถ้าเผลอพิมพ์เบอร์หรือที่อยู่ลงในโพสต์</li>
+                <li><span class="tk" aria-hidden="true">✓</span>บอกงบต่อชั่วโมงไว้ได้ ครูที่เกินงบจะได้ไม่เสียเวลาทั้งสองฝ่าย</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="fcard" data-view="s2">
+            <summary>
+              <span class="ftitle"><span class="flabel">หรือเลือกเอง</span>ค้นครูแล้วดูโปรไฟล์ก่อนจอง</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>อยากเลือกเองก็ได้ — กรองด้วยวิชา ระดับชั้น และรูปแบบการเรียน แล้วเข้าไปอ่านโปรไฟล์ครูก่อนตัดสินใจ</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>ครูที่ยืนยันตัวตนแล้วขึ้นก่อนในผลค้นหา</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ราคาที่เห็น = ราคาที่จ่ายจริง ไม่มีค่าใช้จ่ายเพิ่มตอนจอง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ถามครูผ่านกล่องข้อความในระบบก่อนตัดสินใจได้</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="fcard" data-view="s3">
+            <summary>
+              <span class="ftitle"><span class="flabel">คุมเองได้</span>ข้อเสนอที่ได้รับ อยู่ที่เดียวกันหมด</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>โพสต์ที่ลงไว้ คำขอที่ส่งตรงถึงครู และข้อเสนอที่ครูยื่นกลับมา รวมอยู่หน้าเดียว ไม่ต้องไล่หาในแชท</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>เทียบข้อเสนอจากครูหลายคนแล้วเลือกทีเดียว</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ครูเสนอเวลาอื่นกลับมาได้ ถ้าเวลาที่ขอไปไม่ว่าง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ส่งคำขอถึงครูหลายคนพร้อมกันได้ ครูคนแรกที่กดรับได้งาน</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="fcard" data-view="s4">
+            <summary>
+              <span class="ftitle"><span class="flabel">หลังเรียน</span>ยืนยันว่าเรียนจริง แล้วเงินถึงครู</span>
+              <span class="fx" aria-hidden="true"></span>
+            </summary>
+            <div class="fcard-body">
+              <p>ค่าเรียนไม่ได้ถึงมือครูทันทีที่จ่าย — จะปลดล็อกก็ต่อเมื่อคาบนั้นถูกยืนยันว่าเรียนจริงแล้ว</p>
+              <ul class="fticks">
+                <li><span class="tk" aria-hidden="true">✓</span>ครูกดจบคาบ แล้วคุณมีเวลายืนยัน 48 ชั่วโมง</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ถ้าคาบมีปัญหา แจ้งได้ในหน้าเดียวกัน ยอดนั้นจะพักไว้ก่อน</li>
+                <li><span class="tk" aria-hidden="true">✓</span>ไม่ได้กดอะไรเลย ระบบยืนยันให้เองเมื่อครบเวลา</li>
+              </ul>
+            </div>
+          </details>
+
+        </div>
+
+        <!-- หน้าจอจำลองฝั่งผู้เรียน — วาดด้วย CSS ล้วน ไม่มีไฟล์รูป
+             🔴 ต้องตรงกับของที่ระบบทำได้จริงเท่านั้น ห้ามวาดฟีเจอร์ที่ยังไม่มี -->
+        <div class="feat-view">
+          <div class="mock" id="s1" role="img" aria-label="ตัวอย่างหน้าโพสต์หาครูของผู้เรียน">
+            <div class="mock-tabs"><span class="mock-tab is-on">เรียนอะไร</span><span class="mock-tab">เวลาและงบ</span><span class="mock-tab">ตรวจก่อนโพสต์</span></div>
+            <h4>วิชาที่อยากเรียน</h4>
+            <div class="mchips">
+              <span class="mchip is-on">คณิตศาสตร์</span><span class="mchip is-on">ม.3</span>
+              <span class="mchip">ออนไลน์</span><span class="mchip is-on">ที่บ้าน</span>
+            </div>
+            <h4>สิ่งที่ครูจะเห็น</h4>
+            <div class="mrow"><span class="mav" aria-hidden="true">ม3</span><span class="mtxt">คณิตศาสตร์ · ม.3<small>ที่บ้าน · เสาร์ 10:00 · 2 ชม.</small></span><span class="mbadge">งบ ฿400/ชม.</span></div>
+            <div class="mrow"><span class="mtxt">ตรวจก่อนโพสต์<small>ไม่มีเบอร์โทรหรือที่อยู่หลุดลงโพสต์</small></span><span class="mbadge is-ok">ผ่าน</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ตัวเลขเป็นตัวอย่าง</p>
+          </div>
+
+          <div class="mock" id="s2" hidden role="img" aria-label="ตัวอย่างหน้าค้นหาครูของผู้เรียน">
+            <div class="mock-tabs"><span class="mock-tab is-on">ผลค้นหา</span><span class="mock-tab">ตัวกรอง</span><span class="mock-tab">ครูที่ยืนยันแล้ว</span></div>
+            <div class="mchips">
+              <span class="mchip is-on">คณิตศาสตร์</span><span class="mchip is-on">ม.ต้น</span><span class="mchip">ออนไลน์</span>
+            </div>
+            <div class="mrow"><span class="mav" aria-hidden="true">พ</span><span class="mtxt">ครูพลอย<small>★ 4.9 · กรุงเทพมหานคร · ออนไลน์ · ที่บ้าน</small></span><span class="mbadge">฿380/ชม.</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">อ</span><span class="mtxt">ครูอ้อม<small>★ 5.0 · กรุงเทพมหานคร · ที่บ้าน</small></span><span class="mbadge">฿300/ชม.</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ม</span><span class="mtxt">ครูมิ้นท์<small>★ 4.9 · กรุงเทพมหานคร · ที่บ้าน · สถานที่อื่น</small></span><span class="mbadge">฿600/ชม.</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ครูและราคาเป็นตัวอย่างสมมติ</p>
+          </div>
+
+          <div class="mock" id="s3" hidden role="img" aria-label="ตัวอย่างหน้าการจองของผู้เรียน">
+            <div class="mock-tabs"><span class="mock-tab is-on">รอคุณตัดสินใจ</span><span class="mock-tab">กำลังดำเนินอยู่</span><span class="mock-tab">ปิดแล้ว</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">พ</span><span class="mtxt">ครูพลอย ยื่นข้อเสนอ<small>คณิต ม.3 · เสาร์ 10:00 · ฿380/ชม.</small></span><span class="mbadge">รับข้อเสนอ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">อ</span><span class="mtxt">ครูอ้อม เสนอเวลาอื่น<small>ขอเลื่อนเป็น อาทิตย์ 13:00</small></span><span class="mbadge is-wait">ตอบกลับ</span></div>
+            <div class="mrow"><span class="mav" aria-hidden="true">ม</span><span class="mtxt">ครูมิ้นท์<small>ส่งคำขอไปแล้ว · รอครูตอบ</small></span><span class="mbadge is-wait">รอครู</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ชื่อครูและเวลาเป็นตัวอย่างสมมติ</p>
+          </div>
+
+          <div class="mock" id="s4" hidden role="img" aria-label="ตัวอย่างหน้ายืนยันคาบเรียนของผู้เรียน">
+            <div class="mock-tabs"><span class="mock-tab is-on">รอยืนยัน</span><span class="mock-tab">เรียนจบแล้ว</span></div>
+            <h4>คาบล่าสุด</h4>
+            <div class="mrow"><span class="mav" aria-hidden="true">พ</span><span class="mtxt">ครูพลอย · คณิต ม.3<small>ครูกดจบคาบแล้ว เมื่อ 07:00</small></span><span class="mbadge">ยืนยันว่าเรียนแล้ว</span></div>
+            <div class="mrow"><span class="mtxt">เหลือเวลายืนยัน<small>ครบแล้วระบบยืนยันให้เอง</small></span><span class="mbadge is-wait">41 ชม.</span></div>
+            <h4>ค่าเรียนคาบนี้</h4>
+            <div class="mrow"><span class="mtxt">พักไว้กับคนกลาง</span><span class="mbar"><i style="width:100%"></i></span><span class="mbadge is-wait">รอยืนยัน</span></div>
+            <p class="mock-note">ภาพจำลองหน้าจอ · ถ้าคาบมีปัญหา แจ้งได้ในหน้าเดียวกัน ยอดจะพักไว้ก่อน</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═════ แผ่นที่ 4 · ครูในระบบ (แผ่นสว่าง — ท่าของ Apple) ═════ -->
+  <section class="slab slab--light" aria-labelledby="t-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">teachers</span>
+        <h2 id="t-h">เจอครูแบบ<em>ไหนบ้าง</em></h2>
+        <p class="slab-sub">แต่ละคนตั้งวิชา ราคา และตารางว่างของตัวเอง</p>
+      </div>
+      <div class="tcarousel reveal">
+        <div class="tcar-viewport" id="tcarVp" tabindex="0" role="region" aria-label="ครูตัวอย่างในระบบ (เลื่อนดูได้)">
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">พ</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.9</span></p>
+          <h3>ครูพลอย</h3>
+          <p class="subj">คณิตศาสตร์ · ม.ต้น–ม.ปลาย</p>
+          <blockquote>“ตั้งตารางว่างเองได้ ไม่ต้องคอยตอบแชทถามเวลาทีละคน ผู้เรียนเห็นช่องที่ว่างจริงแล้วจองเข้ามาเลย”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">บ</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.8</span></p>
+          <h3>ครูบอส</h3>
+          <p class="subj">ฟิสิกส์ · ม.ปลาย–มหาวิทยาลัย</p>
+          <blockquote>“ชอบตรงที่ตกลงราคากันจบก่อนเริ่มสอน ไม่ต้องมานั่งทวงกันทีหลังให้เสียความรู้สึก”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">น</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.7</span></p>
+          <h3>ครูแนน</h3>
+          <p class="subj">ภาษาอังกฤษ · ประถม–ม.ต้น</p>
+          <blockquote>“ผู้ปกครองกดยืนยันหลังเรียนจบคาบ เราก็รู้ว่ายอดจะเข้าแน่นอน ไม่ต้องลุ้นเหมือนรับงานเอง”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">ก</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.6</span></p>
+          <h3>ครูกิต</h3>
+          <p class="subj">เคมี · ม.ปลาย</p>
+          <blockquote>“งานที่เข้ามาตรงกับวิชาที่เราสอนจริง ไม่ต้องเสียเวลาไล่อ่านโพสต์ที่ไม่เกี่ยวกับเราเลย”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">ม</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.9</span></p>
+          <h3>ครูมิ้นท์</h3>
+          <p class="subj">เปียโน · ประถม–ผู้ใหญ่</p>
+          <blockquote>“รับเป็นคอร์สยาวหรือคาบเดียวก็ได้ จัดตารางไม่ให้ชนกับงานประจำได้ตั้งแต่แรก”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">จ</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.8</span></p>
+          <h3>ครูจีจี้</h3>
+          <p class="subj">ภาษาจีน · ม.ต้น–ผู้ใหญ่</p>
+          <blockquote>“สมัครฟรี ไม่มีค่าแรกเข้า เลยลองเปิดรับงานดูได้โดยไม่ต้องเสี่ยงอะไรเลย”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">ท</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">4.7</span></p>
+          <h3>ครูแทน</h3>
+          <p class="subj">ชีววิทยา · ม.ปลาย</p>
+          <blockquote>“เห็นโจทย์ของผู้เรียนตั้งแต่ก่อนตัดสินใจรับงาน เตรียมเนื้อหาไปได้ตรงจุดตั้งแต่คาบแรก”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="tcard" href="student/teacher-search.html">
+          <span class="tavatar" aria-hidden="true">อ</span>
+          <p class="stars"><span aria-hidden="true">★★★★★</span><span class="score">5.0</span></p>
+          <h3>ครูเอิร์ธ</h3>
+          <p class="subj">คอมพิวเตอร์ · ม.ต้น–ผู้ใหญ่</p>
+          <blockquote>“ยื่นข้อเสนอเองได้ ไม่ต้องรอให้ใครจัดคิวงานให้ อยากรับงานไหนก็เสนอไปตรง ๆ”</blockquote>
+          <span class="open">ดูโปรไฟล์<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        </div>
+        <div class="tcar-ctrl">
+          <button class="tcar-btn" id="tcarPrev" type="button" aria-label="ดูครูชุดก่อนหน้า">‹</button>
+          <div class="tcar-dots" id="tcarDots"></div>
+          <button class="tcar-btn" id="tcarNext" type="button" aria-label="ดูครูชุดถัดไป">›</button>
+        </div>
+      </div>
+      <div class="tlist-foot reveal">
+        <p class="fake-note">🔴 ครูและ<b>ข้อความรีวิวทั้งหมดเป็นตัวอย่างสมมติ</b> ที่เราสร้างขึ้นเพื่อทดลองระบบ ยังไม่ใช่ครูจริงและไม่ใช่รีวิวจริง</p>
+        <a class="chevlink" href="student/teacher-search.html">ดูครูทั้งหมด<span class="arw" aria-hidden="true">›</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ แผ่นที่ 5 · FAQ (กลับมาพื้นเข้ม) ═════ -->
+  <section class="slab" id="faq" aria-labelledby="faq-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">questions</span>
+        <h2 id="faq-h">ถามกัน<em>บ่อย</em></h2>
+        <p class="slab-sub">เรื่องที่คนถามก่อนตัดสินใจ</p>
+      </div>
+      <div class="faq reveal">
+        <details>
+          <summary>ต้องจ่ายเงินตอนไหน<span class="faq-x" aria-hidden="true"></span></summary>
+          <p>จ่ายหลังตกลงวัน เวลา และราคากับครูเรียบร้อยแล้ว ไม่ใช่ตอนเริ่มค้นหา และเงินจะยังไม่ถึงมือครูจนกว่าคาบนั้นจะสอนจบและมีการยืนยัน</p>
+        </details>
+        <details>
+          <summary>ถ้าครูไม่มาสอนล่ะ<span class="faq-x" aria-hidden="true"></span></summary>
+          <p>คาบที่ยังไม่ถูกยืนยันว่าสอนแล้ว เงินยังไม่ออกจากระบบ ผู้เรียนแจ้งปัญหาได้จากหน้าการจองของฉัน — ส่วนขั้นตอนการคืนเงินและการตัดสินข้อพิพาท เรากำลังทำอยู่ ยังไม่เปิดใช้ในตัวอย่างนี้</p>
+        </details>
+        <details>
+          <summary>เป็นครูสมัครยังไง ต้องจ่ายค่าสมัครไหม<span class="faq-x" aria-hidden="true"></span></summary>
+          <p>สมัครฟรี ไม่มีค่าแรกเข้าและไม่มีค่ารายเดือน เรารับส่วนแบ่งจากค่าสอนที่เกิดขึ้นจริงเท่านั้น ครูตั้งวิชา ราคา และตารางว่างเองทั้งหมด</p>
+        </details>
+        <details>
+          <summary>เรียนออนไลน์หรือต้องเจอตัว<span class="faq-x" aria-hidden="true"></span></summary>
+          <p>ได้ทั้งสองแบบ ครูแต่ละคนเลือกเองว่ารับสอนแบบไหน — ออนไลน์ ที่บ้านผู้เรียน หรือนัดเจอที่อื่น และตัวกรองในหน้าค้นหาแยกให้ตั้งแต่แรก</p>
+        </details>
+        <details>
+          <summary>ผู้ปกครองสมัครให้ลูกหลายคนได้ไหม<span class="faq-x" aria-hidden="true"></span></summary>
+          <p>ได้ บัญชีผู้ปกครองหนึ่งบัญชีเพิ่มผู้เรียนได้หลายคน แยกวิชาและระดับชั้นของแต่ละคน ส่วนนักเรียนอายุ 16 ปีขึ้นไปสมัครเองได้โดยตรง</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ แผ่นที่ 6 · ปิดท้าย ═════ -->
+  <section class="slab slab--tight close" id="start" aria-labelledby="close-h">
+    <div class="wrap">
+      <div class="slab-head is-wide reveal">
+        <span class="slab-mark" aria-hidden="true">get started</span>
+        <h2 id="close-h">เริ่ม<em>กันเลย</em></h2>
+        <p class="slab-sub">เลือกฝั่งของคุณ แล้วเราจะพาไปหน้าที่ตรงกับคุณ · เปลี่ยนฝั่งทีหลังได้เสมอ</p>
+      </div>
+      <div class="doors reveal">
+        <a class="door door--learner" href="student/signup-parent.html" data-gate="learner">
+          <span class="door-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 1.8 8.2 12 13.4l10.2-5.2z"/><path d="M5.6 10.4v5.1c0 1.9 2.9 3.4 6.4 3.4s6.4-1.5 6.4-3.4v-5.1"/><path d="M22.2 8.2v6"/></svg></span>
+          <h3>ฉันเป็นนักเรียน / ผู้ปกครอง</h3>
+          <p>ค้นหาครู · โพสต์หาครู · จองคาบ · ยืนยันเมื่อเรียนจบ</p>
+          <span class="go">เข้าฝั่งผู้เรียน<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+        <a class="door door--teacher" href="teacher/signup-teacher.html" data-gate="teacher">
+          <span class="door-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.6" y="3.2" width="18.8" height="12.4" rx="1.8"/><path d="M6.4 7.4h7.2M6.4 11h4.6"/><path d="M12 15.6v2.2"/><path d="M8.4 21.2 12 17.8l3.6 3.4"/></svg></span>
+          <h3>ฉันเป็นครู</h3>
+          <p>ตั้งวิชาและราคา · ดูกระดานงาน · ยื่นข้อเสนอ · ดูยอดเงิน</p>
+          <span class="go">เข้าฝั่งครู<span class="arw" aria-hidden="true">›</span></span>
+        </a>
+      </div>
+      <!-- 🔴 3 ข้อนี้ต้องตรงกับ FAQ ข้างบนเสมอ — ห้ามใส่คำสัญญาที่ระบบยังทำไม่ได้ -->
+      <ul class="assure-end reveal">
+        <li>เห็นยอดที่ต้องจ่ายก่อนกดยืนยัน</li>
+        <li>เงินถึงครูหลังเรียนจบและมีการยืนยัน</li>
+        <li>ไม่มีใครกดยืนยัน ระบบยืนยันให้ใน 48 ชั่วโมง</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>BGT Tutor — เว็บตัวอย่างสำหรับทดลองใช้ ยังไม่เปิดให้บริการจริง</span>
+    <nav aria-label="ลิงก์ทั่วไป">
+      <a href="#">เงื่อนไขการใช้งาน</a>
+      <a href="#">นโยบายความเป็นส่วนตัว</a>
+      <a href="#">ติดต่อเรา</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- ⚗️ แถบเลือกสี — ของทดลองให้ Owner กดดูสีจริงบนหน้าจริง
+     🔴 ต้องถอดทั้งก้อนนี้ (กับ CSS .swatchbar และสคริปต์ท้ายไฟล์) ก่อนขึ้นใช้จริง -->
+<div class="swatchbar" id="swatchbar">
+  <b>ลองเปลี่ยนสี</b>
+  <button class="swatch" type="button" data-t="blue"   style="background:oklch(40% .13 264)"  aria-pressed="true"  aria-label="สีน้ำเงิน"></button>
+  <button class="swatch" type="button" data-t="indigo" style="background:oklch(40% .15 276)"  aria-pressed="false" aria-label="สีคราม-ม่วง"></button>
+  <button class="swatch" type="button" data-t="violet" style="background:oklch(40% .145 292)" aria-pressed="false" aria-label="สีม่วง"></button>
+  <button class="swatch" type="button" data-t="plum"   style="background:oklch(40% .115 340)" aria-pressed="false" aria-label="สีม่วงแดง"></button>
+  <button class="swatch" type="button" data-t="teal"   style="background:oklch(40% .105 205)" aria-pressed="false" aria-label="สีฟ้าอมเขียว"></button>
+  <button class="swatch" type="button" data-t="forest" style="background:oklch(40% .085 165)" aria-pressed="false" aria-label="สีเขียวเข้ม"></button>
+</div>
+
+
+<script>
+(function () {
+  'use strict';
+  document.documentElement.classList.add('js');
+
+  /* ── จำว่าเลือกฝั่งไหนไว้ (บทเรียน LOG 173: ต้องเป็น localStorage
+        เพราะ sessionStorage แยกต่อแท็บ เปิด 2 ฝั่งคนละแท็บแล้วไม่เห็นกัน) ── */
+  var SIDE_KEY = 'bgt_side';
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-gate]'), function (a) {
+    a.addEventListener('click', function () { store(SIDE_KEY, a.getAttribute('data-gate')); });
+  });
+
+
+
+
+  /* ── แถบวิชาวิ่ง: ทำให้ต่อเนื่องไม่ขาดช่วงทุกความกว้างจอ ──────
+     🔴 อาการที่ Owner เจอ 2026-08-30: "พอถึงติวสอบเข้าแล้วมันขาดไปเลย"
+        เหตุ: ใน HTML มีชุดคำ 2 ชุด แล้ว CSS เลื่อน -50%
+              ถ้าจอกว้างกว่าชุดเดียว จะมีที่ว่างโผล่ก่อนวนกลับ
+     ✅ แก้: ต่อชุดคำให้ครึ่งหนึ่งของรางกว้างเกินจอเสมอ แล้วค่อยเลื่อน -50%
+     🔴 บทเรียน LOG 188 ที่ใช้ซ้ำที่นี่:
+        - ห้ามหารด้วยความกว้างที่อาจเป็น 0 (จอยังไม่วาด) -> ลูปไม่จบ เบราว์เซอร์ค้าง
+        - เทียบ "จำนวนชุดที่ควรเป็น" ไม่ใช่ "ความกว้างเปลี่ยนไหม" ไม่งั้นค่าผิดตั้งแต่แรกจะไม่มีวันถูกแก้ */
+  var track = document.querySelector('.ticker-track');
+  if (track) {
+    var kids = track.children.length;
+    var unitHTML = '';
+    if (kids >= 2 && kids % 2 === 0) {
+      for (var i = 0; i < kids / 2; i++) unitHTML += track.children[i].outerHTML;
+    }
+    var lastCopies = 0;
+    var fitTicker = function () {
+      if (!unitHTML) return;
+      var vw = document.documentElement.clientWidth || window.innerWidth || 0;
+      if (vw <= 0) return;                       /* จอยังไม่วาด — รอบหน้าค่อยว่า */
+      var probe = track.cloneNode(false);
+      probe.style.cssText = 'position:absolute;visibility:hidden;width:max-content;animation:none';
+      probe.innerHTML = unitHTML;
+      track.parentNode.appendChild(probe);
+      var unitW = probe.scrollWidth;
+      probe.remove();
+      if (unitW <= 0) return;                    /* กันหารศูนย์ = กันลูปไม่จบ */
+      var copies = Math.ceil(vw / unitW) + 1;
+      if (copies < 2) copies = 2;
+      if (copies > 12) copies = 12;              /* เพดานกันเคสประหลาด */
+      if (copies === lastCopies) return;         /* เทียบจำนวนชุด ไม่ใช่ความกว้าง */
+      lastCopies = copies;
+      var half = '';
+      for (var c = 0; c < copies; c++) half += unitHTML;
+      track.innerHTML = half + half;             /* 2 ครึ่งเท่ากันเป๊ะ -> -50% ต่อเนียน */
+    };
+    fitTicker();
+    window.addEventListener('resize', fitTicker);
+    setInterval(fitTicker, 1000);                /* กันเคส resize ไม่ยิง (เจอมาแล้ว LOG 188) */
+  }
+
+  /* ── แผ่นฝั่งครู: เปิดได้ทีละใบ + สลับหน้าจอจำลองทางขวา ──
+     ไม่มี JS ก็ยังใช้ได้: <details> เปิด-ปิดเองได้ และหน้าจอจำลองใบแรกโชว์อยู่แล้ว */
+  /* 🔴 ต้องวนทีละแผ่น (.feat) ไม่ใช่ทั้งหน้า — ตั้งแต่ 2026-08-31 มี 2 แผ่นแล้ว
+        (ฝั่งครู v1-v4 · ฝั่งผู้เรียน s1-s4) ถ้าจับรวมทั้งหน้า พอเปิดใบฝั่งหนึ่ง
+        จอจำลองของอีกฝั่งจะดับหมดกลายเป็นช่องว่าง */
+  Array.prototype.forEach.call(document.querySelectorAll('.feat'), function (feat) {
+    var fcards = feat.querySelectorAll('.fcard');
+    var mocks = feat.querySelectorAll('.mock');
+    if (!fcards.length) return;
+    var showView = function (id) {
+      Array.prototype.forEach.call(mocks, function (m) { m.hidden = (m.id !== id); });
+    };
+    Array.prototype.forEach.call(fcards, function (d) {
+      d.addEventListener('toggle', function () {
+        if (!d.open) return;
+        /* เปิดใบใหม่ = ปิดใบอื่นในแผ่นเดียวกัน (accordion) */
+        Array.prototype.forEach.call(fcards, function (o) { if (o !== d) o.open = false; });
+        showView(d.getAttribute('data-view'));
+      });
+    });
+  });
+  /* ⚗️ แถบเลือกสี — ของทดลอง ถอดออกพร้อมกับ .swatchbar ก่อนขึ้นใช้จริง
+     จำสีที่เลือกไว้ใน localStorage (บทเรียน LOG 173: ห้ามใช้ sessionStorage มันแยกต่อแท็บ) */
+  var THEME_KEY = 'bgt_theme_v3';
+  var bar = document.getElementById('swatchbar');
+  if (bar) {
+    var picks = bar.querySelectorAll('.swatch');
+    var apply = function (name) {
+      document.documentElement.setAttribute('data-theme', name);
+      Array.prototype.forEach.call(picks, function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === name));
+      });
+    };
+    var saved = read(THEME_KEY);
+    /* รับเฉพาะชื่อที่มีจริง กันค่าขยะใน localStorage มาสั่งอะไรก็ได้ */
+    var known = ['blue','indigo','violet','plum','teal','forest'];
+    apply(known.indexOf(saved) > -1 ? saved : 'blue');
+    Array.prototype.forEach.call(picks, function (b) {
+      b.addEventListener('click', function () {
+        var n = b.getAttribute('data-t');
+        apply(n); store(THEME_KEY, n);
+      });
+    });
+  }
+  /* 🔴 ห้ามเด้งไปเองอัตโนมัติ — คนอาจตั้งใจกลับมาเปลี่ยนฝั่ง (ผู้ปกครองที่เป็นครูด้วย) */
+  var side = read(SIDE_KEY);
+  var note = document.getElementById('side-note');
+  if (side === 'teacher' || side === 'learner') {
+    var isT = side === 'teacher';
+    note.hidden = false;
+    note.textContent = 'ครั้งก่อนคุณอยู่' + (isT ? 'ฝั่งครู' : 'ฝั่งผู้เรียน') + ' · ';
+    var back = document.createElement('a');
+    /* 🔴 2026-08-31 (ก้อน 0) — ต้องมีโฟลเดอร์นำหน้า ไฟล์ย้ายเข้า teacher/ · student/ แล้ว */
+    back.href = isT ? 'teacher/job-board.html' : 'student/my-jobs.html';
+    back.textContent = isT ? 'กลับไปกระดานงาน' : 'กลับไปการจองของฉัน';
+    note.appendChild(back);
+  }
+
+  /* ── แถบบนแน่นขึ้น + ยกเงา เมื่อเลื่อนพ้นจุดเริ่ม ── */
+  var nav = document.getElementById('nav');
+  var sentinel = document.createElement('div');
+  sentinel.style.cssText = 'position:absolute;top:0;height:1px;width:1px';
+  document.body.prepend(sentinel);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      nav.classList.toggle('is-stuck', !es[0].isIntersecting);
+    }).observe(sentinel);
+  }
+
+  /* ── แถบการ์ดครู: เลื่อนทีละหน้า (หน้าละ 4 ใบบนจอใหญ่) ──
+     scroll-snap เป็นตัวจริง · JS แค่สั่งเลื่อนกับอัปเดตจุด
+     -> JS พังหรือปิด ก็ยังปัดดูเองได้ปกติ ไม่มีอะไรหาย */
+  var vp = document.getElementById('tcarVp');
+  if (vp) {
+    var dotsBox = document.getElementById('tcarDots');
+    var btnPrev = document.getElementById('tcarPrev');
+    var btnNext = document.getElementById('tcarNext');
+    var pages = 1, page = 0, timer = null;
+    var slow = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* 🔴🔴 ต้องกัน clientWidth = 0 เด็ดขาด
+       เจอจริง 2026-08-28: ถ้าวัดตอนกล่องกว้าง 0 (แท็บซ่อนอยู่ / display:none)
+       scrollWidth / 0 = Infinity -> ลูปสร้างจุดบอกหน้าไม่มีวันจบ -> เบราว์เซอร์ค้างทั้งแท็บ
+       ห้ามเอาการ์ดกันตกนี้ออก และห้ามหารด้วยความกว้างโดยไม่เช็คก่อน */
+    function pageCount() {
+      var w = vp.clientWidth;
+      if (!w || !isFinite(w)) return pages || 1;
+      return Math.max(1, Math.min(30, Math.round(vp.scrollWidth / w)));
+    }
+
+    function drawDots() {
+      dotsBox.textContent = '';
+      for (var i = 0; i < pages; i++) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('aria-label', 'ไปชุดที่ ' + (i + 1));
+        b.setAttribute('aria-current', i === page ? 'true' : 'false');
+        (function (idx) { b.addEventListener('click', function () { go(idx, true); }); })(i);
+        dotsBox.appendChild(b);
+      }
+      btnPrev.disabled = btnNext.disabled = pages < 2;
+    }
+
+    function markDots() {
+      var bs = dotsBox.children;
+      for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-current', i === page ? 'true' : 'false');
+    }
+
+    function go(i, byUser) {
+      /* 🔴 เช็คความกว้างซ้ำทุกครั้งก่อนเลื่อน — ห้ามพึ่ง resize event อย่างเดียว
+         เจอจริง 2026-08-28: ย่อจอเป็น 320 แล้วจำนวนจุดยังค้างที่ 2 ทั้งที่ต้องเป็น 8
+         (ทั้ง window resize และ ResizeObserver ไม่ยิงในบางสภาพแวดล้อม)
+         ตรงนี้เป็นตาข่ายชั้นสุดท้าย ราคาถูกมากเพราะทำแค่ตอนจะเลื่อนอยู่แล้ว */
+      if (vp.clientWidth && vp.clientWidth !== lastW) { lastW = vp.clientWidth; measure(); }
+      page = (i + pages) % pages;
+      vp.scrollTo({ left: page * vp.clientWidth, behavior: slow ? 'auto' : 'smooth' });
+      markDots();
+      if (byUser) rest();
+    }
+
+    /* อ่านหน้าปัจจุบันจากตำแหน่งเลื่อนจริง (คนปัดเองก็ต้องอัปเดตจุดตาม) */
+    var raf = null;
+    vp.addEventListener('scroll', function () {
+      if (raf) return;
+      raf = requestAnimationFrame(function () {
+        raf = null;
+        var i = Math.round(vp.scrollLeft / vp.clientWidth);
+        if (i !== page && i >= 0 && i < pages) { page = i; markDots(); }
+      });
+    });
+
+    btnPrev.addEventListener('click', function () { go(page - 1, true); });
+    btnNext.addEventListener('click', function () { go(page + 1, true); });
+
+    /* เลื่อนเองทุก 5 วิ · หยุดเมื่อชี้เมาส์ / tab เข้าไป / กำลังปัด
+       ปิดทั้งหมดถ้าผู้ใช้ตั้งค่าลดการเคลื่อนไหว */
+    function start() { if (!slow && pages > 1 && !timer) timer = setInterval(function () { go(page + 1); }, 5000); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    function rest() { stop(); setTimeout(start, 9000); }
+    ['mouseenter', 'focusin', 'pointerdown'].forEach(function (ev) { vp.addEventListener(ev, stop); });
+    ['mouseleave', 'focusout'].forEach(function (ev) { vp.addEventListener(ev, start); });
+    /* 🔴 มือถือ/แท็บเล็ตไม่มี mouseleave — ถ้าไม่มีบรรทัดนี้ พอผู้ใช้แตะแถบครูหนึ่งครั้ง
+       การเลื่อนเองจะหยุดถาวรบนจอสัมผัส (เจอตอนทดสอบโหมดมือถือ 2026-08-30)
+       ปล่อยนิ้วแล้วให้กลับมาเลื่อนเองใน 9 วิ = พฤติกรรมเดียวกับตอนกดปุ่มลูกศร */
+    ['pointerup', 'touchend', 'touchcancel'].forEach(function (ev) { vp.addEventListener(ev, rest); });
+    document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+
+    function measure() {
+      var was = pages; pages = pageCount();
+      if (was !== pages) { page = Math.min(page, pages - 1); drawDots(); }
+      stop(); start();
+    }
+    drawDots(); measure();
+    /* 🔴 ต้องวัดซ้ำเมื่อ "กล่องเปลี่ยนขนาดจริง" ไม่ใช่ตอน window resize
+       เจอจริง 2026-08-28: ฟัง window resize อย่างเดียวแล้วจำนวนจุดไม่อัปเดตตามความกว้าง
+       (ได้ 2 จุดทั้งที่จอ 768 ต้องได้ 4) -> ResizeObserver จับได้ตรงกว่า */
+    /* 🔴 ต้องกันลูป: ResizeObserver ที่เรียก measure ทุกครั้งทำให้หน้าค้างได้
+       (เจอจริง 2026-08-28 — renderer หยุดตอบสนองตอนทดสอบ)
+       -> ทำงานเฉพาะตอน "ความกว้างเปลี่ยนจริง" เท่านั้น และเฝ้าที่กล่องนอก ไม่ใช่กล่องที่เราสั่งเลื่อนเอง */
+    var lastW = vp.clientWidth;
+    /* 🔴 ต้องเทียบ "จำนวนหน้าที่ควรเป็น" ไม่ใช่แค่ "ความกว้างเปลี่ยนไหม"
+       เจอจริง 2026-08-28: ถ้าวัดครั้งแรกตอนกล่องกว้าง 0 จะได้ 1 หน้า (ค่าสำรอง)
+       แล้วถ้าความกว้างไม่ "เปลี่ยน" อีกเลย ตัวกันลูปจะบล็อกไว้ -> ค่าผิดค้างตลอดกาล
+       เทียบจำนวนหน้าแทน = แก้ตัวเองได้เสมอ และยังกันลูปได้ (พอตรงกันแล้วก็หยุด) */
+    var reMeasure = function () {
+      if (pageCount() === pages && vp.clientWidth === lastW) return;
+      lastW = vp.clientWidth;
+      clearTimeout(measure._t); measure._t = setTimeout(measure, 150);
+    };
+    if ('ResizeObserver' in window) new ResizeObserver(reMeasure).observe(vp.parentElement);
+    window.addEventListener('resize', reMeasure);
+    /* 🔴🔴 ตัวเฝ้าความกว้างที่ไม่พึ่ง event เลย — ห้ามเอาออก
+       เจอจริง 2026-08-28 (ไล่แก้ 3 รอบกว่าจะผ่าน):
+         รอบ 1 ฟัง window resize อย่างเดียว -> ไม่ยิง จำนวนหน้าค้าง
+         รอบ 2 เพิ่ม ResizeObserver -> ก็ยังไม่ยิงในบางสภาพแวดล้อม
+         รอบ 3 เช็คซ้ำตอนกดเลื่อน -> ใช้ไม่ได้ เพราะถ้าวัดครั้งแรกได้ 1 หน้า
+                ปุ่มจะถูกปิด (pages < 2) แล้วโค้ดตรงนั้นไม่มีวันถูกเรียก
+       -> จบด้วยการเทียบความกว้างทุก 1 วิ ราคาถูกมาก (เทียบเลข 1 ครั้ง) และไม่มีทางพลาด */
+    setInterval(reMeasure, 1000);
+    /* วัดซ้ำหลังฟอนต์โหลดเสร็จ — ครั้งแรกหน้ายังจัดวางไม่นิ่ง ได้จำนวนหน้าผิด */
+    window.addEventListener('load', measure);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+  }
+
+  /* ── reveal ตอนเลื่อน · ไม่รองรับ หรือผู้ใช้ขอลดการเคลื่อนไหว = โชว์ทันที ── */
+  var els = document.querySelectorAll('.reveal');
+  var noMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!('IntersectionObserver' in window) || noMotion) {
+    Array.prototype.forEach.call(els, function (el) { el.classList.add('is-in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    Array.prototype.forEach.call(els, function (el) { io.observe(el); });
+  }
+})();
+</script>
+</body>
+</html>

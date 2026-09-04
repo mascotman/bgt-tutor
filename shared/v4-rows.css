@@ -1,0 +1,108 @@
+/* v4-rows.css — แท็บ + แถว ตามจอ ②/③ ของหน้า landing (สร้าง 2026-09-01 · ก้อน 3)
+ * ที่มา: ยกออกจาก teacher/job-board.html ตอนทำก้อน 3 เพราะหน้าที่ 2 ต้องใช้ชุดเดียวกัน
+ * 🔴 กติกาโปรเจกต์: 2 หน้าห้ามหน้าตาคนละแบบ — แก้ที่นี่ที่เดียว ไม่ก๊อบไปวางในหน้า
+ */
+/* ═══ ก้อน 2 (2026-09-01) — แท็บ + แถวงาน ตามจอ ② ในหน้า landing ═══
+   ท่าที่ยกมาจากจอ: .mock-tabs (แคปซูล อันที่เปิดถมหมึกเข้ม) · .mrow (วงกลม + 2 บรรทัด + ป้ายขวาสุด)
+   🔴 ห้ามใส่ transition กับการสลับแท็บ — สลับด้วย hidden ตรง ๆ (กับดักที่รู้แล้ว) */
+.jb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--space-5)}
+.jb-tab{
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 var(--space-4);
+  font:inherit;font-family:var(--font-display);font-weight:600;
+  border:0;border-radius:var(--radius-pill);cursor:pointer;
+  background:var(--color-paper-2);color:var(--color-ink-2)}
+.jb-tab.is-on{background:var(--color-ink);color:var(--color-surface)}
+.jb-tab:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.jb-tab:not(.is-on):hover{color:var(--color-ink)}}
+.jb-n{font-size:.78rem;font-variant-numeric:tabular-nums;
+  padding:1px 8px;border-radius:var(--radius-pill);
+  background:var(--color-surface);color:var(--color-ink-2)}
+.jb-tab.is-on .jb-n{background:rgba(255,255,255,.22);color:var(--color-surface)}
+.jb-lead{color:var(--color-ink-2);margin:0 0 var(--space-5)}
+
+/* ── 1 งาน = 1 แถว ── */
+.row-list{list-style:none;padding:0;margin:0}
+.jrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:var(--space-3);
+  border-top:1px solid var(--color-rule);padding-block:var(--space-2)}
+.jrow:first-child{border-top:0}
+.jrow.is-closed{opacity:.55}
+.jrow-main{
+  display:flex;align-items:center;gap:var(--space-3);min-width:0;min-height:56px;
+  font:inherit;text-align:start;color:inherit;background:0;border:0;cursor:pointer;
+  padding:var(--space-2);margin:calc(var(--space-2) * -1);border-radius:var(--radius-md)}
+@media (hover:hover){.jrow-main:hover{background:var(--color-paper-2)}}
+.jrow-main:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px}
+.jav{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;overflow:hidden;
+  font-family:var(--font-display);font-weight:700;font-size:.74rem;
+  background:var(--color-amber-deep);color:var(--color-surface)}
+.jrow.is-closed .jav{background:var(--color-paper-2);color:var(--color-ink-2)}
+.jtxt{min-width:0;line-height:1.4}
+.jtxt b{display:block;font-family:var(--font-display);font-weight:700}
+.jtxt small{display:block;color:var(--color-ink-2);font-size:.82rem}
+.jact{flex:none}
+/* ป้าย/ปุ่มขวาสุด — ต้องอยู่ตำแหน่งเดียวกันทุกแถวไม่ว่าสถานะไหน */
+.jbadge{display:inline-flex;align-items:center;justify-content:center;min-height:44px;
+  padding:0 var(--space-4);font:inherit;font-family:var(--font-display);font-weight:700;font-size:.82rem;
+  border:0;border-radius:var(--radius-pill);white-space:nowrap;cursor:pointer}
+.jbadge.is-go{background:var(--color-amber);color:var(--color-amber-ink)}
+.jbadge.is-sent{background:var(--color-paper-2);color:var(--color-ink)}
+.jbadge.is-off{background:var(--color-paper-2);color:var(--color-ink-2);cursor:default}
+.jbadge:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+button.jbadge[disabled]{cursor:not-allowed}
+
+/* ── แผงรายละเอียดที่กางออกจากแถว (ของเดิมทั้งหมดอยู่ในนี้) ── */
+.jdet{grid-column:1 / -1;padding:var(--space-4) 0 var(--space-5);
+  display:flex;flex-direction:column;gap:var(--space-3)}
+.jdet-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.jdet-title{font-family:var(--font-display);font-weight:700}
+.jdet-foot{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+
+@media (max-width:560px){
+  /* จอแคบ: ปุ่มลงมาอยู่ใต้ข้อความ เต็มความกว้าง จะได้ไม่บีบชื่อวิชาจนตัดคำ */
+  .jrow{grid-template-columns:1fr}
+  .jact{justify-self:stretch}
+  .jbadge{width:100%}
+}
+
+/* ═══ ก้อน 2 ขั้น 2 (2026-09-01) — แถบบนแทน sidebar + หัวหน้าแบบลีน ═══
+   Owner: "Side bar ไม่น่ามีแล้ว ... ไม่จำเป็นต้องมีพวกนี้แล้ว" (อนุมัติให้ตัด)
+   เทียบกับจอ ② แล้ว หน้าเหลือแค่: แถบบน -> ชื่อหน้า -> การ์ดที่มีแท็บ + แถว */
+.page-shell{display:block}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:var(--space-5);
+  flex-wrap:wrap;padding:var(--space-3) var(--space-6);
+  background:var(--color-surface);border-bottom:1px solid var(--color-rule)}
+.topnav{display:flex;gap:var(--space-4);flex-wrap:wrap;flex:1 1 auto}
+.topnav a{display:inline-flex;align-items:center;min-height:44px;
+  color:var(--color-ink-2);text-decoration:none;font-size:.92rem}
+.topnav a:hover{color:var(--color-ink)}
+.topnav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+.page-head{padding:var(--space-8) 0 var(--space-5)}
+.page-head h1{margin:0 0 4px;font-size:clamp(1.5rem,3.2vw,2rem);letter-spacing:-.02em}
+.page-head p{margin:0;color:var(--color-ink-2)}
+
+/* แถบตัวกรองแบบยุบ */
+.filter-bar{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;margin-bottom:var(--space-4)}
+.filter-bar .result-count{color:var(--color-ink-2);font-size:.9rem}
+.filters{margin-bottom:var(--space-5)}
+
+/* ── ของที่ตายแล้วหลังตัด sidebar/แถวเลื่อน — ปิดไว้กันหลุดมาแสดง ── */
+.sidebar,.sidenav,.rail,.hero-band,.me-strip{display:none !important}
+
+@media (max-width:700px){
+  .topbar{gap:var(--space-3);padding:var(--space-3) var(--space-4)}
+  .topnav{order:3;flex-basis:100%;gap:var(--space-3)}
+  .topnav a{font-size:.86rem}
+}
+
+/* ── โทนป้ายเพิ่มสำหรับหน้าตารางสอน (ก้อน 3) ──
+   จอ ③ ใช้ 3 โทน: อำพัน = ปุ่มที่กดได้ · เทา = รอ · เขียวมิ้นต์ = เรียบร้อย
+   🔴 ใช้ token ที่มีจริงใน tokens.css เท่านั้น (--color-ok / --color-ok-soft / --color-accent-*)
+      ห้ามคิดชื่อ token ใหม่ขึ้นเอง — ตัวที่ไม่มีจริงจะตกไปใช้ค่าสำรองเงียบ ๆ แล้วสีเพี้ยน */
+.jbadge.is-ok{background:var(--color-ok-soft);color:var(--color-ok)}
+.jbadge.is-warn{background:var(--color-accent-soft);color:var(--color-accent-deep)}
+.jbadge.is-hot{background:var(--color-accent-soft);color:var(--color-accent-deep);font-weight:700}
+
+/* ── หัวเรื่อง + ป้ายตัวเลข อยู่บรรทัดเดียวกัน (Owner สั่ง 2026-09-01) ──
+   เดิมป้ายอยู่มุมบนขวาของแถบบน -> สายตาคนไปตรงกลางก่อน เลยไม่เห็น */
+.head-row{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap}
+.head-row h1{margin:0}

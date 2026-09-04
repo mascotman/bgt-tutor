@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ข้อมูลไม่ถูกบันทึกที่ไหน
+  ก้อน D · ขั้น 7 — "ตารางสอนของฉัน" ฝั่งครู
+  ที่เดียวที่ครูกด "เริ่มคาบ" / "จบคาบ" ซึ่งเป็นเงื่อนไขปล่อยเงิน (SYSTEM ข้อ 20)
+  (Owner ให้ go 2026-08-24 · LOG รายการ 150)
+
+  ระบบดีไซน์: design.md + tokens.css (ห้ามสร้างสีหรือฟอนต์ใหม่ในไฟล์นี้)
+
+  🔗 ของที่หน้านี้ "ยืมมาใช้ ห้ามออกแบบใหม่" (SYSTEM ข้อ 4.6):
+     · CSS ทั้งบล็อก = สำเนาจาก my-jobs.html (หน้าคู่ขนานฝั่งผู้เรียน) — แก้ที่ต้นฉบับแล้วต้องไล่มาแก้ที่นี่
+     · ME (ครูที่ล็อกอิน) = สำเนาจาก job-board.html ค้น `var ME` — ต้นฉบับอยู่ที่นั่น
+     · ชิปสถานะ .st / .st--wait|act|ok|off = ชุดเดียวกับ booking.html
+     · MODE_LABEL / SLOT ป้ายภาษาไทย = สำเนาลิสต์กลาง ต้นฉบับ signup-parent.html
+
+  🔴 สถานะใช้ชุดเดียวของ SYSTEM ข้อ 8 · รหัสอังกฤษคือของจริง ข้อความไทยเป็นแค่ป้ายบนจอ
+     เส้นทางของหน้านี้: confirmed → in_progress → taught → completed | disputed (SYSTEM ข้อ 8 กติกาข้อ 7)
+     · taught ≠ completed — taught คือ "ครูอ้างว่าสอนแล้ว" ยังไม่ปลดล็อกเงิน
+     · ครบ 48 ชม. ไม่มีใครกด = ระบบยืนยันเอง (Owner เคาะ 2026-08-24 · LOG 150)
+
+  💸 ตัวเลขเงินในหน้านี้ = ค่าตั้งค่าได้ทั้งหมด ห้าม hardcode กระจาย (MODEL ข้อ 7.1)
+     รวมไว้ที่ CONFIG ก้อนเดียว → งาน B ดึงจากหลังบ้านแทน
+     ⚠️ ขั้นบันได 30%→20% ที่เสนอไว้ MODEL ข้อ 8.3 ยังไม่ผ่าน Owner — หน้านี้ยังใช้ 30% คงที่ตามของเดิม
+
+  🔐 ห้ามแสดงทุกหน้า: เบอร์ · ID LINE · ที่อยู่เต็ม · ชื่อ-นามสกุลจริง
+  ⚠️ แผง/modal ห้ามใช้ transition+visibility -> สลับ display ตรง ๆ (กับดักที่รู้แล้ว)
+  ⚠️ การพับ/กางแผง ใช้ [hidden] เท่านั้น ห้าม max-height+overflow:hidden
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่มีรหัสงาน/รหัสคาบ) หลุดไปกับ Referer ตอนโหลดฟอนต์ -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตารางสอนของฉัน — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-jobrow.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
+<script src="../shared/lessons-seed.js"></script>
+<style>
+/* Hallmark · macrostructure: Ecosystem Index · genre: modern-minimal · design-system: design.md
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none (typography only)
+ * ชื่อคลาสร่วมกับ job-board.html / post-job.html / booking.html ทั้งหมด ห้ามคิดชื่อใหม่ให้ของเดิม
+ *
+ * ⚠️ คลาสใหม่ที่หน้านี้เพิ่ม (ไม่มีในหน้าอื่น) และเหตุผลที่ต้องเป็นของตัวเอง:
+ *    .learner-strip / .lchip = แถบสลับชื่อลูก (ผู้ปกครองมีลูกได้หลายคน — CLAUDE.md กฎ 8ข ข้อ 2)
+ *    .offers-panel / .off-* = รายการข้อเสนอที่กางออกใต้การ์ด (ฝั่งครูไม่มีแผงนี้)
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* [hidden] ต้องประกาศในชั้นของเราเอง ไม่งั้นคลาสที่มี display: จะทับ (บั๊ก 2026-08-13) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);color:var(--color-ink);
+  line-height:1.65;font-size:16px;overflow-x:clip;background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.chip{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1200px;width:100%;margin:0 auto;padding:0 var(--space-5)}
+
+/* 🔴 2026-09-01 — เดิมเป็น flex เพื่อวางเมนูข้าง พอเอา .topbar มาไว้ข้างใน
+   แถบบนกลายเป็น "คอลัมน์ซ้าย" กินที่ครึ่งจอ (Owner เห็นจากภาพ)
+   ต้องเป็น block เหมือนหน้าครูอื่นทุกหน้า */
+.page-shell{display:block;min-height:100vh}
+.content-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.content-col > .wrap{width:100%}
+/* 🔴 ถอดแล้ว — ไม่มีเมนูข้างให้วางข้าง ๆ อีกต่อไป */
+
+.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
+  color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);white-space:nowrap;
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+}
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
+    position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-8)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.sidenav-num{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;color:var(--color-muted);min-width:20px;font-variant-numeric:tabular-nums;text-align:right}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a.active .sidenav-num{color:var(--color-accent-deep)}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+.side-note{
+  margin-top:auto;padding-top:var(--space-6);font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55;
+  border-top:1px solid var(--color-rule);
+}
+.side-note strong{display:block;font-family:var(--font-display);color:var(--color-ink);margin-bottom:4px}
+.side-cta{margin-top:var(--space-6);display:flex;flex-direction:column;gap:var(--space-2)}
+
+/* ตัวนับ "รอคุณตัดสินใจ" — ต้องเห็นตลอดทั้งจอเล็กและจอใหญ่ (ทรงเดียวกับ .quota ของ job-board) */
+.quota{
+  display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;
+  border-radius:var(--radius-pill);background:var(--color-paper-2);border:1px solid var(--color-rule);
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--color-ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.quota .q-num{color:var(--color-accent-deep)}
+.quota.is-hot{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+
+/* ── หัวหน้า ─────────────────────────────────────────────────── */
+.hero-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.intro{padding:var(--space-12) 0 var(--space-8)}
+.intro .eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);margin-bottom:var(--space-4);
+}
+.intro h1{font-size:var(--text-2xl);line-height:1.25;max-width:24ch}
+.intro p{margin-top:var(--space-4);color:var(--color-ink-2);font-size:var(--text-base);max-width:62ch;line-height:1.65}
+
+/* ── แถบสลับชื่อลูก ───────────────────────────────────────────
+   🔴 CLAUDE.md กฎ 8ข ข้อ 2: "ของสิ่งนี้มีได้มากกว่า 1 อันไหม" — ผู้ปกครองมีลูกได้หลายคน
+   ชื่อลูกดึงจากโปรไฟล์ ไม่ให้พิมพ์เอง (กฎ 8 ข้อ 4) */
+.learner-strip{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding:var(--space-4) var(--space-5);
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+}
+.learner-strip .ls-label{font-size:var(--text-sm);color:var(--color-ink-2);font-weight:600}
+.lchip-group{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.lchip{
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;white-space:nowrap;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);cursor:pointer;
+  background:var(--color-surface);font-family:var(--font-display);font-size:var(--text-sm);font-weight:600;color:var(--color-ink);
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.lchip .l-n{font-variant-numeric:tabular-nums;color:var(--color-ink-2);font-weight:400}
+.lchip[aria-pressed=true]{background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+.lchip[aria-pressed=true] .l-n{color:var(--color-accent-ink);opacity:.85}
+.lchip:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.lchip:hover{background:var(--color-paper-2)}.lchip[aria-pressed=true]:hover{background:var(--color-accent)}}
+.learner-strip .back-link{margin-left:auto}
+
+/* ── ส่วนรายการงาน ───────────────────────────────────────────── */
+.jobs{padding:var(--space-10) 0 var(--space-2);scroll-margin-top:var(--space-12)}
+.jobs:last-of-type{padding-bottom:var(--space-8)}
+.jobs-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-2)}
+.jobs-head h2{font-size:var(--text-xl)}
+.jobs-count{font-size:var(--text-sm);color:var(--color-ink-2);font-variant-numeric:tabular-nums}
+.jobs-why{font-size:var(--text-sm);color:var(--color-ink-2);margin-bottom:var(--space-5);max-width:64ch}
+/* วัดจากความกว้างคอลัมน์จริง ไม่ใช่ความกว้างจอ (จอ 900-1280 โดน sidebar 264px กินไปแล้ว) */
+.jobs .wrap{container-type:inline-size}
+/* 🔴 align-items:start — ค่าเริ่มต้น stretch ทำให้การ์ดที่เนื้อหาสั้นถูกยืดจนมีช่องว่างค้าง
+   (Owner ทัก 2026-08-14 รอบ 3 · เช็คลิสต์ข้อ 8ค) */
+.jobs-list{display:grid;gap:var(--space-5);grid-template-columns:minmax(0,1fr);align-items:start}
+/* การ์ดของหน้านี้กางแผงข้อเสนอออกมาในตัว = สูงมาก -> 1 คอลัมน์จนกว่าจะกว้างจริง */
+@container (min-width:1000px){.jobs-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.empty-state{
+  border:1px dashed var(--color-rule-2);border-radius:var(--radius-lg);background:var(--color-paper-2);
+  padding:var(--space-10) var(--space-6);text-align:center;color:var(--color-ink-2);
+}
+.empty-state strong{display:block;font-family:var(--font-display);color:var(--color-ink);font-size:var(--text-lg);margin-bottom:var(--space-2)}
+.empty-state .btn{margin-top:var(--space-5)}
+
+/* ── การ์ดงาน = โครงเดียวกับ post-job.html / job-board.html ── */
+.j-card{--card-pad:var(--space-6);background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--card-pad);box-shadow:var(--shadow-raise);display:flex;flex-direction:column}
+.j-top{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.j-title{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);line-height:1.3;overflow-wrap:anywhere}
+.j-code{font-size:var(--text-sm);color:var(--color-muted);font-variant-numeric:tabular-nums}
+.tag-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-4)}
+.tag{
+  display:inline-flex;align-items:center;
+  background:var(--color-subject);color:var(--color-surface);
+  font-size:var(--text-sm);font-weight:600;padding:5px 10px;border-radius:var(--radius-sm);
+}
+.tag--plain{background:var(--color-level-soft);color:var(--color-level);font-weight:600}
+.j-meta{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.j-meta span{display:inline-flex;align-items:center;gap:6px}
+.j-meta .ic{color:var(--color-accent-deep)}
+.j-body{margin-top:var(--space-4);font-size:var(--text-base);color:var(--color-ink);line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;
+  --lines:4;display:-webkit-box;-webkit-line-clamp:var(--lines);line-clamp:var(--lines);-webkit-box-orient:vertical;overflow:hidden}
+.j-body.is-open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+.j-more{align-self:flex-start;margin-top:2px}
+.j-foot{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;margin-top:auto;padding-top:var(--space-5);border-top:1px solid var(--color-rule)}
+.j-price{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-ink)}
+.j-price small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+.j-card.is-closed{background:var(--color-paper-2);box-shadow:none}
+.j-card.is-closed .j-code,.j-card.is-closed .j-title,.j-card.is-closed .j-price{color:var(--color-ink-2)}
+
+/* ── แถบท้ายการ์ด: ซ้าย = สถานะ 1 ป้าย · ขวา = ปุ่มหลัก 1 ปุ่ม ──
+   (กติกาเดียวกับ job-board.html — ทุกสถานะโครงเดียวกันเป๊ะ ปุ่มจะได้ไม่ตกบรรทัด) */
+.j-actions{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin:var(--space-5) calc(var(--card-pad) * -1) calc(var(--card-pad) * -1);
+  padding:var(--space-4) var(--card-pad);
+  background:var(--color-paper-2);border-top:1px solid var(--color-rule);
+  border-radius:0 0 var(--radius-md) var(--radius-md);
+}
+.j-actions > :first-child{margin-top:0}
+.j-actions .btn{margin-left:auto}
+.j-note{font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.5;flex:1 1 220px;min-width:0}
+@media (max-width:430px){.j-actions .btn{margin-left:0;flex:1 1 100%}}
+.j-card.is-closed .j-actions{background:var(--color-surface)}
+
+/* ชิปสถานะ = ชุดเดียวกับ booking.html ห้ามตั้งสีใหม่ */
+.st{font-size:var(--text-sm);font-weight:600;padding:4px 12px;border-radius:var(--radius-pill);border:1px solid var(--color-rule);white-space:nowrap;background:var(--color-surface)}
+.st--wait{background:var(--color-surface-2);color:var(--color-ink-2)}
+.st--act{background:var(--color-accent);color:var(--color-accent-ink);border-color:transparent}
+.st--ok{background:var(--color-ok-soft);color:var(--color-ok);border-color:transparent}
+.st--off{background:transparent;color:var(--color-ink-2);opacity:.75}
+
+/* ── แผงข้อเสนอที่กางออกใต้การ์ด ──────────────────────────────
+   🔴 ห้ามพับด้วย max-height/overflow:hidden — ใช้ [hidden] เท่านั้น (กับดัก 2026-08-19 ข้อ 4)
+   แผงที่พับอยู่หลุดจาก layout tree ไปเลย -> การ์ด 10 ใบกิน layout พอ ๆ กับ 1 ใบ */
+.offers-panel{
+  margin:var(--space-5) calc(var(--card-pad) * -1) 0;
+  padding:var(--space-5) var(--card-pad) 0;
+  border-top:1px solid var(--color-rule);
+}
+.offers-panel h4{font-family:var(--font-display);font-size:var(--text-base);font-weight:700}
+.offers-panel > p{font-size:var(--text-sm);color:var(--color-ink-2);margin-top:var(--space-1)}
+.off-list{list-style:none;display:grid;gap:var(--space-3);margin-top:var(--space-4)}
+/* align-items:flex-start เหตุผลเดียวกับกริดการ์ด — แถวที่ข้อความสั้นห้ามถูกยืด */
+.off-row{
+  display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-3) var(--space-4);
+  padding:var(--space-4);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  background:var(--color-surface);
+}
+.off-row.is-dead{background:var(--color-paper-2);opacity:.8}
+.off-row.is-win{border-color:var(--color-accent-deep);background:var(--color-accent-soft)}
+.off-ava{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  background:var(--color-surface-2);border:1px solid var(--color-rule);font-family:var(--font-display);font-weight:700}
+.off-main{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.off-name{font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);overflow-wrap:anywhere}
+.off-name a{text-decoration:none;border-bottom:1px solid var(--color-rule)}
+.off-name a:hover{border-bottom-color:var(--color-accent)}
+.off-name a:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+.off-badge{font-size:var(--text-sm);font-weight:600;color:var(--color-ok);background:var(--color-ok-soft);padding:2px 8px;border-radius:var(--radius-sm)}
+.off-facts{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.off-facts b{color:var(--color-ink);font-weight:600}
+.off-msg{font-size:var(--text-base);line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;
+  --lines:3;display:-webkit-box;-webkit-line-clamp:var(--lines);line-clamp:var(--lines);-webkit-box-orient:vertical;overflow:hidden}
+.off-msg.is-open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+.off-side{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-2);margin-left:auto}
+.off-price{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);font-variant-numeric:tabular-nums;white-space:nowrap}
+.off-price small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+.off-diff{font-size:var(--text-sm);color:var(--color-ink-2);white-space:nowrap}
+.off-diff.over{color:var(--color-error);font-weight:600}
+.off-btns{display:flex;flex-wrap:wrap;gap:var(--space-2);justify-content:flex-end}
+/* จอแคบ: ปุ่มเต็มความกว้าง จะได้ไม่เป็นปุ่มลอยชิดขวา (บทเรียนเดียวกับ .j-actions) */
+@media (max-width:560px){
+  .off-side{align-items:stretch;width:100%;margin-left:0}
+  .off-btns{justify-content:stretch}
+  .off-btns .btn{flex:1 1 100%}
+}
+.off-dead-note{font-size:var(--text-sm);color:var(--color-ink-2);flex:1 1 100%}
+
+/* ── ปุ่ม ─────────────────────────────────────────────────────── */
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover{background:var(--color-paper-2)}
+.btn-sm{height:44px;padding:0 18px;font-size:var(--text-sm)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn[disabled]:active{transform:none}
+.link-btn{
+  background:none;border:none;font:inherit;font-size:var(--text-sm);font-weight:600;color:var(--color-accent-deep);
+  cursor:pointer;min-height:44px;display:inline-flex;align-items:center;padding:0 4px;border-radius:var(--radius-sm);
+}
+.link-btn:hover{text-decoration:underline}
+.link-btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* ── ข้อความแจ้งผล (เงียบ ๆ ไม่ใช่ toast เด้ง) ─────────────────── */
+.live-note{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding:var(--space-3) var(--space-4);
+  background:var(--color-ok-soft);border-radius:var(--radius-md);
+  font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.note{
+  display:flex;gap:var(--space-4);align-items:flex-start;background:var(--color-paper-2);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.note strong{display:block;font-family:var(--font-display);margin-bottom:4px}
+.note-mark{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--color-ok);color:var(--color-surface);
+}
+.note--warn{background:var(--color-error-soft);border-color:var(--color-error)}
+.note--warn .note-mark{background:var(--color-error)}
+
+/* ── แผงยืนยันรับข้อเสนอ ─────────────────────────────────────────
+   🔴 ห้ามใช้ transition + visibility (เฟรมไม่ถูกวาด แผงไม่โผล่) — สลับ display ตรง ๆ */
+.modal{position:fixed;inset:0;z-index:var(--z-modal);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:720px){.modal{align-items:center}}
+.modal-backdrop{position:absolute;inset:0;background:oklch(21% 0.016 48 / 0.45)}
+.modal-card{
+  position:relative;background:var(--color-surface);width:100%;max-width:600px;max-height:92vh;overflow-y:auto;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:var(--space-6);box-shadow:var(--shadow-lift);
+}
+@media (min-width:720px){.modal-card{border-radius:var(--radius-lg);padding:var(--space-8)}}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.modal-head h2{font-size:var(--text-xl)}
+.modal-close{
+  flex:0 0 auto;width:44px;height:44px;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink);font-size:18px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--color-paper-2)}
+.modal-close:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.modal-sum{
+  margin-top:var(--space-4);padding:var(--space-4);border-radius:var(--radius-md);
+  background:var(--color-paper-2);font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.modal-sum b{display:block;font-family:var(--font-display);color:var(--color-ink);font-size:var(--text-base);margin-bottom:4px;overflow-wrap:anywhere}
+.modal-steps{list-style:none;display:grid;gap:var(--space-3);margin-top:var(--space-5)}
+.modal-steps li{display:flex;gap:var(--space-3);font-size:var(--text-sm);line-height:1.55}
+.modal-steps .n{
+  flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-deep);
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-xs);display:grid;place-items:center;margin-top:2px;
+}
+.modal-foot{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--color-rule);
+}
+.modal-foot .btn-primary{margin-left:auto}
+@media (max-width:560px){.modal-foot .btn{flex:1 1 100%;margin-left:0}}
+
+/* ── ปุ่มจำลองสถานะ (ต้นแบบเท่านั้น — ตรงกับ .sim ของ booking.html) ── */
+.sim{margin:var(--space-10) 0 var(--space-16);padding-top:var(--space-5);border-top:1px dashed var(--color-rule)}
+.sim-label{display:block;font-size:var(--text-xs);color:var(--color-ink-2);margin-bottom:var(--space-3)}
+.sim-row{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.btn-sim{font-size:var(--text-sm)}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-6) 0 var(--space-8);font-size:var(--text-sm);color:var(--color-ink-2)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+/* ⭐ ก้อน C2 (2026-08-23) — แผง "ครูเสนอเวลาอื่น" ในการ์ดงานจองตรง */
+.j-counter{margin-top:var(--space-4);padding:var(--space-4);border:1px solid var(--color-accent);border-radius:var(--radius-sm);background:var(--color-accent-soft);display:flex;flex-direction:column;gap:var(--space-2)}
+.jc-head{font-weight:700;font-size:var(--text-sm)}
+.jc-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-3);font-size:var(--text-sm)}
+.jc-old{text-decoration:line-through;color:var(--color-ink-2)}
+.jc-arrow{color:var(--color-ink-2)}
+.jc-new{font-weight:700;font-size:var(--text-base)}
+.jc-msg{font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55}
+.jc-note{font-size:var(--text-xs);color:var(--color-ink-2);line-height:1.5}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+<style>
+/* ── แถบโปรไฟล์ครู — 🔴 สำเนาจาก job-board.html (ค้น .me-strip) ห้ามออกแบบใหม่
+   ครูเห็นแถบทรงนี้อยู่แล้วบนกระดานงาน · แก้ที่ต้นฉบับเมื่อไร ต้องไล่มาแก้ที่นี่ ── */
+.me-strip{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);
+  margin-top:var(--space-6);padding:var(--space-4) var(--space-5);
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);}
+.me-who{display:flex;align-items:center;gap:10px;font-weight:600}
+.me-avatar{width:40px;height:40px;border-radius:50%;flex:0 0 auto;background:var(--color-accent-soft);
+  color:var(--color-accent-deep);font-family:var(--font-display);font-weight:700;
+  display:flex;align-items:center;justify-content:center;}
+.me-facts{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2);min-width:0}
+.me-facts b{color:var(--color-ink);font-weight:600}
+.me-strip .back-link{margin-left:auto}
+
+/* ── ของที่หน้านี้เพิ่มเอง (ไม่มีในทั้ง 2 ต้นฉบับ) ─────────────────────
+   แถบยอดเงินของครู — ต้องอ่านออกในบรรทัดเดียวว่า "ได้แล้วเท่าไร รออะไรอยู่" */
+.earn-band{
+  display:flex;flex-wrap:wrap;gap:var(--space-5);align-items:flex-end;
+  padding:var(--space-5) var(--space-6);margin-top:var(--space-6);
+  background:var(--color-paper-2);border:1px solid var(--color-rule);border-radius:var(--radius-md)
+}
+.earn-item{display:flex;flex-direction:column;gap:2px;min-width:132px}
+.earn-k{font-size:var(--text-xs);color:var(--color-muted)}
+.earn-v{font-family:var(--font-display);font-size:var(--text-xl);font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.earn-v.is-ok{color:var(--color-accent-deep)}
+.earn-note{flex:1 1 220px;font-size:var(--text-xs);color:var(--color-muted);line-height:1.55}
+.earn-note b{color:var(--color-ink)}
+/* นาฬิกา 48 ชม. บนการ์ด — ใช้ตัวเลขความกว้างคงที่ กันการ์ดกระตุกทุกวินาที */
+.dl{font-variant-numeric:tabular-nums}
+.dl.is-hot{color:var(--color-danger,#b3261e);font-weight:700}
+/* แถวสรุปเงินในการ์ดคาบ */
+.pay-row{display:flex;flex-wrap:wrap;gap:var(--space-3) var(--space-5);align-items:baseline;
+  padding-top:var(--space-3);margin-top:var(--space-3);border-top:1px dashed var(--color-rule);font-size:var(--text-sm)}
+.pay-row b{font-variant-numeric:tabular-nums}
+.pay-fee{color:var(--color-muted);font-size:var(--text-xs)}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+  <!-- 🔴 แถบบนฝั่งครู — ชุดเดียวกันทุกหน้า (แก้ 2026-09-01)
+       Owner จับได้ว่าเดิมแต่ละหน้ามีลิงก์ไม่เท่ากันและอยู่คนละตำแหน่ง
+       เพราะผมเขียนใหม่ทีละก้อนโดยไม่ย้อนไปแก้หน้าเก่า
+       🔴 เพิ่ม/ลบเมนู ต้องแก้ให้ครบทั้ง 4 หน้าเสมอ — ต้นฉบับลำดับอยู่ที่คอมเมนต์นี้:
+          กระดานงาน · ตารางสอนของฉัน · ผลงาน · โปรไฟล์ของฉัน
+       🔴 หน้าที่เปิดอยู่ต้องมี aria-current="page" ไม่งั้นคนหลงว่าตัวเองอยู่หน้าไหน -->
+  <header class="topbar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <nav class="topnav" aria-label="เมนูครู">
+      <a href="job-board.html">กระดานงาน</a>
+      <a href="teacher-jobs.html" aria-current="page" class="is-here">ตารางสอนของฉัน</a>
+      <a href="teacher-earnings.html">ผลงาน</a>
+      <a href="teacher-settings.html">โปรไฟล์ของฉัน</a>
+    </nav>
+  </header>
+
+  <div class="content-col">
+
+    <div class="page-head">
+      <div class="wrap">
+        <div class="head-row">
+          <h1>ตารางสอนของฉัน</h1>
+          <!-- 🔴 2026-09-01 (Owner สั่ง) — ป้ายตัวเลขต้องอยู่ข้างหัวเรื่อง ไม่ใช่มุมบนขวา
+               "สายตาคนจะโฟกัสที่ตรงกลางก่อน" -->
+          <span class="quota" id="quota-mobile">คาบวันนี้ <span class="q-num">0</span></span>
+        </div>
+        <p><span id="me-name">—</span> · สอน <b id="me-subjects">—</b> · ราคาตั้งไว้ <b id="me-rate">—</b></p>
+      </div>
+    </div>
+
+    <section class="jb" aria-labelledby="h-tj">
+      <div class="wrap">
+        <h2 id="h-tj" class="sr-only">ตารางสอน</h2>
+
+        <div class="jb-tabs" role="tablist" aria-label="ตารางสอน">
+          <button type="button" class="jb-tab is-on" role="tab" aria-selected="true"
+                  aria-controls="panel-today" id="tab-today" data-tab="today">
+            คาบวันนี้<span class="jb-n" id="n-today">0</span>
+          </button>
+          <button type="button" class="jb-tab" role="tab" aria-selected="false"
+                  aria-controls="panel-wait" id="tab-wait" data-tab="wait">
+            รอยืนยัน<span class="jb-n" id="n-wait">0</span>
+          </button>
+          <button type="button" class="jb-tab" role="tab" aria-selected="false"
+                  aria-controls="panel-done" id="tab-done" data-tab="done">
+            จบแล้ว<span class="jb-n" id="n-done">0</span>
+          </button>
+        </div>
+
+        <p class="live-note" id="live-note" role="status" tabindex="-1" hidden>
+          <span id="live-text"></span>
+        </p>
+
+        <div class="jb-panel" id="panel-today" role="tabpanel" aria-labelledby="tab-today" tabindex="-1">
+          <div class="row-list" id="list-today"></div>
+        </div>
+        <div class="jb-panel" id="panel-wait" role="tabpanel" aria-labelledby="tab-wait" tabindex="-1" hidden>
+          <div class="row-list" id="list-wait"></div>
+        </div>
+        <div class="jb-panel" id="panel-done" role="tabpanel" aria-labelledby="tab-done" tabindex="-1" hidden>
+          <div class="row-list" id="list-done"></div>
+        </div>
+      </div>
+    </section>
+
+
+    <div class="wrap">
+      <div class="sim">
+        <span class="sim-label">🧪 ปุ่มจำลอง (ต้นแบบเท่านั้น — ของจริงเวลาเดินเอง ไม่มีปุ่มพวกนี้)</span>
+        <div class="sim-row">
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-forward">เดินเวลาไป 1 ชั่วโมง</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-48">ทำให้คาบที่รอยืนยัน ครบ 48 ชม.</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-learner-ok">ผู้เรียนกดยืนยันเอง</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-dispute">ผู้เรียนแจ้งว่าครูไม่มา</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-reset">เริ่มใหม่</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span class="foot-brand">BGT Tutor</span>
+        <span>คนกลางที่ทำให้ครูกับผู้เรียนเจอกันได้จริง</span>
+        <nav aria-label="ลิงก์ทางกฎหมาย">
+          <a href="#">ข้อตกลงการใช้งาน</a>
+          <a href="#">นโยบายความเป็นส่วนตัว</a>
+          <a href="#">ติดต่อเรา</a>
+        </nav>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<!-- แผงยืนยัน "จบคาบ" — กดแล้วนาฬิกา 48 ชม. เริ่มเดิน ต้องบอกให้ครบก่อน (SYSTEM ข้อ 7) -->
+<div class="modal" id="end-modal" hidden role="dialog" aria-modal="true" aria-labelledby="em-title">
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="em-title">ยืนยันว่าสอนจบคาบนี้แล้ว</h2>
+      <button type="button" class="modal-close" data-close="1" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-sum" id="em-sum"></div>
+    <ol class="modal-steps">
+      <li><span class="n" aria-hidden="true">1</span><span>ผู้เรียนจะเห็นทันทีว่าคุณแจ้งสอนจบแล้ว และมีเวลา <b>48 ชั่วโมง</b> ในการยืนยัน</span></li>
+      <li><span class="n" aria-hidden="true">2</span><span>ถ้าผู้เรียน<b>ไม่กดอะไรเลยจนครบ 48 ชั่วโมง ระบบยืนยันให้เอง</b> — ยอดของคุณปลดล็อกเข้ารอบโอน</span></li>
+      <li><span class="n" aria-hidden="true">3</span><span>ถ้าผู้เรียนแจ้งว่ามีปัญหา คาบนี้จะเข้าสู่การตรวจสอบ <b>ยอดยังไม่ปลดล็อกจนกว่าจะได้ข้อสรุป</b></span></li>
+    </ol>
+    <div class="note" id="em-note" style="margin-top:var(--space-5)">
+      <span class="note-mark" aria-hidden="true">i</span>
+      <span id="em-note-text"></span>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-secondary" data-close="1">ยังไม่จบ</button>
+      <button type="button" class="btn btn-primary" id="em-go">ยืนยัน จบคาบ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     CONFIG — ตัวเลขทั้งหมดของหน้านี้อยู่ก้อนเดียว (SYSTEM ข้อ 5 · MODEL ข้อ 7.1)
+     🔴 ห้ามเอาตัวเลขพวกนี้ไปเขียนซ้ำที่อื่นในไฟล์ · งาน B ดึงมาจากหลังบ้านแทนทั้งก้อน
+     ══════════════════════════════════════════════════════════════════════════ */
+  /* 🔴 ย้ายไป shared/lessons-seed.js แล้ว (ก้อน 4) — ห้ามประกาศทับที่นี่อีก */
+  var CONFIG = window.BGT_LESSON_CONFIG;
+
+
+  /* 🔴 สถานะคาบต้องเห็นตรงกัน "ข้ามแท็บ" — Owner เจอจริง 2026-08-25
+     เดิมใช้ sessionStorage ซึ่งแยกต่อแท็บ -> เปิด teacher-jobs กับ my-jobs คนละแท็บ
+     ฝั่งผู้เรียนไม่มีวันเห็นคาบที่ครูเพิ่งกดจบ · Owner ทำครบทุกขั้นแล้วยังไม่ขึ้น เสียเวลาไปมาก
+     ห้ามแก้กลับเป็น sessionStorage · ของอื่น (bgt_accepted_offer ฯลฯ) ยังเป็น sessionStorage ตามเดิม
+     ⚠️ localStorage อยู่ข้ามการปิดเบราว์เซอร์ด้วย -> ปุ่ม "เริ่มใหม่" ต้องล้างให้ครบเสมอ */
+  var lessonStore = {
+    getItem: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    setItem: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
+    removeItem: function (k) { try { localStorage.removeItem(k); } catch (e) { } }
+  };
+  var LESSON_KEY = 'bgt_lessons';        /* กระเป๋าฝากสถานะคาบ — ทรงเดียวกับ bgt_direct_reply */
+  var LESSON_ID_RE  = /^L-[A-Za-z0-9_-]{1,24}$/;   /* รหัสคาบต้องหน้าตาแบบนี้เท่านั้น (ผลตรวจ security 2026-08-24 F5) */
+  var ISSUE_REASONS = ['teacher_no_show', 'learner_no_show', 'not_as_agreed', 'money', 'other'];  /* ต้องตรงกับ my-jobs.html */
+  var LESSON_TTL = 2 * 60 * 60 * 1000;   /* อายุ 2 ชม. เท่าคีย์อื่นทั้งเว็บ */
+  var CLOCK_KEY = 'bgt_sim_clock';       /* ปุ่มจำลอง "เดินเวลา" — ต้นแบบเท่านั้น */
+
+  /* ══ ครูที่ล็อกอินอยู่ — 🔴 สำเนาจาก job-board.html ค้น `var ME` (ต้นฉบับอยู่ที่นั่น)
+     แก้ที่ต้นฉบับเมื่อไร ต้องไล่มาแก้ที่นี่ในรอบเดียวกัน (CLAUDE.md กฎเหล็กข้อ 8.5) ══ */
+  var ME = {
+    name: 'ครูพลอย',
+    subjects: ['คณิตศาสตร์', 'ฟิสิกส์'],
+    prov: 'กรุงเทพมหานคร',
+    rate: 380
+  };
+
+  /* ══ ป้ายภาษาไทย — สำเนาลิสต์กลาง ต้นฉบับ signup-parent.html (ห้ามตั้งคำใหม่เอง) ══ */
+  var MODE_LABEL = { online: 'ออนไลน์', home: 'ที่บ้าน', public: 'สถานที่อื่นๆ' };
+
+  /* ══ ป้ายสถานะ — 🔴 ลอกจาก SYSTEM ข้อ 8 คอลัมน์ "ครูเห็น" ห้ามตั้งคำใหม่ ══ */
+  var STATUS_LABEL = {
+    confirmed:   'ได้งานแล้ว',
+    in_progress: 'กำลังสอนอยู่',
+    taught:      'สอนจบแล้ว รอผู้เรียนยืนยัน',
+    completed:   'เรียนแล้ว',
+    disputed:    'ผู้เรียนแจ้งปัญหา — แอดมินกำลังดู'
+  };
+  var STATUS_TONE = { confirmed: 'ok', in_progress: 'act', taught: 'wait', completed: 'ok', disputed: 'off' };
+
+  /* ป้ายเหตุผลที่ผู้เรียนเลือกตอนแจ้งปัญหา — รหัสต้องตรงกับ ISSUE_REASONS ทั้ง 2 หน้า
+     (SYSTEM ข้อ 15 ขั้น ① · ห้ามให้ระบบอ่านจากข้อความไทยบนจอ) */
+  var REASON_LABEL = {
+    teacher_no_show:  'คุณไม่มาตามนัด',
+    learner_no_show:  'ผู้เรียนไม่ได้เข้าเรียนเอง',
+    not_as_agreed:    'สอนไม่ตรงกับที่ตกลงกันไว้',
+    money:            'เรื่องเงิน',
+    other:            'เรื่องอื่น'
+  };
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     ข้อมูลจำลอง — คาบที่ผู้เรียนจ่ายเงินแล้วของครูพลอย
+     ทุก field ตรงกับที่ booking.html ส่งต่อ · ไม่มีเบอร์/ไลน์/ที่อยู่เต็ม/ชื่อจริง ตั้งแต่โครงข้อมูล
+     🔴 วิชาต้องอยู่ในลิสต์กลาง และต้องเป็นวิชาที่ ME สอนจริง (กฎเหล็กข้อ 8)
+     offsetMin = ห่างจาก "ตอนนี้" กี่นาที (ลบ = ผ่านมาแล้ว) — ทำให้เปิดหน้าเมื่อไรก็เห็นครบทุกเคส
+     ══════════════════════════════════════════════════════════════════════════ */
+  /* 🔴 กฎเหล็กข้อ 8 — งาน BGT-2081 ต้องตรงกับ my-jobs.html เป๊ะทุกช่อง (ค้น `id: 'BGT-2081'`):
+        ฟิสิกส์ · น้องภูมิ (k1) · ออนไลน์ · ครูพลอยเสนอ 560/ชม. · คาบละ 120 นาที · สัปดาห์ละ 2 ครั้ง
+        แก้ที่ฝั่งไหนต้องไล่แก้อีกฝั่งในรอบเดียวกัน ไม่งั้น 2 หน้าพูดคนละเรื่องเรื่องเดียวกัน
+     ℹ️ BGT-2058 = ลูกค้าอีกบ้านของครูพลอย (คนละบัญชีกับผู้ปกครองใน my-jobs) — จงใจใส่ให้เห็นว่า
+        ตารางครูรวมงานจากหลายบ้าน ไม่ได้ผูกกับบัญชีผู้ปกครองบัญชีเดียว */
+  var SEED = window.BGT_LESSON_SEED;
+
+
+  /* ── helper พื้นฐาน (ก๊อบวิธีมาจาก my-jobs.html — ห้ามคิดกติกาใหม่) ────── */
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    /* 🔴 textContent เท่านั้น ห้าม innerHTML กับค่าที่มาจากข้อมูล (กัน XSS) */
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function baht(n) { return '฿' + Math.round(n).toLocaleString('th-TH'); }
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+
+  /* ── นาฬิกาของหน้า — ปุ่มจำลองเดินเวลาได้ ของจริงใช้ Date.now() ตรง ๆ ──── */
+  function skewMs() {
+    var v = 0;
+    try { v = parseInt(lessonStore.getItem(CLOCK_KEY) || '0', 10); } catch (e) { v = 0; }
+    return (isFinite(v) && v > 0 && v < 30 * 24 * 3600 * 1000) ? v : 0;
+  }
+  function now() { return Date.now() + skewMs(); }
+
+  /* ══ กระเป๋าฝากสถานะคาบ — ทาง A ยังไม่มี DB
+     🔴 งาน B: สถานะมาจากเซิร์ฟเวอร์ แล้วลบก้อนนี้ทิ้งทั้งหมด
+     เก็บแยกรายคาบ (คีย์ = รหัสคาบ) ตามบทเรียน 2026-08-23 — ช่องเดียวทำให้คาบก่อนหน้าหาย ══ */
+  function readBox() {
+    var raw = null;
+    try { raw = lessonStore.getItem(LESSON_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !o.lessons || typeof o.lessons !== 'object') return null;
+    /* 🔴 TTL = อายุข้อมูลในเซสชันจริง → เทียบด้วยนาฬิกาจริงเสมอ ห้ามใช้ now() ที่มี skew
+       (เจอตอนยิงทดสอบ 2026-08-24: กดเดินเวลาแล้วกล่องหมดอายุทันที ข้อมูลคาบหายทั้งก้อน) */
+    if (!o.ts || (Date.now() - o.ts) > LESSON_TTL) return null;
+    return o;
+  }
+  /* ตรวจซ้ำทุกค่าที่อ่านกลับจาก storage — ค่าใน storage แก้ได้ไม่ต่างจาก URL
+     (ผลตรวจ security 2026-08-23 + 2026-08-24)
+     🔴 ต้องตรวจ "ครบทุกช่องเท่ากับ validLesson() ใน my-jobs.html" ไม่ใช่ต่างฝ่ายต่างตรวจเฉพาะช่องที่ตัวเองอ่าน
+        (F6) — 1 โครงข้อมูล = 1 ชุดกติกา ไม่งั้นคนถัดไปเพิ่มช่องแล้วรั่วทันที */
+  function validEntry(e) {
+    if (!e || typeof e !== 'object') return null;
+    if (!e.status || !STATUS_LABEL[e.status]) return null;
+    var lo = now() - 30 * 24 * 3600000, hi = now() + 5 * 60000, t;
+    for (var i = 0; i < 3; i++) {
+      t = [e.startedAt, e.taughtAt, e.closedAt][i];
+      if (t == null) continue;
+      /* เวลาต้องอยู่ในกรอบที่เป็นไปได้ — ตั้งเป็นอนาคตไกลแล้วคาบค้างเป็นผีถาวร autoConfirm ไม่มีวันยิง (F5) */
+      if (typeof t !== 'number' || !isFinite(t) || t < lo || t > hi) return null;
+    }
+    /* สถานะกับเวลาต้องมาคู่กัน ไม่งั้นการ์ดค้างในสถานะที่ไม่มีวันจบ */
+    if (e.status === 'taught' && !e.taughtAt) return null;
+    if (e.status === 'in_progress' && !e.startedAt) return null;
+    if (e.closedBy != null && ['learner', 'auto', 'dispute'].indexOf(e.closedBy) < 0) return null;
+    if (e.reason != null && ISSUE_REASONS.indexOf(e.reason) < 0) return null;
+    if (e.jobId != null && typeof e.jobId !== 'string') return null;
+    if (e.subject != null && (typeof e.subject !== 'string' || e.subject.length > 60)) return null;
+    if (e.when != null && (typeof e.when !== 'string' || e.when.length > 60)) return null;
+    return e;
+  }
+  function writeEntry(id, patch) {
+    if (!LESSON_ID_RE.test(id)) return;
+    var box = readBox() || { v: 1, ts: Date.now(), lessons: {} };
+    var e = box.lessons[id] || {};
+    Object.keys(patch).forEach(function (k) { e[k] = patch[k]; });
+    e.ts = Date.now();      /* ประทับเวลา "จริง" ของก้อนข้อมูล (คู่กับ TTL) — เวลาของคาบใช้ now() */
+    box.lessons[id] = e;
+    box.ts = Date.now();
+    try { lessonStore.setItem(LESSON_KEY, JSON.stringify(box)); } catch (err) { }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     สร้างรายการคาบจริงจาก SEED + สิ่งที่ฝากไว้ใน storage
+     ══════════════════════════════════════════════════════════════════════════ */
+  var LESSONS = [];
+  function build() {
+    var box = readBox();
+    var base = Date.now();   /* ⚠️ ยึด "เวลาจริง" ตอนสร้างตาราง ไม่ใช่ now() — ไม่งั้นกดเดินเวลาแล้วคาบเลื่อนตาม */
+    LESSONS = SEED.map(function (s) {
+      var startAt = base + s.offsetMin * 60000;
+      var L = {
+        id: s.id, jobId: s.jobId, learner: s.learner, learnerId: s.learnerId,
+        subject: s.subject, mode: s.mode, len: s.len, price: s.price,
+        startAt: startAt, endAt: startAt + s.len * 60000,
+        status: s.status, startedAt: null, taughtAt: null, closedAt: null, closedBy: null
+      };
+      if (s.status === 'taught')    L.taughtAt = base - (s.taughtAgoH || 1) * 3600000;
+      if (s.status === 'completed') { L.taughtAt = L.endAt; L.closedAt = L.endAt + 3600000; L.closedBy = s.confirmedBy || 'learner'; }
+      var e = box && box.lessons ? validEntry(box.lessons[s.id]) : null;
+      if (e) {
+        L.status    = e.status;
+        L.startedAt = e.startedAt != null ? e.startedAt : L.startedAt;
+        L.taughtAt  = e.taughtAt  != null ? e.taughtAt  : L.taughtAt;
+        L.closedAt  = e.closedAt  != null ? e.closedAt  : L.closedAt;
+        L.closedBy  = e.closedBy  != null ? e.closedBy  : L.closedBy;
+        L.reason    = e.reason    != null ? e.reason    : null;   /* เหตุผลที่ผู้เรียนเลือกตอนแจ้งปัญหา */
+      }
+      return L;
+    });
+    /* คาบตั้งต้นที่เป็น taught อยู่แล้ว ต้องฝากลง storage ด้วย ไม่งั้นฝั่งผู้เรียนมองไม่เห็น
+       (ต้นแบบเท่านั้น — ของจริงสถานะอยู่ที่เซิร์ฟเวอร์ ทั้ง 2 ฝั่งอ่านที่เดียวกันอยู่แล้ว) */
+    var box0 = readBox();
+    LESSONS.forEach(function (L) {
+      if (L.status !== 'taught') return;
+      if (box0 && box0.lessons && box0.lessons[L.id]) return;
+      writeEntry(L.id, { status: 'taught', taughtAt: L.taughtAt, jobId: L.jobId, subject: L.subject, when: whenText(L) });
+    });
+    autoConfirm();
+  }
+
+  /* 🔴 ครบ 48 ชม. แล้วไม่มีใครกด = ระบบยืนยันเอง (Owner เคาะ 2026-08-24 · LOG 150)
+     ของจริงเป็นงานฝั่งเซิร์ฟเวอร์ — ที่นี่คำนวณตอนเปิดหน้าเพื่อให้เห็นพฤติกรรมเดียวกัน */
+  function autoConfirm() {
+    var limit = CONFIG.confirmWindowH * 3600000;
+    LESSONS.forEach(function (L) {
+      if (L.status === 'taught' && L.taughtAt && (now() - L.taughtAt) >= limit) {
+        L.status = 'completed'; L.closedAt = L.taughtAt + limit; L.closedBy = 'auto';
+        writeEntry(L.id, { status: 'completed', closedAt: L.closedAt, closedBy: 'auto' });
+      }
+    });
+  }
+
+  /* ── เงิน — คิดจากที่เดียว ห้ามคำนวณซ้ำในที่อื่น ───────────────────────── */
+  function gross(L) { return L.price * L.len / 60; }
+  function fee(L)   { return gross(L) * CONFIG.feeSingle; }   /* รายครั้ง — แพ็กเกจใช้ feePackage (ยังไม่มีคาบแบบแพ็กในต้นแบบ) */
+  function net(L)   { return gross(L) - fee(L); }
+
+  /* ── เวลา ─────────────────────────────────────────────────────────────── */
+  var DAY_TH = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  function clock(ts) { var d = new Date(ts); return two(d.getHours()) + ':' + two(d.getMinutes()); }
+  function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  /* 🔴 ทุกที่ที่พูดถึงเวลาของคาบ ต้องผ่าน dayWord() — เวลาเปล่า ๆ อ่านแล้วเข้าใจว่าเป็นวันนี้เสมอ
+     (เจอตอน smoke test 2026-08-24: ปุ่มบอก "กดได้เมื่อถึง 23:47 น." ทั้งที่คาบเป็นของพรุ่งนี้) */
+  function dayWord(ts) {
+    /* 🔴 เทียบกับ now() (นาฬิกาของหน้า) ไม่ใช่ Date.now() — ไม่งั้นกดปุ่มเดินเวลาแล้ว
+       การ์ดยังเขียนว่า "พรุ่งนี้" ทั้งที่หน้าเดินเวลาข้ามไปแล้ว (เจอตอน smoke test 2026-08-24) */
+    var d = new Date(ts), t = new Date(now()), tm = new Date(now() + 86400000);
+    return sameDay(d, t) ? 'วันนี้' : (sameDay(d, tm) ? 'พรุ่งนี้' : DAY_TH[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1));
+  }
+  function whenText(L) {
+    return dayWord(L.startAt) + ' ' + clock(L.startAt) + '-' + clock(L.endAt) + ' น.';
+  }
+  function leftText(ms) {
+    if (ms <= 0) return 'หมดเวลาแล้ว';
+    var h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return h >= 1 ? ('เหลือ ' + h + ' ชม. ' + m + ' นาที') : ('เหลือ ' + m + ' นาที');
+  }
+
+  /* ── หมวดของคาบ ────────────────────────────────────────────────────────── */
+  function bucket(L) {
+    if (L.status === 'completed' || L.status === 'disputed') return 'done';
+    if (L.status === 'taught') return 'wait';
+    if (L.status === 'in_progress') return 'today';
+    /* confirmed: วันนี้ = หมวดวันนี้ · วันอื่น = คาบที่จะถึง
+       🔴 คาบที่เลยเวลาไปแล้วแต่ครูไม่เคยกดอะไรเลย ต้องอยู่หมวดวันนี้ (= ที่ที่ครูเห็นและกดได้)
+          ห้ามปล่อยค้างในหมวด "คาบที่จะถึง" เพราะมันไม่ได้จะถึงอีกแล้ว */
+    if (now() > L.endAt) return 'today';
+    return sameDay(new Date(L.startAt), new Date(now())) ? 'today' : 'up';
+  }
+  function canStart(L) { return L.status === 'confirmed' && now() >= (L.startAt - CONFIG.earlyStartMin * 60000); }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     วาดการ์ด — โครง .j-card ชุดเดียวกับ my-jobs.html / job-board.html
+     ══════════════════════════════════════════════════════════════════════════ */
+  /* ── แถวคาบเรียน (ก้อน 3 · 2026-09-01) — ตามจอ ③ ในหน้า landing ────────
+     ท่าเดียวกับแถวในกระดานงาน (`.jrow`) เป๊ะ — กติกาโปรเจกต์: 2 หน้าห้ามหน้าตาคนละแบบ
+     🔴 การ์ดที่ยังมีเรื่องค้าง ห้ามวาดจางเหมือนงานที่ปิดแล้ว — disputed ยังไม่จบ
+        (กฎเดียวกับที่ my-jobs.html จดไว้ตอนผลตรวจ logic 2026-08-23)
+     🔴 ขวาสุด = ของฉัน 1 ชิ้นเสมอ ทุกสถานะโครงเดียวกัน
+     🔴 ยอดเงินย้ายไป teacher-earnings.html แล้ว แต่ยอดของ "คาบนี้" ยังต้องเห็นในแผงที่กางออก
+        (กติกาความโปร่งใส SYSTEM ข้อ 7 — ครูต้องเห็นทั้งยอดเต็มและยอดที่ได้จริง) */
+  function card(L) {
+    var isDone = bucket(L) === 'done' && L.status !== 'disputed';
+    var c = el('article', 'jrow' + (isDone ? ' is-closed' : ''));
+    c.setAttribute('data-lesson', L.id);
+
+    var main = el('button', 'jrow-main');
+    main.type = 'button';
+    main.setAttribute('aria-expanded', 'false');
+    main.setAttribute('aria-controls', 'lsdet-' + L.id);
+
+    var av = el('span', 'jav', (L.learner || '').replace(/^น้อง|^พี่/, '').slice(0, 1));
+    av.setAttribute('aria-hidden', 'true');
+    main.appendChild(av);
+
+    var txt = el('span', 'jtxt');
+    txt.appendChild(el('b', null, L.learner + ' · ' + L.subject));
+    txt.appendChild(el('small', null,
+      [whenText(L), MODE_LABEL[L.mode] || L.mode, (L.len / 60) + ' ชม.'].join(' · ')));
+    main.appendChild(txt);
+    c.appendChild(main);
+
+    /* ── ขวาสุด: ปุ่มที่กดได้ หรือป้ายบอกสถานะ ── */
+    var act = el('span', 'jact');
+    if (L.status === 'confirmed') {
+      if (canStart(L)) {
+        var bs = el('button', 'jbadge is-go', 'เริ่มคาบ');
+        bs.type = 'button'; bs.setAttribute('data-start', L.id);
+        act.appendChild(bs);
+      } else {
+        act.appendChild(el('span', 'jbadge is-off', 'ยังไม่ถึงเวลา'));
+      }
+    } else if (L.status === 'in_progress') {
+      var be = el('button', 'jbadge is-go', 'จบคาบ');
+      be.type = 'button'; be.setAttribute('data-end', L.id);
+      act.appendChild(be);
+    } else if (L.status === 'taught') {
+      /* จอ ③ โชว์ป้าย "เหลือ 41 ชม." — เอานาฬิกาจริงมาแสดงตรงนี้ */
+      var left = (L.taughtAt + CONFIG.confirmWindowH * 3600000) - now();
+      var lb = el('span', 'jbadge is-sent' + (left < 6 * 3600000 ? ' is-hot' : ''), leftText(left));
+      act.appendChild(lb);
+    } else if (L.status === 'completed') {
+      act.appendChild(el('span', 'jbadge is-ok', 'เรียบร้อย'));
+    } else if (L.status === 'disputed') {
+      act.appendChild(el('span', 'jbadge is-warn', 'ระหว่างตรวจสอบ'));
+    }
+    c.appendChild(act);
+
+    /* ── แผงรายละเอียด — ของเดิมทั้งหมด + คำอธิบายของแต่ละสถานะ ── */
+    var det = el('div', 'jdet');
+    det.id = 'lsdet-' + L.id;
+    det.hidden = true;
+
+    var head = el('div', 'jdet-head');
+    head.appendChild(el('span', 'jdet-title', L.subject + ' · ' + L.learner));
+    head.appendChild(el('span', 'j-code', '#' + L.jobId));
+    head.appendChild(el('span', 'st st--' + (STATUS_TONE[L.status] || 'wait'), STATUS_LABEL[L.status] || L.status));
+    det.appendChild(head);
+
+    var meta = el('div', 'j-meta');
+    [whenText(L), MODE_LABEL[L.mode] || L.mode, (L.len / 60) + ' ชม.'].forEach(function (t) {
+      meta.appendChild(el('span', 'tag tag--plain', t));
+    });
+    det.appendChild(meta);
+
+    var pay = el('div', 'pay-row');
+    var g = el('span', null, 'ผู้เรียนจ่าย ');
+    g.appendChild(el('b', null, baht(gross(L))));
+    pay.appendChild(g);
+    var n = el('span', null, 'คุณได้ ');
+    n.appendChild(el('b', null, baht(net(L))));
+    pay.appendChild(n);
+    pay.appendChild(el('span', 'pay-fee', 'ค่าแพลตฟอร์ม ' + Math.round(CONFIG.feeSingle * 100) + '%'));
+    det.appendChild(pay);
+
+    det.appendChild(actions(L));
+
+    c.appendChild(det);
+
+    main.addEventListener('click', function () {
+      var open = det.hidden;
+      det.hidden = !open;
+      main.setAttribute('aria-expanded', open ? 'true' : 'false');
+      c.classList.toggle('is-open', open);
+    });
+
+    return c;
+  }
+
+  function actions(L) {
+    var act = el('div', 'j-actions'), note = '', btn = null, extra = null;
+
+    if (L.status === 'confirmed') {
+      if (canStart(L)) {
+        /* 🔴 เลยเวลาเลิกคาบแล้วแต่ยังไม่มีใครกดเริ่ม = ต้องเตือน ไม่ใช่เงียบ
+           (เวลาผ่านไปไม่ได้แปลว่าคาบเกิดขึ้น — SYSTEM ข้อ 14 ที่แก้ 2026-08-24) */
+        note = now() > L.endAt
+          ? 'เลยเวลาเลิกคาบไปแล้วและยังไม่ได้กดเริ่ม — ถ้าสอนไปแล้วให้กดเริ่มแล้วกดจบคาบตามจริง'
+          : 'ถึงเวลาเข้าสอนแล้ว — กดเริ่มคาบเพื่อบันทึกว่าคาบนี้เกิดขึ้นจริง';
+        btn = el('button', 'btn btn-primary btn-sm', 'เริ่มคาบ');
+        btn.type = 'button';
+        btn.setAttribute('data-start', L.id);
+      } else {
+        /* ⚠️ วัน/เวลาต้องคิดจาก "เวลาที่กดได้" ไม่ใช่เวลาเริ่มคาบ — คาบตี 0 ของพรุ่งนี้ กดได้ 23:49 ของวันนี้ */
+        var openAt = L.startAt - CONFIG.earlyStartMin * 60000;
+        note = 'กดเริ่มคาบได้เมื่อถึง ' + dayWord(openAt) + ' ' + clock(openAt)
+             + ' น. (' + CONFIG.earlyStartMin + ' นาทีก่อนเวลาเรียน)';
+        btn = el('button', 'btn btn-secondary btn-sm', 'ยังกดเริ่มไม่ได้');
+        btn.type = 'button';
+        btn.disabled = true;
+      }
+    } else if (L.status === 'in_progress') {
+      note = 'เริ่มคาบเมื่อ ' + clock(L.startedAt) + ' น. — กดจบคาบเมื่อสอนเสร็จ';
+      btn = el('button', 'btn btn-primary btn-sm', 'จบคาบ');
+      btn.type = 'button';
+      btn.setAttribute('data-end', L.id);
+    } else if (L.status === 'taught') {
+      var left = (L.taughtAt + CONFIG.confirmWindowH * 3600000) - now();
+      var dl = el('span', 'j-note');
+      dl.appendChild(document.createTextNode('รอผู้เรียนยืนยัน · '));
+      var s = el('b', 'dl' + (left < 6 * 3600000 ? ' is-hot' : ''), leftText(left));
+      dl.appendChild(s);
+      dl.appendChild(document.createTextNode(' · ครบแล้วระบบยืนยันให้เอง แล้วยอดเข้ารอบโอน'));
+      act.appendChild(dl);
+      return act;
+    } else if (L.status === 'completed') {
+      note = (L.closedBy === 'auto' ? 'ครบ 48 ชม. ระบบยืนยันให้เอง' : 'ผู้เรียนยืนยันแล้ว')
+           + ' · ยอด ' + baht(net(L)) + ' เข้า' + CONFIG.payoutRoundTh;
+    } else if (L.status === 'disputed') {
+      /* ครูต้องรู้ว่าถูกแจ้งเรื่องอะไร ไม่ใช่รู้แค่ว่ามีปัญหา (กติกาความโปร่งใส SYSTEM ข้อ 7) */
+      note = 'ผู้เรียนแจ้ง: ' + (REASON_LABEL[L.reason] || 'มีปัญหากับคาบนี้')
+           + ' · ยอด ' + baht(net(L)) + ' ถูกพักไว้จนกว่าแอดมินจะได้ข้อสรุป';
+    }
+
+    if (note) act.appendChild(el('span', 'j-note', note));
+    if (extra) act.appendChild(extra);
+    if (btn) act.appendChild(btn);
+    return act;
+  }
+
+  /* ── กล่องว่างของแต่ละหมวด — ต้องบอกทางไปต่อเสมอ (ห้ามว่างเปล่า) ───────── */
+  var EMPTY = {
+    today: { head: 'วันนี้ยังไม่มีคาบ', body: 'คาบที่ผู้เรียนจ่ายเงินแล้วจะขึ้นที่นี่ในวันที่ถึงคิวสอน', href: 'job-board.html', cta: 'ดูงานบนกระดาน' },
+    up:    { head: 'ยังไม่มีคาบที่จะถึง', body: 'ยื่นข้อเสนอบนกระดานงาน หรือรอผู้เรียนจองตรงเข้ามา', href: 'job-board.html', cta: 'ไปกระดานงาน' },
+    wait:  { head: 'ไม่มีคาบที่รอยืนยัน', body: 'พอคุณกดจบคาบ คาบนั้นจะมารออยู่ตรงนี้ 48 ชั่วโมง', href: '', cta: '' },
+    done:  { head: 'ยังไม่มีคาบที่จบแล้ว', body: 'คาบที่ผู้เรียนยืนยันแล้วจะถูกเก็บไว้ตรงนี้พร้อมยอดที่ปลดล็อก', href: '', cta: '' }
+  };
+  function emptyBox(kind) {
+    var d = EMPTY[kind], box = el('div', 'empty-state');
+    box.appendChild(el('h3', null, d.head));
+    box.appendChild(el('p', null, d.body));
+    if (d.href) {
+      var a = el('a', 'btn btn-secondary btn-sm', d.cta);
+      a.href = d.href;
+      box.appendChild(a);
+    }
+    return box;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     วาดทั้งหน้า
+     ══════════════════════════════════════════════════════════════════════════ */
+  function render() {
+    autoConfirm();
+    var groups = { today: [], up: [], wait: [], done: [] };
+    LESSONS.forEach(function (L) { groups[bucket(L)].push(L); });
+
+    /* คาบที่ใกล้ที่สุดอยู่บนสุดในหมวดที่ยังไม่จบ · หมวดจบแล้วเรียงใหม่สุดก่อน */
+    groups.today.sort(function (a, b) { return a.startAt - b.startAt; });
+    groups.up.sort(function (a, b) { return a.startAt - b.startAt; });
+    groups.wait.sort(function (a, b) { return (a.taughtAt || 0) - (b.taughtAt || 0); });
+    groups.done.sort(function (a, b) { return (b.closedAt || b.endAt) - (a.closedAt || a.endAt); });
+
+    /* 🔴 ก้อน 3 — จอ ③ มี 3 แท็บ แต่ของจริงแบ่งเป็น 4 หมวด
+       -> ยุบ "คาบที่จะถึง" (up) เข้าแท็บ "คาบวันนี้" แล้วเรียงตามเวลาเริ่ม
+          คาบวันนี้จึงลอยขึ้นบนสุดเอง และทุกแถวบอกวันของตัวเองอยู่แล้ว (whenText)
+       🚩 ถ้า Owner อยากได้แท็บที่ 4 แยก -> เอา groups.up ออกมาวาดใส่แผงใหม่ได้ทันที
+          ตัวแบ่งยังอยู่ที่ bucket() เหมือนเดิม ไม่ได้ลบทิ้ง */
+    var tab1 = groups.today.concat(groups.up).sort(function (a, b) { return a.startAt - b.startAt; });
+
+    [[tab1, 'list-today', 'n-today', 'today'],
+     [groups.wait, 'list-wait', 'n-wait', 'wait'],
+     [groups.done, 'list-done', 'n-done', 'done']].forEach(function (r) {
+      var arr = r[0], box = $(r[1]);
+      box.textContent = '';
+      if (!arr.length) box.appendChild(emptyBox(r[3]));
+      else arr.forEach(function (L) { box.appendChild(card(L)); });
+      $(r[2]).textContent = String(arr.length);
+    });
+
+    /* 🔴 แถบยอดเงินย้ายไปหน้า teacher-earnings.html แล้ว (ก้อน 4 · ตามสเปกจอ ④)
+       ตัวเลขรายคาบยังอยู่ในแผงที่กางออกจากแถว จึงไม่มีข้อมูลไหนหายจากหน้านี้ */
+
+    var nToday = groups.today.length;
+    var q = $('quota-mobile');
+    if (q) {
+      q.lastElementChild.textContent = String(nToday);
+      /* ป้ายตัวเลขคาบวันนี้ต้องเปลี่ยนสีเมื่อมีคาบรออยู่
+         (ผลตรวจ perf 2026-08-24 · ทรงเดียวกับ my-jobs.html ค้น is-hot) */
+      q.classList.toggle('is-hot', nToday > 0);
+    }
+  }
+
+  /* ── ข้อความแจ้งผล (aria-live) ─────────────────────────────────────────── */
+  function say(msg) {
+    var box = $('live-note');
+    $('live-text').textContent = msg;
+    box.hidden = false;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     แผงยืนยันจบคาบ
+     ══════════════════════════════════════════════════════════════════════════ */
+  var pendingEnd = null, lastTrigger = null;
+  function openEnd(L, trigger) {
+    pendingEnd = L; lastTrigger = trigger || null;
+    var sum = $('em-sum');
+    sum.textContent = '';
+    sum.appendChild(el('b', null, L.subject + ' · ' + L.learner));
+    sum.appendChild(el('span', null, whenText(L) + ' · ' + (MODE_LABEL[L.mode] || L.mode)));
+    $('em-note-text').textContent = 'ยอดของคาบนี้ ' + baht(net(L))
+      + ' จะปลดล็อกเมื่อได้รับการยืนยัน แล้วเข้า' + CONFIG.payoutRoundTh + ' (ยังไม่ประกาศรอบโอน)';
+    $('end-modal').hidden = false;
+    $('em-go').focus();
+  }
+  function closeEnd() {
+    $('end-modal').hidden = true;
+    pendingEnd = null;
+    if (lastTrigger && document.body.contains(lastTrigger)) lastTrigger.focus();
+    lastTrigger = null;
+  }
+  $('end-modal').addEventListener('click', function (ev) {
+    if (ev.target.getAttribute && ev.target.getAttribute('data-close')) closeEnd();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && !$('end-modal').hidden) closeEnd();
+  });
+  $('em-go').addEventListener('click', function () {
+    if (!pendingEnd) return;
+    var L = pendingEnd;
+    /* ตรวจซ้ำตอนกดจริงเหมือนกัน — แผงอาจเปิดค้างข้ามรอบวาด (วินัยเดียวกับปุ่มบนการ์ด) */
+    if (L.status !== 'in_progress') { closeEnd(); render(); say('คาบนี้ไม่ได้อยู่ในสถานะกำลังสอน — กดจบคาบไม่ได้'); return; }
+    L.status = 'taught'; L.taughtAt = now();
+    /* 🔴 ต้องฝาก jobId/subject/when ไปด้วย — ฝั่งผู้เรียน (my-jobs.html ค้น pendingLesson)
+       ต้องบอกได้ว่าคาบนี้เป็นของงานใบไหน ไม่งั้นการ์ดยืนยันไปโผล่ผิดใบ */
+    writeEntry(L.id, { status: 'taught', taughtAt: L.taughtAt, startedAt: L.startedAt,
+                       jobId: L.jobId, subject: L.subject, when: whenText(L) });
+    /* 🔴 ปุ่ม "จบคาบ" ที่เป็นตัวเปิดแผง กำลังจะถูก render() ลบทิ้ง (คาบย้ายไปหมวดรออื่น)
+       ถ้าปล่อยให้ closeEnd() คืนโฟกัสไปที่ปุ่มนั้น โฟกัสจะตกพื้นทันทีที่วาดใหม่
+       → ตัด lastTrigger ทิ้งแล้วส่งโฟกัสไปที่แถบแจ้งผลแทน (ผลตรวจ perf 2026-08-24) */
+    lastTrigger = null;
+    closeEnd();
+    render();
+    say('บันทึกว่าจบคาบ ' + L.subject + ' · ' + L.learner + ' แล้ว — ผู้เรียนมีเวลายืนยัน '
+      + CONFIG.confirmWindowH + ' ชั่วโมง · ยอด ' + baht(net(L)) + ' รอปลดล็อก');
+    $('live-note').focus();
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     ปุ่มบนการ์ด (event delegation — การ์ดถูกวาดใหม่ทุกครั้ง)
+     ══════════════════════════════════════════════════════════════════════════ */
+  function find(id) {
+    for (var i = 0; i < LESSONS.length; i++) if (LESSONS[i].id === id) return LESSONS[i];
+    return null;
+  }
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+
+    var sid = t.getAttribute('data-start');
+    if (sid) {
+      var L = find(sid);
+      /* 🔴 ตรวจซ้ำตอนกดจริง ไม่เชื่อว่าปุ่มที่โผล่มาแปลว่ากดได้ (ปุ่มอาจค้างจากรอบก่อน) */
+      if (!L || !canStart(L)) { say('ยังกดเริ่มคาบนี้ไม่ได้ — เริ่มได้ ' + CONFIG.earlyStartMin + ' นาทีก่อนเวลาเรียน'); render(); return; }
+      L.status = 'in_progress'; L.startedAt = now();
+      writeEntry(L.id, { status: 'in_progress', startedAt: L.startedAt });
+      render();
+      say('เริ่มคาบ ' + L.subject + ' · ' + L.learner + ' แล้ว เวลา ' + clock(L.startedAt) + ' น.');
+      return;
+    }
+
+    var eid = t.getAttribute('data-end');
+    if (eid) {
+      var L2 = find(eid);
+      if (!L2 || L2.status !== 'in_progress') { say('คาบนี้ยังไม่ได้กดเริ่ม — ต้องกดเริ่มคาบก่อนถึงจะจบคาบได้'); render(); return; }
+      openEnd(L2, t);
+    }
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     ปุ่มจำลอง — ต้นแบบเท่านั้น ของจริงไม่มีปุ่มพวกนี้
+     ══════════════════════════════════════════════════════════════════════════ */
+  function bumpClock(ms) {
+    var v = skewMs() + ms;
+    try { lessonStore.setItem(CLOCK_KEY, String(v)); } catch (e) { }
+  }
+  function firstOf(status) {
+    for (var i = 0; i < LESSONS.length; i++) if (LESSONS[i].status === status) return LESSONS[i];
+    return null;
+  }
+  $('sim-forward').addEventListener('click', function () {
+    bumpClock(3600000); render(); say('เดินเวลาไป 1 ชั่วโมง (เวลาในหน้านี้ตอนนี้ ' + clock(now()) + ' น.)');
+  });
+  $('sim-48').addEventListener('click', function () {
+    var L = firstOf('taught');
+    if (!L) { say('ตอนนี้ไม่มีคาบที่รอยืนยัน — กดจบคาบสักคาบก่อน'); return; }
+    var need = (L.taughtAt + CONFIG.confirmWindowH * 3600000) - now() + 60000;
+    if (need > 0) bumpClock(need);
+    render();
+    say('ครบ ' + CONFIG.confirmWindowH + ' ชม. แล้ว — ระบบยืนยันคาบให้เอง ยอดปลดล็อกเข้ารอบโอน');
+  });
+  $('sim-learner-ok').addEventListener('click', function () {
+    var L = firstOf('taught');
+    if (!L) { say('ตอนนี้ไม่มีคาบที่รอยืนยัน'); return; }
+    L.status = 'completed'; L.closedAt = now(); L.closedBy = 'learner';
+    writeEntry(L.id, { status: 'completed', closedAt: L.closedAt, closedBy: 'learner' });
+    render();
+    say('ผู้เรียนกดยืนยันคาบ ' + L.subject + ' · ' + L.learner + ' แล้ว — ยอด ' + baht(net(L)) + ' ปลดล็อก');
+  });
+  $('sim-dispute').addEventListener('click', function () {
+    var L = firstOf('taught');
+    if (!L) { say('ตอนนี้ไม่มีคาบที่รอยืนยัน'); return; }
+    L.status = 'disputed'; L.closedAt = now(); L.closedBy = 'dispute'; L.reason = 'teacher_no_show';
+    writeEntry(L.id, { status: 'disputed', closedAt: L.closedAt, closedBy: 'dispute', reason: L.reason });
+    render();
+    say('ผู้เรียนแจ้งปัญหาคาบ ' + L.subject + ' · ' + L.learner + ' — ยอดยังไม่ปลดล็อก รอแอดมินตรวจสอบ');
+  });
+  $('sim-reset').addEventListener('click', function () {
+    try { lessonStore.removeItem(LESSON_KEY); lessonStore.removeItem(CLOCK_KEY); } catch (e) { }
+    build(); render();
+    say('เริ่มใหม่แล้ว — ข้อมูลกลับไปเป็นชุดตั้งต้น');
+  });
+
+  /* ══ สารบัญซ้าย: ไฮไลต์หมวดที่กำลังอ่าน — 🔴 สำเนาจาก my-jobs.html (ค้น "สารบัญซ้าย")
+     รอบแรกผมก๊อบ CSS `.sidenav a.active` มาแต่ไม่ได้ก๊อบตัวที่ใส่คลาสให้ → แถบเมนูไม่เคยไฮไลต์เลย
+     (ผลตรวจ perf 2026-08-24 · ความผิดผมเอง) ══ */
+  var navLinks = document.querySelectorAll('.sidenav a');
+  var secs = [].map.call(navLinks, function (a) { return document.querySelector(a.getAttribute('href')); });
+  if (window.IntersectionObserver) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          var id = '#' + en.target.id;
+          [].forEach.call(navLinks, function (a) { a.classList.toggle('active', a.getAttribute('href') === id); });
+        }
+      });
+    }, { rootMargin: '-40% 0px -50% 0px' });
+    secs.forEach(function (s) { if (s) spy.observe(s); });
+  }
+
+  /* ══ เริ่มทำงาน ══ */
+  $('me-name').textContent = ME.name;
+  $('me-subjects').textContent = ME.subjects.join(' · ');
+  $('me-rate').textContent = baht(ME.rate) + '/ชม.';
+  build();
+  render();
+
+  /* ── สลับแท็บ (ก้อน 3 · 2026-09-01) ──
+     🔴 สลับด้วย hidden ตรง ๆ ห้ามใส่ transition (กับดักที่รู้แล้ว)
+     ชุดเดียวกับ job-board.html — ถ้าแก้ที่นี่ ต้องไปแก้อีกหน้าด้วย */
+  var TABS = ['today', 'wait', 'done'];
+  function goTab(name) {
+    if (TABS.indexOf(name) === -1) name = 'today';
+    TABS.forEach(function (t) {
+      var btn = $('tab-' + t), panel = $('panel-' + t), on = t === name;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      panel.hidden = !on;
+    });
+    try { sessionStorage.setItem('bgt_tj_tab', name); } catch (e) {}
+  }
+  TABS.forEach(function (t) {
+    $('tab-' + t).addEventListener('click', function () { goTab(t); });
+  });
+  $('tab-today').parentNode.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    var cur = TABS.filter(function (t) { return $('tab-' + t).classList.contains('is-on'); })[0] || 'today';
+    var i = TABS.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : -1);
+    var next = TABS[(i + TABS.length) % TABS.length];
+    goTab(next); $('tab-' + next).focus(); e.preventDefault();
+  });
+  var savedTab = null;
+  try { savedTab = sessionStorage.getItem('bgt_tj_tab'); } catch (e) {}
+  goTab(savedTab || 'today');
+
+  /* นาฬิกาบนการ์ดที่รอยืนยัน เดินทุก 1 นาที (ไม่ใช่ทุกวินาที — การ์ดจะกระตุก)
+     🔴 render() สร้างการ์ดใหม่ทั้งหมด = ปุ่มที่ผู้ใช้ Tab ค้างไว้ถูกลบ โฟกัสเด้งกลับหัวเว็บทุก 60 วินาที
+        ต้องจำปุ่มที่โฟกัสอยู่แล้วคืนให้หลังวาด (ผลตรวจ perf 2026-08-24) */
+  setInterval(function () {
+    if (!$('end-modal').hidden) return;   /* แผงเปิดอยู่ = วาดหลังแผง = งานเปล่า */
+    var need = false;
+    for (var i = 0; i < LESSONS.length; i++) {
+      if (LESSONS[i].status === 'taught' || LESSONS[i].status === 'confirmed') { need = true; break; }
+    }
+    if (!need) return;
+    var a = document.activeElement;
+    var attr = a && a.getAttribute && a.getAttribute('data-start') ? 'data-start'
+             : (a && a.getAttribute && a.getAttribute('data-end') ? 'data-end' : null);
+    var keep = attr ? a.getAttribute(attr) : null;
+    render();
+    if (keep) {
+      var back = document.querySelector('[' + attr + '="' + keep + '"]');
+      if (back) back.focus();
+    }
+  }, 60000);
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

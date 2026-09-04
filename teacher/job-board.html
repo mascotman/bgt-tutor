@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ข้อมูลไม่ถูกบันทึกที่ไหน
+  ขั้น 5ข — "กระดานงาน + ยื่นข้อเสนอ" ฝั่งครู  (ฝั่งผู้เรียนตั้งโพสต์ = ขั้น 5ก post-job.html)
+  ระบบดีไซน์: design.md + tokens.css (ห้ามสร้างสีหรือฟอนต์ใหม่ในไฟล์นี้)
+
+  🔗 ของที่หน้านี้ "ยืมมาใช้ ห้ามออกแบบใหม่":
+     · การ์ดงาน = โครง .j-card ชุดเดียวกับ post-job.html (.j-top .j-title .j-code .tag-group .j-meta .j-body .j-foot .j-price)
+       -> ครูต้องเห็นหน้าตาเดียวกับที่ผู้เรียนพรีวิวไว้ตอนโพสต์
+     · วิชา/ระดับชั้น/จังหวัด/ช่วงเวลา = ลิสต์กลางชุดเดียวกับหน้าสมัคร (ห้ามตั้งชื่อขึ้นมาเอง)
+     · gradeToLevel() = ตัวแปลงตัวเดียวกับ teacher-search.html / post-job.html
+     · contactRisk() = ยาม PDPA ตัวเดียวกับ post-job.html (ผ่านเทสต์ 13 เคสแล้ว) ใช้กับข้อความที่ "ครู" พิมพ์บ้าง
+  🔐 การ์ดงานห้ามแสดง: เบอร์ · ID LINE · ที่อยู่เต็ม · ชื่อ-นามสกุลจริง — โชว์ได้แค่ชื่อเล่น + จังหวัด/ย่าน
+  ⚠️ แผง/modal ห้ามใช้ transition+visibility -> สลับ display:none/flex ตรง ๆ (กับดักที่รู้แล้ว)
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่อาจมีเงื่อนไขของผู้เรียน) หลุดไปกับ Referer ตอนโหลดฟอนต์/ลิงก์ออกนอกเว็บ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>กระดานงาน — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-jobrow.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
+<style>
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5
+ * Hallmark · macrostructure: Ecosystem Index · genre: modern-minimal · design-system: design.md · designed-as-app
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none (typography only)
+ * ขั้น 5ข — ชื่อคลาสร่วมกับ post-job.html / teacher-search.html ทั้งหมด ห้ามคิดชื่อใหม่ให้ของเดิม
+ *
+ * ⚠️ คลาสใหม่ที่หน้านี้เพิ่ม (ไม่มีในหน้าอื่น) และเหตุผลที่ต้องเป็นตัวแปรของตัวเอง:
+ *    .rail / .rail-track = แถวเลื่อนแนวนอน (ชั้นการค้นพบ) — เป็นภาชนะ ไม่ใช่การ์ด
+ *    .j-actions / .j-state = แถบสถานะ+ปุ่มของครู ต่อท้ายการ์ดงาน — ผู้เรียนไม่มีแถบนี้
+ *    .modal* = แผงยื่นข้อเสนอ
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* [hidden] ต้องประกาศในชั้นของเราเอง ไม่งั้นคลาสที่มี display: จะทับ (บั๊ก 2026-08-13) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);color:var(--color-ink);
+  line-height:1.65;font-size:16px;overflow-x:clip;background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.sec-num,.chip{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1200px;width:100%;margin:0 auto;padding:0 var(--space-5)}
+
+/* 🔴 2026-09-01 — เดิมเป็น flex เพื่อวางเมนูข้าง พอเอา .topbar มาไว้ข้างใน
+   แถบบนกลายเป็น "คอลัมน์ซ้าย" กินที่ครึ่งจอ (Owner เห็นจากภาพ)
+   ต้องเป็น block เหมือนหน้าครูอื่นทุกหน้า */
+.page-shell{display:block;min-height:100vh}
+.content-col{flex:1;min-width:0;display:flex;flex-direction:column}
+/* 🐞 .wrap ที่เป็นลูกตรงของ .content-col ต้อง width:100% (auto margin ทับ stretch) */
+.content-col > .wrap{width:100%}
+/* 🔴 ถอดแล้ว — ไม่มีเมนูข้างให้วางข้าง ๆ อีกต่อไป */
+
+.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
+  color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);white-space:nowrap;
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+}
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
+    position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-8)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.sidenav-num{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;color:var(--color-muted);min-width:20px;font-variant-numeric:tabular-nums;text-align:right}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a.active .sidenav-num{color:var(--color-accent-deep)}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+.side-note{
+  margin-top:auto;padding-top:var(--space-6);font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55;
+  border-top:1px solid var(--color-rule);
+}
+.side-note strong{display:block;font-family:var(--font-display);color:var(--color-ink);margin-bottom:4px}
+
+/* ── ตัวนับข้อเสนอค้าง — ต้องเห็นตลอดทั้งจอเล็กและจอใหญ่ ─────────
+   จอเล็ก: อยู่ในแถบหัวที่ sticky · จอใหญ่: อยู่ใน sidebar ที่ sticky */
+.quota{
+  display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;
+  border-radius:var(--radius-pill);background:var(--color-paper-2);border:1px solid var(--color-rule);
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--color-ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.quota .q-num{color:var(--color-accent-deep)}
+.quota.is-full{background:var(--color-error-soft);border-color:var(--color-error);color:var(--color-error)}
+.quota.is-full .q-num{color:var(--color-error)}
+.side-quota{margin-top:var(--space-6);padding:var(--space-4);border:1px solid var(--color-rule);border-radius:var(--radius-md);background:var(--color-surface)}
+.side-quota .quota{width:100%;justify-content:center}
+.side-quota p{margin-top:var(--space-2);font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.5}
+
+/* ── หัวหน้า (Ecosystem Index = ย่อหน้าบอกตำแหน่ง ไม่ใช่พาดหัวใหญ่) ── */
+.hero-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.intro{padding:var(--space-12) 0 var(--space-8)}
+.intro .eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);margin-bottom:var(--space-4);
+}
+.intro h1{font-size:var(--text-2xl);line-height:1.25;max-width:24ch}
+.intro p{margin-top:var(--space-4);color:var(--color-ink-2);font-size:var(--text-base);max-width:62ch;line-height:1.65}
+
+/* แถบ "กำลังดูในนามใคร" — ครูต้องรู้ว่ากระดานกรองจากโปรไฟล์ตัวเอง */
+.me-strip{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);
+  margin-top:var(--space-6);padding:var(--space-4) var(--space-5);
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+}
+.me-who{display:flex;align-items:center;gap:10px;font-weight:600}
+.me-avatar{
+  width:40px;height:40px;border-radius:50%;flex:0 0 auto;background:var(--color-accent-soft);
+  color:var(--color-accent-deep);font-family:var(--font-display);font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.me-facts{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2);min-width:0}
+.me-facts b{color:var(--color-ink);font-weight:600}
+.me-strip .back-link{margin-left:auto}
+
+/* ── ชั้นการค้นพบ (rail) ───────────────────────────────────────── */
+.rail{padding:var(--space-10) 0 var(--space-2)}
+.rail + .rail{padding-top:var(--space-8)}
+.rail-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-2)}
+.rail-head h2{font-size:var(--text-lg)}
+.rail-count{font-size:var(--text-sm);color:var(--color-ink-2);font-variant-numeric:tabular-nums}
+.rail-more{
+  margin-left:auto;font-size:var(--text-sm);font-weight:600;color:var(--color-accent-deep);
+  background:none;border:none;cursor:pointer;font-family:var(--font-sans);
+  min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 4px;border-radius:var(--radius-sm);
+}
+.rail-more:hover{text-decoration:underline}
+.rail-more:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.rail-why{font-size:var(--text-sm);color:var(--color-ink-2);margin-bottom:var(--space-4);max-width:60ch}
+.rail-track{
+  display:flex;align-items:flex-start;   /* เหตุผลเดียวกับ .board-list — ห้ามยืดการ์ดให้สูงเท่ากันจนเกิดช่องว่างค้าง */
+  gap:var(--space-4);overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x proximity;padding:2px 2px var(--space-4);
+  scrollbar-width:thin;
+}
+.rail-track > .j-card{flex:0 0 min(360px,84%);scroll-snap-align:start}
+.rail-track .j-body{--lines:3}   /* แถวเลื่อนการ์ดเตี้ยกว่า ตัดที่ 3 บรรทัด (รายการล่างตัดที่ 5) */
+.rail-empty{
+  border:1px dashed var(--color-rule-2);border-radius:var(--radius-md);
+  padding:var(--space-6);font-size:var(--text-sm);color:var(--color-ink-2);background:var(--color-paper-2);
+}
+
+/* ── ส่วนรายการทั้งหมด ─────────────────────────────────────────── */
+.board{padding:var(--space-10) 0 var(--space-16);scroll-margin-top:var(--space-12)}
+.board-head{margin-bottom:var(--space-5)}
+.board-head h2{font-size:var(--text-xl)}
+.board-head p{color:var(--color-ink-2);font-size:var(--text-sm);margin-top:var(--space-2)}
+.filters{
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+  padding:var(--space-5);box-shadow:var(--shadow-raise);
+}
+.filter-grid{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.field .lbl{font-size:var(--text-sm);font-weight:600;color:var(--color-ink)}
+.field .req{color:var(--color-error);margin-left:2px}
+.field .helper{font-size:var(--text-sm);color:var(--color-ink-2)}
+.field .helper.err{color:var(--color-error);font-weight:600}
+input[type=text],input[type=number],select,textarea{
+  height:var(--control-h);font:inherit;font-size:var(--text-base);color:var(--color-ink);
+  background:var(--color-surface);border:1px solid var(--color-rule-2);
+  outline:2px solid transparent;outline-offset:1px;border-radius:var(--radius-md);
+  padding:0 14px;width:100%;
+  transition:background-color var(--dur-short) var(--ease-out),border-color var(--dur-short) var(--ease-out);
+}
+textarea{height:auto;min-height:6.5rem;padding:12px 14px;resize:vertical;line-height:1.6}
+input:hover,select:hover,textarea:hover{border-color:var(--color-ink-2)}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--color-focus);border-color:var(--color-focus)}
+input::placeholder,textarea::placeholder{color:var(--color-muted)}
+input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--color-error);background:var(--color-error-soft)}
+
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  position:relative;flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 16px;white-space:nowrap;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);
+  background:var(--color-surface);font-size:var(--text-sm);font-weight:600;color:var(--color-ink);
+  cursor:pointer;user-select:none;transition:background-color var(--dur-short) var(--ease-out);
+}
+.chip input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.chip:has(input:checked){background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+.chip:has(input:focus-visible){outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.chip:hover{background:var(--color-paper-2)}.chip:has(input:checked):hover{background:var(--color-accent)}}
+
+.filter-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--color-rule)}
+.result-count{font-size:var(--text-base);font-weight:600;font-variant-numeric:tabular-nums}
+.result-count span{color:var(--color-accent-deep)}
+.link-btn{
+  background:none;border:none;font:inherit;font-size:var(--text-sm);font-weight:600;color:var(--color-accent-deep);
+  cursor:pointer;min-height:44px;display:inline-flex;align-items:center;padding:0 4px;border-radius:var(--radius-sm);
+}
+.link-btn:hover{text-decoration:underline}
+.link-btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.sort-inline{display:flex;align-items:center;gap:var(--space-2);margin-left:auto;font-size:var(--text-sm);color:var(--color-ink-2)}
+.sort-inline select{height:44px;width:auto;min-width:170px;font-size:var(--text-sm)}
+
+/* 💡 กับดักที่รู้แล้ว: หน้าที่แบ่ง 2 คอลัมน์ต้องวัดจาก "ความกว้างคอลัมน์จริง" ไม่ใช่ความกว้างจอ
+   (จอ 900-1280 โดน sidebar 264px กินไปแล้ว) -> ใช้ container query ไม่ใช่ media query */
+.board .wrap{container-type:inline-size}
+/* 🔴 align-items:start (Owner ทัก 2026-08-14 รอบ 3: "ช่องนึงเว้นว่างเยอะมาก")
+   ค่าเริ่มต้นของกริดคือ stretch = การ์ดทุกใบในแถวถูกยืดให้สูงเท่าใบที่สูงสุด
+   -> ใบที่ข้อความสั้นเลยมี "ช่องว่างค้าง" ระหว่างข้อความกับราคา (ยิ่งใบข้าง ๆ กด "อ่านต่อ" ยิ่งเห็นชัด)
+   -> ให้การ์ดสูงตามเนื้อหาตัวเอง หัวการ์ดยังตรงกันอยู่ดี ก้นไม่เท่ากันได้ไม่เป็นไร */
+.board-list{display:grid;gap:var(--space-5);margin-top:var(--space-6);grid-template-columns:minmax(0,1fr);align-items:start}
+@container (min-width:880px){.board-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.empty-state{
+  border:1px dashed var(--color-rule-2);border-radius:var(--radius-lg);background:var(--color-paper-2);
+  padding:var(--space-10) var(--space-6);text-align:center;color:var(--color-ink-2);
+}
+.empty-state strong{display:block;font-family:var(--font-display);color:var(--color-ink);font-size:var(--text-lg);margin-bottom:var(--space-2)}
+
+/* ── การ์ดงาน = โครงเดียวกับ post-job.html (ห้ามแก้ความหมายของคลาสพวกนี้) ── */
+.j-card{--card-pad:var(--space-6);background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--card-pad);box-shadow:var(--shadow-raise);display:flex;flex-direction:column}
+.j-top{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.j-title{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);line-height:1.3;overflow-wrap:anywhere}
+.j-code{font-size:var(--text-sm);color:var(--color-muted);font-variant-numeric:tabular-nums}
+/* แท็ก 2 ชนิด = design.md ข้อ 4 · วิชา = เขียวทึบ ตัวหนังสือขาว · ระดับชั้น = ฟ้าอ่อน
+   🔴 แถวนี้ต้องเป็นแท็กล้วน ห้ามมีคำอธิบายแทรก (Owner ตีตกมาแล้ว) */
+.tag-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-4)}
+.tag{
+  display:inline-flex;align-items:center;
+  background:var(--color-subject);color:var(--color-surface);
+  font-size:var(--text-sm);font-weight:600;padding:5px 10px;border-radius:var(--radius-sm);
+}
+.tag--plain{background:var(--color-level-soft);color:var(--color-level);font-weight:600}
+.j-meta{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.j-meta span{display:inline-flex;align-items:center;gap:6px}
+.j-meta .ic{color:var(--color-accent-deep)}
+/* ⚠️ ข้อความของผู้เรียนยาวไม่เท่ากัน (เพดาน 200 ตัวอักษรใน post-job.html · Owner เคาะ 2026-08-14)
+   -> ถ้าปล่อยเต็ม การ์ดจะสูงไม่เท่ากันจนกระดานอ่านไม่ออก · ตัดที่จำนวนบรรทัด แล้วให้กด "อ่านต่อ" ในที่เดิม
+   (ตัดด้วยบรรทัด ไม่ใช่ตัดด้วยจำนวนตัวอักษร เพราะความกว้างการ์ดเปลี่ยนตามจอ) */
+.j-body{margin-top:var(--space-4);font-size:var(--text-base);color:var(--color-ink);line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;
+  --lines:5;display:-webkit-box;-webkit-line-clamp:var(--lines);line-clamp:var(--lines);-webkit-box-orient:vertical;overflow:hidden}
+.j-body.is-open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+.j-more{align-self:flex-start;margin-top:2px}
+/* margin-top:auto = กลุ่มท้ายการ์ด (ราคา+เวลา แล้วต่อด้วยแถบปุ่ม) ถูกดันไปแปะก้นการ์ดเสมอ
+   -> การ์ดในกริดที่เนื้อหายาวไม่เท่ากัน ปุ่มยังอยู่ระดับเดียวกัน ไม่ลอยกลางการ์ด */
+.j-foot{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;margin-top:auto;padding-top:var(--space-5);border-top:1px solid var(--color-rule)}
+.j-price{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-ink)}
+.j-price small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+
+/* ── แถบท้ายการ์ดของครู (ฝั่งผู้เรียนไม่มีแถบนี้) ──────────────
+   🔴 Owner ทัก 2026-08-14: "ปุ่มยื่น/ถอนมันลอย ไม่เป็นหลักเป็นแหล่ง"
+   สาเหตุ: ปุ่มลอยต่อท้ายเนื้อหาโดยไม่มีขอบเขตของตัวเอง
+   แก้ตามขนบการ์ดที่เจ้าอื่นใช้จริง [researched]: การ์ด = หัว / เนื้อ / **ท้ายที่เป็นแถบของมันเอง**
+   -> ดันเต็มความกว้างการ์ด (ลบ padding ออกด้วย margin ติดลบ) + พื้นต่างสี + เส้นคาดบน + โค้งมุมล่างตามการ์ด
+   -> `margin-top:auto` = แถบไปแปะก้นการ์ดเสมอ การ์ดที่สูงไม่เท่ากันในกริดจึงมีปุ่มอยู่ระดับเดียวกัน */
+.j-actions{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin:var(--space-5) calc(var(--card-pad) * -1) calc(var(--card-pad) * -1);
+  padding:var(--space-4) var(--card-pad);
+  background:var(--color-paper-2);border-top:1px solid var(--color-rule);
+  border-radius:0 0 var(--radius-md) var(--radius-md);
+}
+.j-actions > :first-child{margin-top:0}
+.j-actions .btn{margin-left:auto}
+.j-actions .j-state{background:var(--color-surface);border:1px solid var(--color-rule)}
+.j-note{font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.5;flex:1 1 220px;min-width:0}
+/* จอแคบ: ปุ่มขึ้นบรรทัดของตัวเองอยู่แล้ว -> ให้เต็มความกว้างแถบไปเลย จะได้ไม่ใช่ปุ่มลอยชิดขวา */
+@media (max-width:430px){
+  .j-actions .btn{margin-left:0;flex:1 1 100%}
+}
+.j-state{
+  display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);font-weight:600;
+  padding:5px 12px;border-radius:var(--radius-pill);
+  background:var(--color-paper-2);color:var(--color-ink-2);
+}
+.j-state--sent{background:var(--color-ok-soft);color:var(--color-ok)}
+.j-state--closed{background:var(--color-paper-2);color:var(--color-ink-2)}
+.j-card.is-closed{background:var(--color-paper-2);box-shadow:none}
+.j-card.is-closed .j-code{color:var(--color-ink-2)}
+.j-card.is-closed .j-title,.j-card.is-closed .j-price{color:var(--color-ink-2)}
+/* การ์ดที่ปิดแล้วพื้นเป็น paper-2 อยู่แล้ว -> สลับให้แถบท้ายเป็นพื้นการ์ด จะได้ยังแยกออกจากกัน */
+.j-card.is-closed .j-actions{background:var(--color-surface)}
+.j-card.is-closed .j-actions .j-state{background:var(--color-paper-2)}
+
+/* ── ข้อความแจ้งผล (เงียบ ๆ ไม่ใช่ toast เด้ง) ─────────────────── */
+.live-note{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-5);padding:var(--space-3) var(--space-4);
+  background:var(--color-ok-soft);border-radius:var(--radius-md);
+  font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.live-note strong{color:var(--color-ok)}
+
+.note{
+  display:flex;gap:var(--space-4);align-items:flex-start;background:var(--color-paper-2);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.note strong{display:block;font-family:var(--font-display);margin-bottom:4px}
+.note-mark{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--color-ok);color:var(--color-surface);
+}
+.note--warn{background:var(--color-error-soft);border-color:var(--color-error)}
+.note--warn .note-mark{background:var(--color-error)}
+.count{font-size:var(--text-sm);color:var(--color-ink-2);text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── ข้อเสนอของฉัน ─────────────────────────────────────────────── */
+.mine{padding:var(--space-4) 0 var(--space-16);scroll-margin-top:var(--space-12)}
+.mine h2{font-size:var(--text-xl)}
+.mine > .wrap > p{color:var(--color-ink-2);font-size:var(--text-sm);margin-top:var(--space-2)}
+.offer-list{list-style:none;display:grid;gap:var(--space-3);margin-top:var(--space-5)}
+.offer-row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-4);
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-4) var(--space-5);
+}
+.offer-row .o-title{font-weight:600;min-width:0;overflow-wrap:anywhere;flex:1 1 240px}
+/* พื้นที่แตะ >=44px ของลิงก์ในลิสต์ (design.md ข้อ 8) — ตัวหนังสือสูงจริงแค่ ~27px */
+.offer-row .o-title a{display:inline-flex;align-items:center;min-height:44px;text-decoration:none;border-bottom:1px solid var(--color-rule)}
+.offer-row .o-title a:hover{border-bottom-color:var(--color-accent)}
+.offer-row .o-title a:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+.offer-row .o-price{font-family:var(--font-display);font-weight:700;font-variant-numeric:tabular-nums}
+.offer-row .o-when{font-size:var(--text-sm);color:var(--color-ink-2)}
+
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover{background:var(--color-paper-2)}
+.btn-sm{height:44px;padding:0 18px;font-size:var(--text-sm)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn[disabled]:active{transform:none}
+.btn[aria-busy=true]{opacity:.7;cursor:progress}
+
+/* ── แผงยื่นข้อเสนอ ──────────────────────────────────────────────
+   🔴 ห้ามใช้ transition + visibility (เฟรมไม่ถูกวาด แผงไม่โผล่) — สลับ display ตรง ๆ */
+.modal{position:fixed;inset:0;z-index:var(--z-modal);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:720px){.modal{align-items:center}}
+.modal-backdrop{position:absolute;inset:0;background:oklch(21% 0.016 48 / 0.45)}
+.modal-card{
+  position:relative;background:var(--color-surface);width:100%;max-width:620px;max-height:92vh;overflow-y:auto;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:var(--space-6);box-shadow:var(--shadow-lift);
+}
+@media (min-width:720px){.modal-card{border-radius:var(--radius-lg);padding:var(--space-8)}}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.modal-head h2{font-size:var(--text-xl)}
+.modal-close{
+  flex:0 0 auto;width:44px;height:44px;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink);font-size:18px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--color-paper-2)}
+.modal-close:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.modal-job{
+  margin-top:var(--space-4);padding:var(--space-4);border-radius:var(--radius-md);
+  background:var(--color-paper-2);font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.modal-job b{display:block;font-family:var(--font-display);color:var(--color-ink);font-size:var(--text-base);margin-bottom:4px;overflow-wrap:anywhere}
+.modal-fields{display:grid;gap:var(--space-5);margin-top:var(--space-6)}
+.modal-foot{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--color-rule);
+}
+.modal-foot .btn-primary{margin-left:auto}
+@media (max-width:560px){
+  .modal-foot .btn{flex:1 1 100%;margin-left:0}
+  .modal-foot .quota{width:100%;justify-content:center}
+}
+
+/* ══ ก้อน C2 (2026-08-23) · คำขอจองตรงถึงครู + เสนอเวลาอื่น ══════════════
+   ใช้โครงการ์ดและปุ่มชุดเดิมทั้งหมด ที่เพิ่มคือกล่องเวลาเดิม -> เวลาใหม่ */
+.reqs{padding:var(--space-8) 0 var(--space-6);border-bottom:1px solid var(--color-rule);background:var(--color-paper-2)}
+.reqs h2{font-family:var(--font-display);font-size:var(--text-2xl);font-weight:700}
+.reqs .reqs-lead{margin-top:var(--space-2);font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.6;max-width:72ch}
+.req-list{list-style:none;margin-top:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.req-card{background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--space-5);box-shadow:var(--shadow-raise)}
+.req-card.is-live{border-left:3px solid var(--color-accent)}
+.req-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-3)}
+.req-title{font-family:var(--font-display);font-size:var(--text-lg);font-weight:700}
+.req-code{font-size:var(--text-xs);color:var(--color-muted);font-variant-numeric:tabular-nums}
+.req-when{margin-top:var(--space-3);display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm)}
+.req-when b{font-weight:600}
+.req-meta{margin-top:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.req-pay{margin-top:var(--space-3);font-size:var(--text-sm);color:var(--color-ink-2)}
+.req-pay b{color:var(--color-ink);font-weight:600}
+.req-foot{margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--color-rule);display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3)}
+.req-note{font-size:var(--text-sm);color:var(--color-ink-2);flex:1 1 240px;line-height:1.55}
+.req-foot .btn:first-of-type{margin-left:auto}
+.req-state{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:var(--text-xs);font-weight:600;border:1px solid var(--color-rule);background:var(--color-paper-2);color:var(--color-ink-2)}
+.req-state.is-wait{background:var(--color-accent-soft);border-color:var(--color-accent);color:var(--color-accent-deep)}
+.req-state.is-ok{background:var(--color-ok-soft);border-color:var(--color-ok);color:var(--color-ink)}
+.req-swap{margin-top:var(--space-4);display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);padding:var(--space-4);border:1px dashed var(--color-rule);border-radius:var(--radius-sm);background:var(--color-paper-2);font-size:var(--text-sm)}
+.req-swap .old{text-decoration:line-through;color:var(--color-muted)}
+.req-swap .arrow{color:var(--color-muted)}
+.req-swap .new{font-weight:700}
+.req-empty{padding:var(--space-6);border:1px dashed var(--color-rule);border-radius:var(--radius-md);text-align:center;color:var(--color-ink-2);font-size:var(--text-sm);background:var(--color-surface)}
+.cm-days,.cm-starts{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
+.cm-day,.cm-start{position:relative;cursor:pointer}   /* radio ซ่อนอยู่ข้างใน ต้องมี positioned parent ไม่งั้นลอยไปมุมแผง */
+.cm-day input,.cm-start input{position:absolute;opacity:0;width:0;height:0}
+.cm-day span,.cm-start span{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px;gap:2px;padding:7px 12px;border:1px solid var(--color-rule);border-radius:var(--radius-sm);background:var(--color-surface);font-size:var(--text-sm);line-height:1.3}
+.cm-day input:checked + span,.cm-start input:checked + span{border-color:var(--color-accent);background:var(--color-accent-soft);font-weight:600}
+.cm-day input:focus-visible + span,.cm-start input:focus-visible + span{outline:2px solid var(--color-focus);outline-offset:2px}
+.cm-day small{color:var(--color-muted);font-size:var(--text-xs)}
+.cm-day input:disabled + span{opacity:.45;cursor:not-allowed}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-6) 0 var(--space-8);font-size:var(--text-sm);color:var(--color-ink-2)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+  <!-- 🔴 แถบบนฝั่งครู — ชุดเดียวกันทุกหน้า (แก้ 2026-09-01)
+       Owner จับได้ว่าเดิมแต่ละหน้ามีลิงก์ไม่เท่ากันและอยู่คนละตำแหน่ง
+       เพราะผมเขียนใหม่ทีละก้อนโดยไม่ย้อนไปแก้หน้าเก่า
+       🔴 เพิ่ม/ลบเมนู ต้องแก้ให้ครบทั้ง 4 หน้าเสมอ — ต้นฉบับลำดับอยู่ที่คอมเมนต์นี้:
+          กระดานงาน · ตารางสอนของฉัน · ผลงาน · โปรไฟล์ของฉัน
+       🔴 หน้าที่เปิดอยู่ต้องมี aria-current="page" ไม่งั้นคนหลงว่าตัวเองอยู่หน้าไหน -->
+  <header class="topbar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <nav class="topnav" aria-label="เมนูครู">
+      <a href="job-board.html" aria-current="page" class="is-here">กระดานงาน</a>
+      <a href="teacher-jobs.html">ตารางสอนของฉัน</a>
+      <a href="teacher-earnings.html">ผลงาน</a>
+      <a href="teacher-settings.html">โปรไฟล์ของฉัน</a>
+    </nav>
+  </header>
+
+  <div class="content-col">
+
+    <div class="page-head">
+      <div class="wrap">
+        <div class="head-row">
+          <h1>กระดานงาน</h1>
+          <!-- 🔴 2026-09-01 (Owner สั่ง) — ป้ายตัวเลขต้องอยู่ข้างหัวเรื่อง ไม่ใช่มุมบนขวา
+               "สายตาคนจะโฟกัสที่ตรงกลางก่อน" -->
+          <span class="quota" id="quota-mobile">ข้อเสนอค้าง <span class="q-num">0/5</span></span>
+        </div>
+        <p id="me-line">ครูพลอย · สอน <b id="me-subjects">—</b> · <b id="me-levels">—</b> · <b id="me-prov">—</b></p>
+      </div>
+    </div>
+
+    <!-- ⭐ ก้อน C2 (2026-08-23) — คำขอจองตรงถึงครูคนนี้ (เส้นทางที่ 1)
+         ต่างจากกระดานงานด้านล่าง: กระดาน = โพสต์สาธารณะที่ครูไปยื่นข้อเสนอเอง
+                                     ตรงนี้ = ผู้เรียนเลือกครูคนนี้มาแล้ว พร้อมวัน-เวลาแน่นอน
+         กติกาเต็ม: SYSTEM_สถานะงาน.md ข้อ 3ก (Owner เคาะ 2026-08-18) -->
+    <!-- 🔴 ก้อน 2 (2026-09-01) — เขียนใหม่ตามจอ ② ในหน้า landing
+         ของเดิม: การ์ดใหญ่ 6 กลุ่ม (คำขอถึงคุณ / ตรงกับที่คุณสอน / ใหม่วันนี้ / ในจังหวัดคุณ /
+                  งานทั้งหมด / ข้อเสนอของฉัน) + แถวเลื่อนแนวนอน
+                  Owner: "หน้ากระดานงานทุเรศมาก ลบ side bar ออกแต่ไม่จัดอะไรเลย"
+         ของใหม่: 3 แท็บ + แถวเรียงลงมา · ปุ่มอยู่ขวาสุดตำแหน่งเดียวกันทุกแถว (ตามจอ ②)
+         🔴 logic เดิมยกมาครบทุกตัว ไม่ได้ตัดทิ้ง — ตารางเทียบเก่า/ใหม่อยู่ใน SPEC ก้อน 2
+         🔴 บล็อกตัวกรอง + quota-block + live-note + board-list ยกมาทั้งดุ้น ห้ามเขียนใหม่ -->
+    <section class="jb" aria-labelledby="h-jb">
+      <div class="wrap">
+        <h2 id="h-jb" class="sr-only">กระดานงาน</h2>
+
+        <div class="jb-tabs" role="tablist" aria-label="กระดานงาน">
+          <button type="button" class="jb-tab is-on" role="tab" aria-selected="true"
+                  aria-controls="panel-match" id="tab-match" data-tab="match">
+            งานที่ตรงกับฉัน<span class="jb-n" id="n-match">0</span>
+          </button>
+          <button type="button" class="jb-tab" role="tab" aria-selected="false"
+                  aria-controls="panel-reqs" id="tab-reqs" data-tab="reqs">
+            คำขอจองตรง<span class="jb-n" id="n-reqs">0</span>
+          </button>
+          <button type="button" class="jb-tab" role="tab" aria-selected="false"
+                  aria-controls="panel-mine" id="tab-mine" data-tab="mine">
+            ที่ยื่นไปแล้ว<span class="jb-n" id="n-mine">0</span>
+          </button>
+        </div>
+
+        <div class="jb-panel" id="panel-match" role="tabpanel" aria-labelledby="tab-match" tabindex="-1">
+
+          <!-- 🔴 ก้อน 2 — จอ ② ไม่มีแผงตัวกรองกางค้างไว้ จึงยุบไปซ่อนหลังปุ่ม "ตัวกรอง"
+               ฟังก์ชันครบเหมือนเดิมทุกตัว แค่ไม่กินพื้นที่ตอนยังไม่ได้ใช้
+               🔴 สลับด้วย hidden ตรง ๆ ห้ามใส่ transition (กับดักที่รู้แล้ว) -->
+          <div class="filter-bar">
+            <button type="button" class="btn btn-secondary btn-sm" id="filter-toggle"
+                    aria-expanded="false" aria-controls="filters">ตัวกรอง<span class="jb-n" id="filter-n" hidden>0</span></button>
+            <span class="result-count">เจอ <b id="result-n">0</b> งาน</span>
+          </div>
+          <div class="filters" id="filters" hidden>
+            <div class="filter-grid">
+              <div class="field">
+                <label for="f-subj">วิชา</label>
+                <select id="f-subj"><option value="">ทุกวิชา</option></select>
+              </div>
+              <div class="field">
+                <label for="f-level">ช่วงชั้น</label>
+                <select id="f-level">
+                  <option value="">ทุกช่วงชั้น</option>
+                  <option value="kindergarten">อนุบาล</option>
+                  <option value="primary_low">ประถมต้น</option>
+                  <option value="primary_high">ประถมปลาย</option>
+                  <option value="middle">มัธยมต้น</option>
+                  <option value="high">มัธยมปลาย / ปวช.</option>
+                  <option value="university">มหาวิทยาลัย</option>
+                  <option value="adult">ผู้ใหญ่ทั่วไป</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-budget">งบไม่ต่ำกว่า (บาท/ชม.)</label>
+                <input type="number" id="f-budget" min="0" max="20000" step="50" placeholder="เช่น 350" inputmode="numeric">
+              </div>
+              <div class="field">
+                <span class="lbl" id="lbl-mode">รูปแบบการเรียน</span>
+                <div class="chip-group" role="group" aria-labelledby="lbl-mode">
+                  <!-- 🔴 รหัสล็อกทั้งเว็บ: online / home / public · เดิมหน้านี้ใช้ข้อความไทยเป็นค่า (แก้ 2026-08-15) -->
+                  <label class="chip"><input type="checkbox" name="f-mode" value="online">ออนไลน์</label>
+                  <label class="chip"><input type="checkbox" name="f-mode" value="home">ที่บ้าน</label>
+                  <label class="chip"><input type="checkbox" name="f-mode" value="public">สถานที่อื่นๆ</label>
+                </div>
+              </div>
+            </div>
+  
+            <div class="filter-foot">
+              
+              <label class="chip"><input type="checkbox" id="f-match">เฉพาะที่ตรงกับโปรไฟล์ฉัน</label>
+              <label class="chip"><input type="checkbox" id="f-open" checked>ซ่อนงานที่ปิดแล้ว</label>
+              <button type="button" class="link-btn" id="clear-filters">ล้างตัวกรอง</button>
+              <span class="sort-inline">
+                <label for="f-sort">เรียงตาม</label>
+                <select id="f-sort">
+                  <option value="new">ใหม่ล่าสุด</option>
+                  <option value="budget">งบสูงสุด</option>
+                  <option value="closing">ใกล้ปิดรับ</option>
+                  <option value="fewest">คนยื่นน้อยสุด</option>
+                </select>
+              </span>
+            </div>
+          </div>
+  
+          <div class="note note--warn" id="quota-block" hidden style="margin-top:var(--space-5)">
+            <span class="note-mark" aria-hidden="true">!</span>
+            <span>
+              <strong>ข้อเสนอค้างครบ 5 ชิ้นแล้ว</strong>
+              ยังยื่นเพิ่มไม่ได้จนกว่าจะมีที่ว่าง — <a href="#mine" style="color:var(--color-error);font-weight:600">ถอนข้อเสนอที่ไม่อยากรอแล้ว</a>
+              หรือรอผู้เรียนตอบกลับ ข้อเสนอในโพสต์ที่ปิดไปแล้วไม่นับในโควตานี้
+            </span>
+          </div>
+  
+          <p class="live-note" id="live-note" role="status" tabindex="-1" hidden>
+            <span id="live-text"></span>
+            <button type="button" class="link-btn" id="undo-btn" hidden>เลิกทำ</button>
+          </p>
+  
+          <div class="board-list" id="board-list"></div>
+        </div>
+
+        <div class="jb-panel" id="panel-reqs" role="tabpanel" aria-labelledby="tab-reqs" tabindex="-1" hidden>
+          <p class="jb-lead">ผู้เรียนเลือกวัน-เวลาไว้แล้ว คุณมีเวลาตอบ <b>1-2 ชั่วโมง</b>
+            (นาฬิกาหยุดเดินช่วง 22:00–07:00) — กดรับ ไม่รับ หรือ <b>เสนอเวลาอื่น</b> ถ้าช่วงนั้นติดธุระ
+            · ช่วงเวลาจะถูกล็อกเมื่อคุณตกลงเท่านั้น</p>
+          <ul class="row-list" id="req-list"></ul>
+        </div>
+
+        <div class="jb-panel" id="panel-mine" role="tabpanel" aria-labelledby="tab-mine" tabindex="-1" hidden>
+          <p class="jb-lead">ค้างอยู่ = ยังรอผู้เรียนตัดสินใจ · ถอนเมื่อไรก็ได้ก่อนเขาเลือก</p>
+          <ul class="row-list" id="offer-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span class="foot-brand">BGT Tutor</span>
+        <span>คนกลางที่ทำให้ครูกับผู้เรียนเจอกันได้จริง</span>
+        <nav aria-label="ลิงก์ทางกฎหมาย">
+          <a href="#">ข้อตกลงการใช้งาน</a>
+          <a href="#">นโยบายความเป็นส่วนตัว</a>
+          <a href="#">ติดต่อเรา</a>
+        </nav>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+
+<!-- ⭐ ก้อน C2 — แผงเสนอเวลาอื่น (counter-offer)
+     กติกา: SYSTEM ข้อ 3ก · ส่ง = ล็อกเวลาใหม่ทันที (เพราะครูโอเคที่จะสอนแล้ว) เวลาเดิมกลับไปเปิดว่าง
+     ⚠️ แผง/modal ห้ามใช้ transition+visibility -> สลับ hidden ตรง ๆ (กับดักที่รู้แล้ว) -->
+<div class="modal" id="counter-modal" hidden>
+  <div class="modal-backdrop" data-cclose="1"></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="cm-title">
+    <div class="modal-head">
+      <h2 id="cm-title">เสนอเวลาอื่น</h2>
+      <button type="button" class="modal-close" data-cclose="1" aria-label="ปิดแผงเสนอเวลาอื่น">✕</button>
+    </div>
+
+    <div class="modal-job">
+      <b id="cm-job-title">—</b>
+      <span id="cm-job-facts">—</span>
+    </div>
+
+    <div class="modal-fields">
+      <div class="field">
+        <span class="lbl" id="cm-day-lbl">วันที่คุณว่าง <span class="req">*</span></span>
+        <div class="cm-days" id="cm-days" role="group" aria-labelledby="cm-day-lbl"></div>
+        <div class="helper" id="cm-day-help">แสดงเฉพาะวันที่คุณเปิดไว้ในตารางสอน และเหลือเวลามากกว่า 24 ชั่วโมง</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl" id="cm-start-lbl">เวลาเริ่ม <span class="req">*</span></span>
+        <div class="cm-starts" id="cm-starts" role="group" aria-labelledby="cm-start-lbl"></div>
+        <div class="helper" id="cm-start-help">ความยาวคาบเท่าที่ผู้เรียนขอไว้ เปลี่ยนไม่ได้ในขั้นนี้</div>
+      </div>
+
+      <div class="field">
+        <label for="cm-msg">บอกเหตุผลสั้น ๆ (ไม่บังคับ)</label>
+        <textarea id="cm-msg" maxlength="300" placeholder="เช่น วันอาทิตย์บ่ายติดสอนอีกบ้านครับ ขอเลื่อนเป็นเย็นวันเดียวกันได้ไหม เนื้อหาที่จะสอนเหมือนเดิมทุกอย่าง"></textarea>
+        <div class="count"><span id="cm-msg-count">0</span> / 300</div>
+        <div class="helper" id="cm-msg-help">ผู้เรียนเห็นข้อความนี้พร้อมเวลาที่คุณเสนอ</div>
+      </div>
+
+      <div class="note note--warn" id="cm-pdpa" hidden>
+        <span class="note-mark" aria-hidden="true">!</span>
+        <span>
+          <strong>ตรงนี้ดูเหมือนข้อมูลติดต่อ</strong>
+          <span id="cm-pdpa-what"></span> — ยังไม่ต้องให้ตอนนี้ ระบบส่งเบอร์ให้ทั้ง 2 ฝั่งทาง LINE OA หลังผู้เรียนชำระเงินแล้ว
+        </span>
+      </div>
+
+      <div class="note" id="cm-rule">
+        <span class="note-mark" aria-hidden="true">i</span>
+        <span>
+          <strong>กดส่งแล้วเวลาใหม่ถูกล็อกไว้ให้ผู้เรียนทันที</strong>
+          เวลาเดิมที่เขาขอมาจะกลับไปเปิดว่างให้คนอื่นจองได้ · ถ้าผู้เรียนปฏิเสธหรือไม่ตอบภายใน 1-2 ชั่วโมง ช่วงที่ล็อกไว้จะถูกปลดอัตโนมัติ
+        </span>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <span class="req-state" id="cm-summary">ยังไม่ได้เลือกเวลา</span>
+      <button type="button" class="btn btn-secondary" data-cclose="1">ยกเลิก</button>
+      <button type="button" class="btn btn-primary" id="cm-submit">ส่งเวลาที่เสนอ</button>
+    </div>
+  </div>
+</div>
+
+<!-- แผงยื่นข้อเสนอ -->
+<div class="modal" id="offer-modal" hidden>
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="om-title">
+    <div class="modal-head">
+      <h2 id="om-title">ยื่นข้อเสนอ</h2>
+      <button type="button" class="modal-close" data-close="1" aria-label="ปิดแผงยื่นข้อเสนอ">✕</button>
+    </div>
+
+    <div class="modal-job">
+      <b id="om-job-title">—</b>
+      <span id="om-job-facts">—</span>
+    </div>
+
+    <div class="modal-fields">
+      <div class="field">
+        <label for="om-price">ราคาที่คุณเสนอ (บาท/ชม.) <span class="req">*</span></label>
+        <input type="number" id="om-price" min="0" max="20000" step="50" inputmode="numeric">
+        <div class="helper" id="om-price-help">งบของผู้เรียน —</div>
+      </div>
+
+      <div class="field">
+        <span class="lbl" id="om-slot-lbl">เวลาที่คุณว่างตรงกับโพสต์นี้ <span class="req">*</span></span>
+        <div class="chip-group" id="om-slots" role="group" aria-labelledby="om-slot-lbl"></div>
+        <div class="helper" id="om-slot-help">ติ๊กเฉพาะช่วงที่ว่างจริง ผู้เรียนใช้ข้อนี้ตัดสินใจ</div>
+      </div>
+
+      <div class="field">
+        <label for="om-msg">ข้อความถึงผู้เรียน <span class="req">*</span></label>
+        <textarea id="om-msg" maxlength="300" placeholder="เช่น เคยติวสมการ ม.2 มา 3 ปี ขอเริ่มจากทวนพื้นฐาน 2 คาบก่อนแล้วค่อยตะลุยโจทย์เก่า สอนที่บ้านย่านบางนาได้ทุกวันพุธและศุกร์เย็น"></textarea>
+        <div class="count"><span id="om-msg-count">0</span> / 300</div>
+        <div class="helper" id="om-msg-help">อย่างน้อย 20 ตัวอักษร · ตอบให้ตรงกับสิ่งที่เขาเขียนไว้ในโพสต์</div>
+      </div>
+
+      <div class="note note--warn" id="om-pdpa" hidden>
+        <span class="note-mark" aria-hidden="true">!</span>
+        <span>
+          <strong>ตรงนี้ดูเหมือนข้อมูลติดต่อ</strong>
+          <span id="om-pdpa-what"></span> — ยังไม่ต้องให้ตอนนี้ ระบบจะเปิดช่องทางติดต่อให้เองหลังผู้เรียนเลือกคุณและยืนยันการจองแล้ว
+        </span>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <span class="quota" id="quota-modal">ข้อเสนอค้าง <span class="q-num">0/5</span></span>
+      <button type="button" class="btn btn-secondary" data-close="1">ยกเลิก</button>
+      <button type="button" class="btn btn-primary" id="om-submit">ยื่นข้อเสนอ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ══ ลิสต์กลาง — ต้องตรงกับ signup-* / post-job / teacher-search ══
+     ⚠️ ตอนงาน B ย้ายทั้งก้อนนี้ไป taxonomy.js ไฟล์เดียว แล้วให้ทุกหน้า import */
+  /* 🔴 สำเนา — ต้นฉบับ signup-parent.html ค้น SLOT_CODES · ระบบอ่านรหัส คนอ่านป้ายไทย */
+  var SLOTS = ['morning', 'afternoon', 'evening', 'night'];
+  var SLOT_LABEL = { morning:'เช้า', afternoon:'บ่าย', evening:'เย็น', night:'ค่ำ' };
+  var LEVEL_LABEL = {
+    kindergarten: 'อนุบาล', primary_low: 'ประถมต้น', primary_high: 'ประถมปลาย',
+    middle: 'มัธยมต้น', high: 'มัธยมปลาย / ปวช.', university: 'มหาวิทยาลัย', adult: 'ผู้ใหญ่ทั่วไป'
+  };
+
+  /* ระดับชั้นรายชั้น -> ช่วงชั้น 7 โค้ด (ตัวเดียวกับ teacher-search.html / post-job.html) */
+  function gradeToLevel(g) {
+    if (!g) return '';
+    if (g === 'อนุบาล') return 'kindergarten';
+    if (/^ป\.[123]$/.test(g)) return 'primary_low';
+    if (/^ป\.[456]$/.test(g)) return 'primary_high';
+    if (/^ม\.[123]$/.test(g)) return 'middle';
+    if (/^ม\.[456]$/.test(g) || g === 'ปวช./ปวส.') return 'high';
+    if (g === 'มหาวิทยาลัย') return 'university';
+    if (g === 'วัยทำงาน') return 'adult';
+    return '';
+  }
+
+  /* เพดานราคาต่อชั่วโมงของทั้งระบบ — 🔴 ต้องเป็นตัวเลขเดียวกับ PRICE_MAX ใน booking.html
+     และเท่ากับ max="20000" ของช่อง #om-price · เปลี่ยนที่ไหนต้องไล่แก้ให้ครบทั้ง 3 จุดในรอบเดียว */
+  var PRICE_MAX = 20000;
+
+  /* ══ ครูที่ล็อกอินอยู่ (ข้อมูลสมมติ — ตรงกับ "ครูพลอย" ใน teacher-search.html) ══ */
+  var ME = {
+    name: 'ครูพลอย',
+    subjects: ['คณิตศาสตร์', 'ฟิสิกส์'],
+    levels: ['middle', 'high'],
+    prov: 'กรุงเทพมหานคร',
+    rate: 380,
+    /* 🔴 ขั้นต่ำต่อคาบของครูคนนี้ — ต้องตรงกับ TEACHER.minMinutes ใน booking.html เป๊ะ
+       ต่างกันเมื่อไร = ครูเสนอคาบที่หน้าจองไม่ยอมรับ แล้วผู้เรียนเจอทางตัน */
+    minMinutes: { online: 60, home: 90, public: 120 },
+    maxOpen: 5
+  };
+
+  /* ══ งานที่ผู้เรียนโพสต์ไว้ (ข้อมูลสมมติทั้งหมด — ยังไม่มี DB) ══
+     ทุก field ตรงกับที่ post-job.html เก็บ · ไม่มี field เบอร์/ไลน์/ที่อยู่เต็ม/ชื่อจริง ตั้งแต่โครงข้อมูล
+     mine = ครูคนนี้ยื่นข้อเสนอไปแล้ว (ราคาที่เสนอ) */
+  /* 🔴 เป้าหมายการเรียน: รหัสอังกฤษคือของจริง · ข้อความไทยเป็นแค่ป้ายบนจอ (CLAUDE.md กฎ 8 ข้อ 3)
+     ต้นฉบับลิสต์อยู่ที่ signup-parent.html (ค้น const GOALS) — ที่นี่เป็นสำเนา แก้ต้นฉบับต้องแก้ที่นี่ด้วย */
+  var GOAL_LABEL = { catch_up:'ตามให้ทันในห้องเรียน', exam_prep:'เตรียมสอบเข้า', contest:'แข่งขัน/โอลิมปิก', enrich:'เรียนเสริมทักษะ' };
+
+  var JOBS = [
+    { id:'BGT-1042', subjects:['คณิตศาสตร์'], grade:'ม.2', learner:'น้องมิ้นท์', goal:'catch_up',
+      places:['home'], zone:'กรุงเทพมหานคร', zoneDetail:'เขตบางนา ใกล้ BTS อุดมสุข',
+      slots:['evening','night'], budget:450, flexible:false, hours:2, sesLen:120, perWeek:1, start:'ภายใน 2 สัปดาห์', postedH:3, closeIn:7, offers:2, status:'open',
+      detail:'น้องอยู่ ม.2 ตามเรื่องสมการกำลังสองไม่ทัน สอบกลางภาคได้ 12/40 อยากได้ครูใจเย็นที่อธิบายซ้ำได้ไม่รำคาญ เรียนที่บ้านสัปดาห์ละ 2 ครั้ง' },
+
+    { id:'BGT-1041', subjects:['ฟิสิกส์','คณิตศาสตร์'], grade:'ม.5', learner:'น้องปั้น', goal:'exam_prep',
+      places:['online'], zone:'', zoneDetail:'',
+      slots:['night'], budget:600, flexible:true, hours:4, sesLen:120, perWeek:2, start:'เร็วที่สุด', postedH:8, closeIn:6, offers:5, status:'open',
+      detail:'เตรียมสอบ TCAS รอบ 3 สายวิศวะ ต้องการติวฟิสิกส์กลศาสตร์กับคณิตพื้นฐานควบคู่กัน อยากได้ครูที่ให้การบ้านและตรวจให้จริงจัง เรียนออนไลน์ได้ทุกวันหลังสามทุ่ม' },
+
+    { id:'BGT-1040', subjects:['ภาษาอังกฤษ'], grade:'ป.5', learner:'น้องเมย์', goal:'enrich',
+      places:['online','home'], zone:'นนทบุรี', zoneDetail:'ย่านแคราย',
+      slots:['evening'], budget:400, flexible:false, hours:2, sesLen:120, perWeek:1, start:'ภายใน 2 สัปดาห์', postedH:11, closeIn:7, offers:1, status:'open',
+      detail:'อยากให้น้องกล้าพูดภาษาอังกฤษมากขึ้น ตอนนี้อ่านได้แต่ไม่ยอมพูดเลย ไม่เน้นติวสอบ เน้นสนทนาและเกม เรียนที่บ้านหรือออนไลน์ก็ได้' },
+
+    { id:'BGT-1039', subjects:['คณิตศาสตร์'], grade:'ป.6', learner:'น้องข้าวปุ้น', goal:'exam_prep',
+      places:['home'], zone:'กรุงเทพมหานคร', zoneDetail:'เขตลาดพร้าว ใกล้ MRT ลาดพร้าว',
+      slots:['afternoon','evening'], budget:500, flexible:true, hours:3, sesLen:60, perWeek:3, start:'เร็วที่สุด', postedH:20, closeIn:6, offers:3, status:'open',
+      /* ⚠️ ใบนี้ = "โพสต์ที่ยาวเต็มเพดาน" ไว้ทดสอบว่ากระดานไม่เสียรูป
+         เพดานปัจจุบัน = 200 ตัวอักษร (Owner เคาะรอบสุดท้าย 2026-08-14 · post-job.html:484)
+         🔴 ถ้าเพดานเปลี่ยนอีก ต้องมาแก้ความยาวใบนี้ให้ตรงกันด้วย */
+      detail:'สอบเข้า ม.1 โรงเรียนรัฐชื่อดัง เหลืออีก 4 เดือน น้องอ่อนโจทย์ปัญหาเศษส่วนกับร้อยละ เรขาคณิตทำได้ดี อยากได้ครูที่มีชุดโจทย์เก่าและวางแผนติวเป็นสัปดาห์ได้ ใจเย็น ให้การบ้านพอประมาณ มีโต๊ะเรียนแยกห้องให้' },
+
+    { id:'BGT-1038', subjects:['เปียโน'], grade:'ป.3', learner:'น้องอิ่มบุญ', goal:'enrich',
+      places:['home'], zone:'กรุงเทพมหานคร', zoneDetail:'เขตพระโขนง',
+      slots:['morning','afternoon'], budget:650, flexible:false, hours:1, sesLen:60, perWeek:1, start:'ภายใน 2 สัปดาห์', postedH:26, closeIn:5, offers:2, status:'open',
+      detail:'เพิ่งเริ่มเรียนเปียโนได้ 3 เดือน อยากได้ครูมาสอนที่บ้านวันเสาร์เช้า มีเปียโนไฟฟ้า 88 คีย์อยู่แล้ว อยากให้สอบเกรดในอนาคต' },
+
+    { id:'BGT-1037', subjects:['ฟิสิกส์'], grade:'ม.6', learner:'น้องต้นกล้า', goal:'exam_prep',
+      places:['online'], zone:'', zoneDetail:'',
+      slots:['evening','night'], budget:550, flexible:false, hours:3, sesLen:60, perWeek:3, start:'เร็วที่สุด', postedH:30, closeIn:5, offers:4, status:'open', mine:520,
+      detail:'ติวฟิสิกส์ A-Level ล้วน ๆ เน้นไฟฟ้ากับคลื่น ทำโจทย์เองแล้วติดเยอะ อยากได้ครูที่ให้ถามผ่านแชทระหว่างสัปดาห์ได้ด้วย' },
+
+    { id:'BGT-1036', subjects:['คณิตศาสตร์','วิทยาศาสตร์'], grade:'ม.1', learner:'น้องพีร์', goal:'catch_up',
+      places:['online'], zone:'', zoneDetail:'',
+      slots:['evening'], budget:380, flexible:false, hours:2, sesLen:120, perWeek:1, start:'ภายใน 2 สัปดาห์', postedH:38, closeIn:4, offers:6, status:'open', mine:380,
+      detail:'เพิ่งขึ้น ม.1 ปรับตัวไม่ทัน คะแนนตกทั้งคณิตและวิทย์ อยากได้ครูคนเดียวสอนทั้งสองวิชาสลับกันไป เรียนออนไลน์หลังเลิกเรียน' },
+
+    { id:'BGT-1035', subjects:['ภาษาจีน'], grade:'วัยทำงาน', learner:'คุณเบส', goal:'enrich',
+      places:['online'], zone:'', zoneDetail:'',
+      slots:['night'], budget:500, flexible:true, hours:2, sesLen:120, perWeek:1, start:'ยังไม่รีบ', postedH:44, closeIn:4, offers:2, status:'open',
+      detail:'ทำงานบริษัทจีน อยากพูดในที่ประชุมให้รู้เรื่อง ตอนนี้อ่านพินอินได้บ้าง เป้าหมายคือสอบ HSK3 ภายในปีนี้ เรียนได้เฉพาะหลังเลิกงาน' },
+
+    { id:'BGT-1034', subjects:['ว่ายน้ำ'], grade:'อนุบาล', learner:'น้องปุยฝ้าย', goal:'enrich',
+      places:['public'], zone:'สมุทรปราการ', zoneDetail:'ย่านศรีนครินทร์ สระในหมู่บ้าน',
+      slots:['morning'], budget:600, flexible:false, hours:1, sesLen:60, perWeek:1, start:'ภายใน 2 สัปดาห์', postedH:52, closeIn:3, offers:1, status:'open',
+      detail:'อายุ 5 ขวบ กลัวน้ำมาก อยากได้ครูที่ใจเย็นและเคยสอนเด็กเล็ก เริ่มจากคุ้นน้ำก่อน สระอยู่ในหมู่บ้าน ผู้ปกครองนั่งดูตลอดคาบ' },
+
+    { id:'BGT-1033', subjects:['ภาษาไทย'], grade:'ป.2', learner:'น้องพลอยใส', goal:'catch_up',
+      places:['home'], zone:'กรุงเทพมหานคร', zoneDetail:'เขตบางกะปิ',
+      slots:['evening'], budget:350, flexible:false, hours:2, sesLen:120, perWeek:1, start:'เร็วที่สุด', postedH:60, closeIn:3, offers:3, status:'open',
+      detail:'อ่านสะกดคำยังไม่คล่อง ครูที่โรงเรียนแจ้งว่าตามเพื่อนไม่ทัน อยากได้ครูมาช่วยปูพื้นการอ่านที่บ้านสัปดาห์ละ 2 วัน' },
+
+    { id:'BGT-1031', subjects:['คณิตศาสตร์'], grade:'ม.3', learner:'น้องเจแปน', goal:'exam_prep',
+      places:['home','online'], zone:'กรุงเทพมหานคร', zoneDetail:'เขตห้วยขวาง',
+      slots:['evening','night'], budget:520, flexible:false, hours:3, sesLen:60, perWeek:3, start:'เร็วที่สุด', postedH:96, closeIn:0, offers:7, status:'closed', mine:500,
+      detail:'ติวสอบเข้า ม.4 สายวิทย์-คณิต โรงเรียนเดิม เน้นตะลุยข้อสอบเก่าและจับเวลา อยากได้ครูที่เคยติวสอบเข้ามาก่อน' },
+
+    { id:'BGT-1029', subjects:['วาดรูป/ระบายสี'], grade:'ป.4', learner:'น้องแทน', goal:'enrich',
+      places:['public'], zone:'กรุงเทพมหานคร', zoneDetail:'เขตจตุจักร',
+      slots:['afternoon'], budget:450, flexible:false, hours:2, sesLen:120, perWeek:1, start:'ภายใน 2 สัปดาห์', postedH:120, closeIn:0, offers:4, status:'closed',
+      detail:'อยากให้ลูกได้ลองสีน้ำและสีอะคริลิกจริงจัง ที่บ้านไม่มีที่ให้เลอะ เลยอยากไปเรียนนอกบ้านแถวใกล้เคียง' }
+  ];
+
+  /* เติมช่วงชั้นที่แปลงแล้วเข้าไปในข้อมูลรอบเดียว (ห้ามแปลงซ้ำตอน render) */
+  JOBS.forEach(function (j) { j.level = gradeToLevel(j.grade); });
+
+  /* ใบที่พิมพ์ตายไว้ว่า "เคยยื่นแล้ว" ต้องมีโครง myOffer เหมือนใบที่ยื่นสด ไม่งั้นลิสต์ล่างโชว์ไม่ครบ
+     (หนี้ข้อ 5 — ข้อเสนอ 1 ใบ = ราคา + ช่วงที่ว่าง + ข้อความ ไม่ใช่ราคาอย่างเดียว) */
+  JOBS.forEach(function (j) {
+    if (j.mine != null && !j.myOffer) {
+      j.myOffer = { price: j.mine, slots: j.slots.slice(), msg: '', sentAt: null };
+    }
+  });
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt != null) n.textContent = txt;
+    return n;
+  }
+  function inter(a, b) { return a.some(function (x) { return b.indexOf(x) > -1; }); }
+
+  /* ── ยามกันข้อมูลติดต่อหลุด (PDPA) — ก๊อบจาก post-job.html ตัวเดียวกัน ─────
+     ที่นี่ใช้กับข้อความที่ "ครู" พิมพ์: ครูชอบแปะไอดีไลน์เพื่อให้ติดต่อนอกระบบ
+     กติกา: เตือนเมื่อมี "ของจริง" ให้หลุดเท่านั้น (มีตัวไอดี/ตัวเลขจริงตามหลัง) ไม่ใช่แค่เอ่ยถึงคำ */
+  function contactRisk(text) {
+    var found = [];
+    var t = text.replace(/ออนไลน์/g, ' ');
+
+    if (/0\d(?:[\s.\-]?\d){7,8}/.test(t)) found.push('เบอร์โทร');
+
+    var mail = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+    if (mail.test(t)) found.push('อีเมล');
+    var t2 = t.replace(mail, ' ');
+
+    if (/(ไอดีไลน์|ไลน์ไอดี|ไอดี|ไลน์|\bline\s*id\b|\bline\b)\s*[:=]?\s*[A-Za-z0-9._-]{4,}/i.test(t2)
+        || /(^|[\s(])@[A-Za-z0-9._-]{3,}/.test(t2)) found.push('ไอดีไลน์');
+
+    if (/(บ้านเลขที่|เลขที่)\s*\d/.test(t2) || /(ซอย|ซ\.|หมู่ที่|หมู่)\s*\d/.test(t2)) found.push('ที่อยู่');
+
+    return found;
+  }
+
+  /* ── ตัวช่วยแปลงข้อมูลเป็นคำพูด ────────────────────────────── */
+  /* 🔴 โค้ด -> ป้ายไทย ทางเดียว (CLAUDE.md กฎข้อ 8: ระบบอ่านรหัส คนอ่านข้อความ) */
+  var MODE_LABEL = {online:'ออนไลน์', home:'ที่บ้าน', public:'สถานที่อื่นๆ'};
+  function placeText(j) {
+    return j.places.map(function (p) { return MODE_LABEL[p] || p; }).join(' · ');
+  }
+  function postedText(h) {
+    if (h < 1) return 'เพิ่งโพสต์';
+    if (h < 24) return 'โพสต์ ' + h + ' ชม.ที่แล้ว';
+    return 'โพสต์ ' + Math.floor(h / 24) + ' วันที่แล้ว';
+  }
+  function baht(n) { return '฿' + Number(n).toLocaleString('th-TH'); }
+
+  /* ── โควตาข้อเสนอ ──────────────────────────────────────────── */
+  function openOffers() {
+    return JOBS.filter(function (j) { return j.mine != null && j.status === 'open'; });
+  }
+  function quotaFull() { return openOffers().length >= ME.maxOpen; }
+
+  function paintQuota() {
+    var n = openOffers().length;
+    var full = n >= ME.maxOpen;
+    ['quota-mobile', 'quota-modal'].forEach(function (id) {
+      var box = $(id);
+      box.textContent = 'ข้อเสนอค้าง ';
+      box.appendChild(el('span', 'q-num', n + '/' + ME.maxOpen));
+      box.classList.toggle('is-full', full);
+    });
+    var qsn = $('quota-side-note'); if (qsn) qsn.textContent = full
+      ? 'ครบแล้ว — ถอนข้อเสนอที่ไม่อยากรอ แล้วค่อยยื่นใหม่'
+      : 'ยื่นค้างพร้อมกันได้สูงสุด ' + ME.maxOpen + ' ชิ้น — ถอนของเก่าเมื่อไรก็ยื่นใหม่ได้';
+    $('quota-block').hidden = !full;
+  }
+
+  /* ── การ์ดงาน (โครงเดียวกับที่ผู้เรียนเห็นตอนพรีวิวใน post-job.html) ── */
+  function metaSpan(icon, text) {
+    var s = document.createElement('span');
+    var i = el('span', 'ic', icon);
+    i.setAttribute('aria-hidden', 'true');
+    s.appendChild(i);
+    s.appendChild(document.createTextNode(text));
+    return s;
+  }
+
+  /* canonical = การ์ดใบ "ทางการ" ของงานนี้ (ใบในรายการทั้งหมด) — ใบเดียวเท่านั้นที่ได้ id
+     🔴 งานหนึ่งชิ้นถูกวาดหลายใบ (อยู่ได้ทั้ง 3 ชั้นการค้นพบ + รายการทั้งหมด)
+        ถ้าแจก id ให้ทุกใบ = id ซ้ำใน DOM = ลิงก์ #card-… กระโดดมั่ว และผิดมาตรฐาน a11y */
+  /* ── แถวงาน (ก้อน 2 · 2026-09-01) — ตามจอ ② ในหน้า landing ────────────
+     ของเดิมคือการ์ดใหญ่ `.j-card` ที่กางทุกอย่างออกมาพร้อมกัน -> เรียงลงมาแล้วอ่านยาก
+     ของใหม่: 1 งาน = 1 แถว · วงกลมระดับชั้น + 2 บรรทัด + ปุ่มขวาสุด (ท่า .mrow ของจอ)
+     🔴 ไม่มีข้อมูลไหนหาย — ของที่เคยอยู่บนการ์ด (แท็ก · โซน · เป้าหมาย · ครั้งละกี่ชม. ·
+        จำนวนคนยื่น · รายละเอียดที่ผู้เรียนเขียน · โพสต์เมื่อไหร่ · เหลือกี่วัน)
+        ย้ายลงแผงรายละเอียดที่กดกางได้ในแถวเดียวกัน
+     🔴 กติกาเดิมที่ต้องคงไว้ (Owner ทัก 2026-08-14): **ขวาสุด = ปุ่มของฉัน 1 ปุ่ม ตำแหน่งเดียวกันทุกแถว**
+        ทุกสถานะต้องมีโครงเดียวกัน ไม่งั้นแถวที่ยื่นแล้วกับยังไม่ยื่นจะสูงไม่เท่ากัน */
+  function buildRow(j, canonical) {
+    var row = el('article', 'jrow' + (j.status === 'closed' ? ' is-closed' : ''));
+    if (canonical) row.id = 'card-' + j.id;
+
+    /* ── ตัวแถว: กดที่ไหนก็กางรายละเอียด (พื้นที่กดใหญ่ ใช้บนมือถือได้จริง) ── */
+    var main = el('button', 'jrow-main');
+    main.type = 'button';
+    main.setAttribute('aria-expanded', 'false');
+    main.setAttribute('aria-controls', 'det-' + j.id);
+
+    /* 🔴 ระดับชั้นบางค่าเป็นคำยาว (อนุบาล · วัยทำงาน) ล้นวงกลม 34px
+       เจอจริง 2026-09-01 ที่แถว "ว่ายน้ำ · อนุบาล" -> ตัดเหลือ 3 ตัวอักษร */
+    var av = el('span', 'jav', (j.grade || '').replace(/\./g, '').slice(0, 3));
+    av.setAttribute('aria-hidden', 'true');
+    main.appendChild(av);
+
+    var txt = el('span', 'jtxt');
+    txt.appendChild(el('b', null, j.subjects.join(' + ') + ' · ' + j.grade));
+    /* บรรทัดสอง = สิ่งที่ครูใช้ตัดสินใจเร็วที่สุด: เรียนที่ไหน · เมื่อไหร่ · ครั้งละนาน · ให้เท่าไหร่ */
+    var line2 = [placeText(j), j.slots.map(function (c) { return SLOT_LABEL[c] || c; }).join(' / ')];
+    if (j.sesLen) line2.push('ครั้งละ ' + (j.sesLen % 60 === 0 ? j.sesLen / 60 : (j.sesLen / 60).toFixed(1)) + ' ชม.');
+    line2.push(baht(j.budget) + '/ชม.' + (j.flexible ? ' (ยืดหยุ่นได้)' : ''));
+    txt.appendChild(el('small', null, line2.join(' · ')));
+    main.appendChild(txt);
+    row.appendChild(main);
+
+    /* ── ขวาสุด: ป้าย/ปุ่มของฉัน 1 ชิ้นเสมอ ── */
+    var act = el('span', 'jact');
+    if (j.status === 'closed') {
+      act.appendChild(el('span', 'jbadge is-off', 'ปิดแล้ว'));
+    } else if (j.mine != null) {
+      var w = el('button', 'jbadge is-sent', 'ถอน ' + baht(j.mine));
+      w.type = 'button';
+      w.setAttribute('data-withdraw', j.id);
+      w.setAttribute('aria-label', 'ถอนข้อเสนอ ' + baht(j.mine) + ' ต่อชั่วโมง งาน ' + j.id);
+      act.appendChild(w);
+    } else {
+      var b = el('button', 'jbadge is-go', quotaFull() ? 'ยื่นครบ 5 แล้ว' : 'ยื่นข้อเสนอ');
+      b.type = 'button';
+      b.setAttribute('data-offer', j.id);
+      if (quotaFull()) { b.disabled = true; b.className = 'jbadge is-off'; }
+      act.appendChild(b);
+    }
+    row.appendChild(act);
+
+    /* ── แผงรายละเอียด (ปิดไว้ก่อน) — ของเดิมทั้งหมดอยู่ตรงนี้ ── */
+    var det = el('div', 'jdet');
+    det.id = 'det-' + j.id;
+    det.hidden = true;
+
+    var head = el('div', 'jdet-head');
+    head.appendChild(el('span', 'jdet-title', 'หาครู' + j.subjects.join(' + ') + 'ให้' + j.learner));
+    head.appendChild(el('span', 'j-code', '#' + j.id));
+    det.appendChild(head);
+
+    var tags = el('div', 'tag-group');
+    j.subjects.forEach(function (s) { tags.appendChild(el('span', 'tag', s)); });
+    tags.appendChild(el('span', 'tag tag--plain', j.grade));
+    det.appendChild(tags);
+
+    var meta = el('div', 'j-meta');
+    meta.appendChild(metaSpan('💻', placeText(j)));
+    if (j.zone) meta.appendChild(metaSpan('📍', j.zone + (j.zoneDetail ? ' · ' + j.zoneDetail : '')));
+    meta.appendChild(metaSpan('🕒', j.slots.map(function (c) { return SLOT_LABEL[c] || c; }).join(' / ')));
+    meta.appendChild(metaSpan('🎯', GOAL_LABEL[j.goal] || j.goal));
+    if (j.sesLen && j.perWeek) meta.appendChild(metaSpan('📅', 'ครั้งละ ' + (j.sesLen % 60 === 0 ? j.sesLen / 60 : (j.sesLen / 60).toFixed(1)) + ' ชม. · สัปดาห์ละ ' + j.perWeek + ' ครั้ง'));
+    else if (j.hours) meta.appendChild(metaSpan('📅', 'สัปดาห์ละ ' + j.hours + ' ชม.'));
+    meta.appendChild(metaSpan('👥', j.offers + ' คนยื่นข้อเสนอ'));
+    det.appendChild(meta);
+
+    det.appendChild(el('p', 'j-body is-open', j.detail));
+
+    var foot = el('div', 'jdet-foot');
+    var price = el('span', 'j-price');
+    price.appendChild(document.createTextNode(baht(j.budget)));
+    price.appendChild(el('small', null, ' / ชม.' + (j.flexible ? ' (ยืดหยุ่นได้)' : '')));
+    foot.appendChild(price);
+    foot.appendChild(el('span', 'j-code',
+      j.status === 'closed' ? 'ปิดรับแล้ว' : postedText(j.postedH) + ' · เหลือ ' + j.closeIn + ' วัน'));
+    det.appendChild(foot);
+
+    /* งานที่ปิดแล้ว: เหตุผลอยู่ในแผง ไม่ต้องกินที่บนแถว */
+    if (j.status === 'closed') {
+      det.appendChild(el('p', 'j-note',
+        j.mine != null
+          ? 'ผู้เรียนจองครูคนอื่นสำเร็จ · ข้อเสนอของคุณ (' + baht(j.mine) + '/ชม.) ถูกยกเลิกอัตโนมัติ ไม่นับในโควตา'
+          : 'ผู้เรียนจองครูสำเร็จ · ข้อเสนอที่ค้างอยู่ทั้งหมดถูกยกเลิกอัตโนมัติ'));
+    }
+
+    row.appendChild(det);
+
+    main.addEventListener('click', function () {
+      var open = det.hidden;
+      det.hidden = !open;
+      main.setAttribute('aria-expanded', open ? 'true' : 'false');
+      row.classList.toggle('is-open', open);
+    });
+
+    return row;
+  }
+
+
+  /* ── ชั้นการค้นพบ 3 ชั้น ───────────────────────────────────── */
+  /* กติกา "ตรงกับที่คุณสอน" มีที่เดียว — ใช้ทั้งแถวบนและตัวกรองในรายการทั้งหมด */
+  function fitsMe(j) {
+    return inter(j.subjects, ME.subjects) && ME.levels.indexOf(j.level) > -1;
+  }
+  function matchJobs() {
+    return JOBS.filter(function (j) { return j.status === 'open' && fitsMe(j); });
+  }
+  function newJobs() {
+    return JOBS.filter(function (j) { return j.status === 'open' && j.postedH <= 24; });
+  }
+  function nearJobs() {
+    return JOBS.filter(function (j) {
+      return j.status === 'open' && (j.zone === ME.prov || j.places.indexOf('online') > -1);
+    });
+  }
+
+
+  /* ── ตัวกรองรายการทั้งหมด ─────────────────────────────────── */
+  var F = { subj: '', level: '', budget: '', modes: [], matchOnly: false, hideClosed: true, sort: 'new' };
+
+  function readFilters() {
+    F.subj = $('f-subj').value;
+    F.level = $('f-level').value;
+    F.budget = $('f-budget').value.trim();
+    F.modes = Array.prototype.slice.call(document.querySelectorAll('input[name="f-mode"]:checked'))
+      .map(function (i) { return i.value; });
+    F.matchOnly = $('f-match').checked;
+    F.hideClosed = $('f-open').checked;
+    F.sort = $('f-sort').value;
+  }
+
+  function filtered() {
+    var min = F.budget === '' ? null : Number(F.budget);
+    var out = JOBS.filter(function (j) {
+      if (F.hideClosed && j.status === 'closed') return false;
+      /* "เฉพาะที่ตรงกับโปรไฟล์ฉัน" = เงื่อนไขเดียวกับชั้น "ตรงกับที่คุณสอน" เป๊ะ ๆ
+         (วิชา ∩ วิชาที่สอน) และ (ช่วงชั้นของงาน ∈ ช่วงชั้นที่สอน) — ต้องใช้กติกาเดียวกัน
+         ไม่งั้นกดปุ่ม "ดูในรายการทั้งหมด" แล้วจำนวนไม่ตรงกับที่แถวบอกไว้ */
+      if (F.matchOnly && !fitsMe(j)) return false;
+      if (F.subj && j.subjects.indexOf(F.subj) === -1) return false;
+      if (F.level && j.level !== F.level) return false;
+      /* 🔴 บทเรียนจากบั๊กเพดานงบในหน้าค้นหา: เก็บเป็นตัวเลขจริงแล้วเทียบตรง ๆ ห้ามแปลงเป็นช่วง */
+      if (min !== null && !isNaN(min) && j.budget < min) return false;
+      if (F.modes.length && !inter(j.places, F.modes)) return false;
+      return true;
+    });
+    out.sort(function (a, b) {
+      if (F.sort === 'budget') return b.budget - a.budget;
+      if (F.sort === 'closing') return a.closeIn - b.closeIn;
+      if (F.sort === 'fewest') return a.offers - b.offers;
+      return a.postedH - b.postedH;
+    });
+    return out;
+  }
+
+  function paintBoard() {
+    var list = filtered();
+    var box = $('board-list');
+    box.textContent = '';
+    $('result-n').textContent = list.length;
+    if (!list.length) {
+      var e = el('div', 'empty-state');
+      e.appendChild(el('strong', null, 'ไม่มีงานที่ตรงกับตัวกรองนี้'));
+      e.appendChild(el('span', null, 'ลองเอาตัวกรองบางอันออก หรือลดงบขั้นต่ำลง — งานใหม่เข้ามาทุกวัน'));
+      box.appendChild(e);
+      return;
+    }
+    list.forEach(function (j) { box.appendChild(buildRow(j, true)); });
+    /* 🔴 ก้อน 2 — เลขบนแท็บกับเลขบนปุ่มตัวกรองต้องขยับพร้อมผลลัพธ์เสมอ
+       เจอจริง 2026-09-01: กรองเหลือ 4 งาน แต่แท็บยังขึ้น 10 เพราะเลขอัปเดตแค่ตอน paintAll */
+    if (typeof paintTabCounts === 'function') paintTabCounts();
+  }
+
+  /* ── แถว "ที่ยื่นไปแล้ว" (ก้อน 2 · 2026-09-01) — ท่าเดียวกับอีก 2 แท็บ ──
+     ของเดิมเป็นแถวลิงก์ที่กดแล้วกระโดดไป #card-<id> ซึ่งใช้ไม่ได้แล้วเพราะงานอยู่คนละแท็บ
+     -> เปลี่ยนเป็นปุ่ม "ดูงานนี้ในกระดาน" ที่สลับแท็บให้ + กางแถวนั้นให้ด้วย */
+  function paintMine() {
+    var ul = $('offer-list');
+    ul.textContent = '';
+    var mine = JOBS.filter(function (j) { return j.mine != null; });
+    $('n-mine').textContent = openOffers().length;
+
+    if (!mine.length) {
+      var li0 = el('li', 'jrow-empty');
+      li0.appendChild(el('span', null, 'ยังไม่ได้ยื่นข้อเสนอไหนเลย — เลือกงานจากแท็บ "งานที่ตรงกับฉัน" ได้เลย'));
+      ul.appendChild(li0);
+      return;
+    }
+
+    mine.forEach(function (j) {
+      var li = el('li', 'jrow' + (j.status === 'closed' ? ' is-closed' : ''));
+
+      var main = el('button', 'jrow-main');
+      main.type = 'button';
+      main.setAttribute('aria-expanded', 'false');
+      main.setAttribute('aria-controls', 'minedet-' + j.id);
+
+      var av = el('span', 'jav', (j.grade || '').replace(/\./g, '').slice(0, 3));
+      av.setAttribute('aria-hidden', 'true');
+      main.appendChild(av);
+
+      var txt = el('span', 'jtxt');
+      txt.appendChild(el('b', null, j.subjects.join(' + ') + ' · ' + j.grade));
+      /* 🔴 หนี้ข้อ 5: ช่วงเวลาที่ติ๊กไว้ต้องเห็นด้วยตาว่าถูกเก็บจริง ไม่ใช่หายไปกับหน้าจอ
+         (ผู้เรียนใช้ช่วงนี้เลือกวัน-เวลาจริงในหน้าจอง — Owner เคาะ LOG 138 ข้อ 14) */
+      var bits = ['ยื่น ' + baht(j.mine) + '/ชม.'];
+      if (j.myOffer && j.myOffer.slots && j.myOffer.slots.length) {
+        bits.push('ว่าง ' + j.myOffer.slots.map(function (c) { return SLOT_LABEL[c] || c; }).join(' / '));
+      }
+      bits.push(j.status === 'closed' ? 'ยกเลิกอัตโนมัติ (โพสต์ปิดแล้ว)' : 'รอผู้เรียนตอบ');
+      txt.appendChild(el('small', null, bits.join(' · ')));
+      main.appendChild(txt);
+      li.appendChild(main);
+
+      var act = el('span', 'jact');
+      if (j.status === 'closed') {
+        act.appendChild(el('span', 'jbadge is-off', 'ปิดแล้ว'));
+      } else {
+        var w = el('button', 'jbadge is-sent', 'ถอน');
+        w.type = 'button';
+        w.setAttribute('data-withdraw', j.id);
+        w.setAttribute('aria-label', 'ถอนข้อเสนองาน ' + j.id);
+        act.appendChild(w);
+      }
+      li.appendChild(act);
+
+      var det = el('div', 'jdet');
+      det.id = 'minedet-' + j.id;
+      det.hidden = true;
+      var head = el('div', 'jdet-head');
+      head.appendChild(el('span', 'jdet-title', 'หาครู' + j.subjects.join(' + ') + 'ให้' + j.learner));
+      head.appendChild(el('span', 'j-code', '#' + j.id));
+      det.appendChild(head);
+      det.appendChild(el('p', 'j-note', j.status === 'closed'
+        ? 'ผู้เรียนจองครูคนอื่นสำเร็จ · ข้อเสนอของคุณถูกยกเลิกอัตโนมัติ ไม่นับในโควตา'
+        : 'ค้างอยู่ = ยังรอผู้เรียนตัดสินใจ · ถอนเมื่อไรก็ได้ก่อนเขาเลือก'));
+      var go = el('button', 'btn btn-secondary btn-sm', 'ดูงานนี้ในกระดาน');
+      go.type = 'button';
+      go.addEventListener('click', function () {
+        goTab('match');
+        var card = $('card-' + j.id);
+        if (!card) return;
+        var m = card.querySelector('.jrow-main'), d = card.querySelector('.jdet');
+        if (d && d.hidden) { d.hidden = false; m.setAttribute('aria-expanded', 'true'); card.classList.add('is-open'); }
+        card.scrollIntoView({ block: 'center' });
+        m.focus();
+      });
+      det.appendChild(go);
+      li.appendChild(det);
+
+      main.addEventListener('click', function () {
+        var open = det.hidden;
+        det.hidden = !open;
+        main.setAttribute('aria-expanded', open ? 'true' : 'false');
+        li.classList.toggle('is-open', open);
+      });
+
+      ul.appendChild(li);
+    });
+  }
+
+  /* 🔴 ก้อน 2 — เลขบนแท็บ
+     แท็บ 1 นับ "ผลหลังกรอง" ไม่ใช่จำนวนงานทั้งกระดาน เพราะเลขต้องตรงกับสิ่งที่ตาเห็นในแท็บนั้น
+     (บทเรียนเดิม: ปุ่ม "ดูในรายการทั้งหมด" เคยพาไปเจอจำนวนไม่ตรงกับที่หัวข้อบอก) */
+  function paintTabCounts() {
+    if (window.paintFilterCount) window.paintFilterCount();
+    $('n-match').textContent = filtered().length;
+    $('n-reqs').textContent = REQS.filter(function (r) { return r.status === 'pending'; }).length;
+    $('n-mine').textContent = openOffers().length;
+  }
+
+  function paintAll() {
+    paintQuota();
+    paintBoard();
+    paintMine();
+    paintTabCounts();
+  }
+
+  /* ── ข้อความแจ้งผลแบบเงียบ + เลิกทำ ───────────────────────── */
+  var lastUndo = null;
+  /* 🔴 การ์ดถูกวาดใหม่ทุกครั้งที่สถานะเปลี่ยน = ปุ่มที่เพิ่งกดหายไปจาก DOM -> focus ตกไปที่ body
+     ต้องย้าย focus ไปที่ "สิ่งที่ต่อจากนี้" ให้เอง ไม่งั้นคนใช้คีย์บอร์ดหลุดตำแหน่งทุกครั้งที่ยื่น/ถอน */
+  function focusNext(sel) {
+    var t = sel ? document.querySelector(sel) : null;
+    (t || $('live-note')).focus();
+  }
+  function say(text, undoFn) {
+    $('live-text').textContent = text;
+    $('live-note').hidden = false;
+    lastUndo = undoFn || null;
+    $('undo-btn').hidden = !undoFn;
+  }
+  $('undo-btn').addEventListener('click', function () {
+    if (!lastUndo) return;
+    lastUndo();
+    lastUndo = null;
+    $('live-note').hidden = true;
+  });
+
+  /* ── แผงยื่นข้อเสนอ ────────────────────────────────────────── */
+  var modal = $('offer-modal');
+  var current = null;      /* งานที่กำลังยื่น */
+  var lastTrigger = null;  /* ปุ่มที่กดเปิด — ปิดแล้วต้องคืน focus */
+  var tried = false;       /* กดยื่นไปแล้วรอบหนึ่งหรือยัง (บทเรียน: error ต้องอัปเดตทุกครั้งที่พิมพ์หลังกดครั้งแรก) */
+
+  function openModal(job, trigger) {
+    current = job;
+    lastTrigger = trigger || null;
+    tried = false;
+
+    $('om-job-title').textContent = 'หาครู' + job.subjects.join(' + ') + 'ให้' + job.learner + ' · #' + job.id;
+    $('om-job-facts').textContent = job.grade + ' · ' + placeText(job)
+      + (job.zone ? ' · ' + job.zone : '') + ' · ' + job.slots.map(function (c) { return SLOT_LABEL[c] || c; }).join(' / ')
+      + ' · งบ ' + baht(job.budget) + '/ชม.' + (job.flexible ? ' (ยืดหยุ่นได้)' : '');
+
+    $('om-price').value = ME.rate;
+    $('om-price').setAttribute('aria-invalid', 'false');
+
+    var box = $('om-slots');
+    box.textContent = '';
+    job.slots.forEach(function (s) {
+      var lab = el('label', 'chip');
+      var inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.name = 'om-slot';
+      inp.value = s;                                   /* ค่าที่ระบบเก็บ = รหัส */
+      lab.appendChild(inp);
+      lab.appendChild(document.createTextNode(SLOT_LABEL[s] || s));   /* ป้ายบนจอ = ไทย */
+      box.appendChild(lab);
+    });
+
+    $('om-msg').value = '';
+    $('om-msg').setAttribute('aria-invalid', 'false');
+    $('om-msg-count').textContent = '0';
+    $('om-pdpa').hidden = true;
+    $('om-price-help').className = 'helper';
+    $('om-slot-help').className = 'helper';
+    $('om-msg-help').className = 'helper';
+    $('om-msg-help').textContent = 'อย่างน้อย 20 ตัวอักษร · ตอบให้ตรงกับสิ่งที่เขาเขียนไว้ในโพสต์';
+    $('om-slot-help').textContent = 'ติ๊กเฉพาะช่วงที่ว่างจริง ผู้เรียนใช้ข้อนี้ตัดสินใจ';
+
+    priceHint();
+    paintQuota();
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('om-price').focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    document.body.style.overflow = '';
+    current = null;
+    if (lastTrigger && document.body.contains(lastTrigger)) lastTrigger.focus();
+    lastTrigger = null;
+  }
+
+  function priceHint() {
+    if (!current) return;
+    var p = Number($('om-price').value);
+    var help = $('om-price-help');
+    var base = 'งบของผู้เรียน ' + baht(current.budget) + '/ชม.' + (current.flexible ? ' (บอกว่ายืดหยุ่นได้)' : ' (ขอไม่เกินงบ)');
+    if (!p || isNaN(p)) { help.className = 'helper'; help.textContent = base; return; }
+    if (p > current.budget) {
+      help.className = 'helper';
+      help.textContent = base + ' · คุณเสนอสูงกว่างบ ' + baht(p - current.budget)
+        + (current.flexible ? ' — เขาเปิดรับไว้ ลองอธิบายเหตุผลในข้อความ' : ' — เขาระบุว่าขอไม่เกินงบ โอกาสถูกเลือกจะน้อยลง');
+    } else {
+      help.className = 'helper';
+      help.textContent = base + ' · ข้อเสนอของคุณอยู่ในงบ';
+    }
+  }
+
+  function checkOffer() {
+    var bad = [];
+    var p = Number($('om-price').value);
+    var slots = Array.prototype.slice.call(document.querySelectorAll('input[name="om-slot"]:checked'));
+    var msg = $('om-msg').value.trim();
+
+    /* 🔴 เพดานบนต้องตรวจใน JS ด้วย ไม่ใช่มีแค่ max="20000" ในแท็ก — ฟอร์มนี้ตรวจเอง แท็บไม่ได้บังคับให้
+       (ผลตรวจ security 2026-08-21: ยื่น ฿50,000 ผ่านได้ แล้วหน้าจองตีตกเงียบ ๆ กลับไปใช้ราคาป้าย
+        = ผู้เรียนเห็นราคาหนึ่ง จ่ายอีกราคาหนึ่ง) · ตัวเลขต้องตรงกับ PRICE_MAX ใน booking.html */
+    if (!$('om-price').value.trim() || isNaN(p) || p <= 0 || p > PRICE_MAX) bad.push('price');
+    if (!slots.length) bad.push('slot');
+    if (msg.length < 20) bad.push('msg');
+    return bad;
+  }
+
+  function showOfferErrors(bad) {
+    $('om-price').setAttribute('aria-invalid', bad.indexOf('price') > -1 ? 'true' : 'false');
+    $('om-msg').setAttribute('aria-invalid', bad.indexOf('msg') > -1 ? 'true' : 'false');
+
+    if (bad.indexOf('price') > -1) {
+      $('om-price-help').className = 'helper err';
+      /* บอกให้ตรงว่าผิดเพราะอะไร — "มากกว่า 0" อย่างเดียวจะงงเมื่อพิมพ์เกินเพดาน */
+      $('om-price-help').textContent = Number($('om-price').value) > PRICE_MAX
+        ? 'ราคาต่อชั่วโมงสูงเกินเพดานของระบบ (' + baht(PRICE_MAX) + '/ชม.) — ใส่ใหม่'
+        : 'ใส่ราคาที่คุณเสนอก่อน (มากกว่า 0)';
+    } else {
+      priceHint();
+    }
+
+    if (bad.indexOf('slot') > -1) {
+      $('om-slot-help').className = 'helper err';
+      $('om-slot-help').textContent = 'ติ๊กอย่างน้อย 1 ช่วงเวลาที่คุณว่างตรงกับโพสต์นี้';
+    } else {
+      $('om-slot-help').className = 'helper';
+      $('om-slot-help').textContent = 'ติ๊กเฉพาะช่วงที่ว่างจริง ผู้เรียนใช้ข้อนี้ตัดสินใจ';
+    }
+
+    var n = $('om-msg').value.trim().length;
+    if (bad.indexOf('msg') > -1) {
+      $('om-msg-help').className = 'helper err';
+      $('om-msg-help').textContent = 'เขียนอย่างน้อย 20 ตัวอักษร (ตอนนี้ ' + n + ')';
+    } else {
+      $('om-msg-help').className = 'helper';
+      $('om-msg-help').textContent = 'อย่างน้อย 20 ตัวอักษร · ตอบให้ตรงกับสิ่งที่เขาเขียนไว้ในโพสต์';
+    }
+  }
+
+  /* พิมพ์แล้วอัปเดตทุกอย่างที่ต้องอัปเดต — ถ้าเคยกดยื่นแล้ว ต้องตรวจซ้ำทุกครั้ง
+     (บทเรียน 2026-08-14: error ค้างค่าเก่าเพราะตรวจตอนกดส่งอย่างเดียว) */
+  function onOfferEdit() {
+    $('om-msg-count').textContent = $('om-msg').value.length;
+    var risk = contactRisk($('om-msg').value);
+    if (risk.length) {
+      $('om-pdpa-what').textContent = 'เราเจอ ' + risk.join(' และ ') + ' ในข้อความ';
+      $('om-pdpa').hidden = false;
+    } else {
+      $('om-pdpa').hidden = true;
+    }
+    priceHint();
+    if (tried) showOfferErrors(checkOffer());
+  }
+
+  $('om-price').addEventListener('input', onOfferEdit);
+  $('om-msg').addEventListener('input', onOfferEdit);
+  $('om-slots').addEventListener('change', onOfferEdit);
+
+  $('om-submit').addEventListener('click', function () {
+    if (!current) return;
+    tried = true;
+    var bad = checkOffer();
+    showOfferErrors(bad);
+    if (bad.length) {
+      var first = bad[0] === 'price' ? $('om-price') : (bad[0] === 'slot' ? $('om-slots').querySelector('input') : $('om-msg'));
+      if (first) first.focus();
+      return;
+    }
+    var job = current;
+    var price = Number($('om-price').value);
+    /* 🔴 หนี้ข้อ 5 (SYSTEM ข้อ 10) แก้แล้ว 2026-08-21 ตอนทำก้อน C②:
+       เดิมเก็บแค่ราคา -> ช่วงเวลาที่ครูติ๊กว่าว่าง กับข้อความที่ครูพิมพ์ ถูกทิ้งทั้งคู่
+       แต่ my-jobs.html ต้องเอา 3 อย่างนี้ไปให้ผู้เรียนเทียบกัน และค่า ?time= ที่ส่งไปหน้าจอง
+       ก็มาจาก slots ใบนี้ (Owner เคาะ LOG 138 ข้อ 14: เลือกวัน-เวลาจากช่วงที่ครูเสนอ)
+       🔴 job.mine (ราคา) ต้องอยู่เหมือนเดิม เพราะการ์ด/ลิสต์/โควตาอ่านค่านี้อยู่หลายที่ */
+    job.myOffer = {
+      price: price,
+      slots: [].map.call($('om-slots').querySelectorAll('input:checked'), function (i) { return i.value; }),
+      msg: $('om-msg').value.trim(),
+      sentAt: Date.now()
+    };
+    job.mine = price;
+    job.offers += 1;
+    closeModal();
+    paintAll();
+    say('ยื่นข้อเสนอ ' + baht(price) + '/ชม. ให้ #' + job.id + ' แล้ว · ค้างอยู่ ' + openOffers().length + '/' + ME.maxOpen, null);
+    focusNext('#board-list [data-withdraw="' + job.id + '"]');
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target.getAttribute && e.target.getAttribute('data-close')) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+
+  /* ── ปุ่มบนการ์ด (ยื่น / ถอน) — ผูกที่ document ทีเดียว เพราะการ์ดวาดใหม่ตลอด ── */
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.getAttribute) return;
+
+    var offerId = t.getAttribute('data-offer');
+    if (offerId) {
+      if (quotaFull()) return;
+      var job = JOBS.filter(function (j) { return j.id === offerId; })[0];
+      if (job) openModal(job, t);
+      return;
+    }
+
+    var wId = t.getAttribute('data-withdraw');
+    if (wId) {
+      var jb = JOBS.filter(function (j) { return j.id === wId; })[0];
+      if (!jb) return;
+      var was = jb.mine, wasOffer = jb.myOffer;
+      jb.mine = null;
+      jb.myOffer = null;          /* ถอนแล้วต้องล้างทั้งใบ ไม่ใช่ล้างแค่ราคา (ไม่งั้นช่วง/ข้อความค้างเป็นผี) */
+      jb.offers = Math.max(0, jb.offers - 1);
+      paintAll();
+      say('ถอนข้อเสนอ #' + jb.id + ' แล้ว · ค้างอยู่ ' + openOffers().length + '/' + ME.maxOpen, function () {
+        jb.mine = was;
+        jb.myOffer = wasOffer;
+        jb.offers += 1;
+        paintAll();
+        focusNext('#board-list [data-withdraw="' + jb.id + '"]');
+      });
+      focusNext('#undo-btn');
+    }
+  });
+
+  /* ลิงก์ในลิสต์ "ข้อเสนอของฉัน" ต้องพาไปเจอการ์ดจริงเสมอ
+     — ถ้าการ์ดใบนั้นถูกตัวกรองซ่อนอยู่ (เช่นซ่อนงานที่ปิดแล้ว) ให้ปลดตัวกรองที่ขวางก่อน */
+
+
+  function clearFilterInputs() {
+    $('f-subj').value = '';
+    $('f-level').value = '';
+    $('f-budget').value = '';
+    $('f-match').checked = false;
+    Array.prototype.slice.call(document.querySelectorAll('input[name="f-mode"]')).forEach(function (i) { i.checked = false; });
+  }
+
+  /* ── ผูกตัวกรอง ────────────────────────────────────────────── */
+  ['f-subj', 'f-level', 'f-budget', 'f-match', 'f-open', 'f-sort'].forEach(function (id) {
+    $(id).addEventListener('input', function () { readFilters(); paintBoard(); });
+    $(id).addEventListener('change', function () { readFilters(); paintBoard(); });
+  });
+  Array.prototype.slice.call(document.querySelectorAll('input[name="f-mode"]')).forEach(function (i) {
+    i.addEventListener('change', function () { readFilters(); paintBoard(); });
+  });
+  $('clear-filters').addEventListener('click', function () {
+    clearFilterInputs();
+    $('f-open').checked = true;
+    $('f-sort').value = 'new';
+    readFilters();
+    paintBoard();
+    $('live-note').hidden = true;
+  });
+
+  /* ── เติมตัวเลือกวิชาในตัวกรองจาก "วิชาที่มีงานจริง" (ไม่ตั้งชื่อเอง) ── */
+  (function fillSubjectFilter() {
+    var seen = [];
+    JOBS.forEach(function (j) {
+      j.subjects.forEach(function (s) { if (seen.indexOf(s) === -1) seen.push(s); });
+    });
+    seen.sort(function (a, b) { return a.localeCompare(b, 'th'); });
+    var sel = $('f-subj');
+    seen.forEach(function (s) {
+      var o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      sel.appendChild(o);
+    });
+  })();
+
+  /* ── แถบโปรไฟล์ครู ─────────────────────────────────────────── */
+  $('me-subjects').textContent = ME.subjects.join(' · ');
+  $('me-levels').textContent = ME.levels.map(function (l) { return LEVEL_LABEL[l]; }).join(' · ');
+  $('me-prov').textContent = ME.prov;
+
+
+  readFilters();
+
+  /* ── ปุ่มยุบ/กางตัวกรอง (ก้อน 2) — จอ ② ไม่มีแผงกางค้าง ── */
+  (function () {
+    var btn = $("filter-toggle"), box = $("filters"), n = $("filter-n");
+    btn.addEventListener("click", function () {
+      var open = box.hidden;
+      box.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    /* เลขบนปุ่ม = จำนวนตัวกรองที่เปิดใช้อยู่ คนจะได้รู้ว่ามีของซ่อนอยู่ */
+    window.paintFilterCount = function () {
+      var c = 0;
+      if (F.subj) c++;
+      if (F.level) c++;
+      if (F.budget !== "") c++;
+      if (F.modes.length) c++;
+      if (F.matchOnly) c++;
+      if (!F.hideClosed) c++;
+      n.textContent = c;
+      n.hidden = c === 0;
+    };
+  })();
+
+  /* ── สลับแท็บ (ก้อน 2 · 2026-09-01) ──────
+     🔴 สลับด้วย hidden ตรง ๆ ห้ามใช้ transition + visibility
+        (กับดักที่รู้แล้ว: เฟรมไม่ถูกวาด -> แผงค้างที่เฟรมแรก = ไม่โผล่เลย)
+     🔴 แท็บที่เปิดอยู่ = ถมหมึกเข้ม ตัวหนังสือขาว (ท่า .mock-tab ของจอ ②) */
+  var TABS = ['match', 'reqs', 'mine'];
+  function goTab(name) {
+    if (TABS.indexOf(name) === -1) name = 'match';
+    TABS.forEach(function (t) {
+      var btn = $('tab-' + t), panel = $('panel-' + t), on = t === name;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      panel.hidden = !on;
+    });
+    try { sessionStorage.setItem('bgt_jb_tab', name); } catch (e) {}
+  }
+  TABS.forEach(function (t) {
+    $('tab-' + t).addEventListener('click', function () { goTab(t); });
+  });
+  /* ลูกศรซ้าย-ขวาเดินระหว่างแท็บ (มาตรฐาน tablist) */
+  $('tab-match').parentNode.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    var cur = TABS.filter(function (t) { return $('tab-' + t).classList.contains('is-on'); })[0] || 'match';
+    var i = TABS.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : -1);
+    var next = TABS[(i + TABS.length) % TABS.length];
+    goTab(next);
+    $('tab-' + next).focus();
+    e.preventDefault();
+  });
+  /* กลับมาหน้าเดิมแล้วยังอยู่แท็บเดิม — ครูสลับไปมาระหว่างกระดานกับข้อเสนอของตัวเองบ่อย */
+  var savedTab = null;
+  try { savedTab = sessionStorage.getItem('bgt_jb_tab'); } catch (e) {}
+  goTab(savedTab || 'match');
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     ⭐ ก้อน C2 (2026-08-23) — "คำขอจองตรงถึงคุณ" + เสนอเวลาอื่น (counter-offer)
+     กติกาเต็ม: SYSTEM_สถานะงาน.md ข้อ 3ก (Owner เคาะ 2026-08-18)
+       1. ครูกดส่งเวลาใหม่ = ล็อกเวลาใหม่ทันที (ครูโอเคที่จะสอนแล้ว)
+       2. เวลาเดิมกลับไปเปิดว่างตามปกติ ไม่ต้องกันไว้
+       3. ผู้เรียนมีเวลาตอบเท่าฝั่งครู (1-2 ชม. · นาฬิกาหยุด 22:00-07:00)
+       5. ผู้เรียนปฏิเสธ = ปิดเฉพาะใบของครูคนนี้ ใบครูคนอื่นเดินต่อ
+       6. ใช้ของเดิมทั้งหมด ห้ามเขียนปฏิทินชุดใหม่
+     🔴 สูตรเวลาทั้งหมดในบล็อกนี้เป็นสำเนาจาก booking.html (ค้น freeBlocks / WEEKLY / LEAD_MIN)
+        แก้ต้นฉบับเมื่อไร ต้องแก้ที่นี่ด้วยรอบเดียวกัน — tools/check.mjs มีข้อตรวจว่าค่าตรงกัน
+     ทาง A ยังไม่มี DB: คำตอบของครูฝากไว้ที่ sessionStorage ให้ my-jobs.html อ่านต่อ
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  var STEP = 30;                    /* จุดเริ่มทุก 30 นาที — ตรงกับ booking.html */
+  var LEAD_MIN = 24 * 60;           /* จองล่วงหน้าขั้นต่ำ 24 ชม. (SYSTEM ข้อ 5) */
+  var TRAVEL_BUFFER = 60;           /* กันเวลาเดินทางครู 60 นาที หน้า-หลัง */
+  var PAY_WINDOW_MIN = 60;          /* เวลาที่ผู้เรียนมีไว้ชำระเงิน (SYSTEM ข้อ 5 · LOG 142) */
+  var REPLY_WINDOW_TEXT = '1-2 ชั่วโมง';
+
+  /* ตารางว่างประจำสัปดาห์ของครูพลอย (คีย์ = getDay() 0=อาทิตย์) — สำเนาจาก booking.html */
+  var WEEKLY = {
+    0: [],
+    1: [[960, 1140], [1140, 1320]],
+    2: [[960, 1140], [1140, 1320]],
+    3: [[1140, 1320]],
+    4: [[960, 1320]],
+    5: [[960, 1140]],
+    6: [[540, 720], [780, 1140]]
+  };
+
+  var ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  var addDays = function (d, n) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; };
+  var today0 = new Date(); today0.setHours(0, 0, 0, 0);
+
+  /* คาบที่ครูมีคนจองไว้แล้ว + วันที่ครูแจ้งลา — ชุดเดียวกับ booking.html */
+  var BOOKED = {};
+  BOOKED[ymd(addDays(today0, 2))] = [[1020, 1140]];
+  BOOKED[ymd(addDays(today0, 4))] = [[1140, 1260]];
+  var DAYOFF = {};
+  DAYOFF[ymd(addDays(today0, 5))] = true;
+
+  var mergeRanges = function (ranges) {
+    var out = [];
+    ranges.map(function (r) { return [r[0], r[1]]; }).sort(function (x, y) { return x[0] - y[0]; }).forEach(function (r) {
+      var last = out[out.length - 1];
+      if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+      else out.push([r[0], r[1]]);
+    });
+    return out;
+  };
+  var subtract = function (free, busy) {
+    var out = free.map(function (r) { return [r[0], r[1]]; });
+    busy.forEach(function (b) {
+      var bs = b[0], be = b[1], next = [];
+      out.forEach(function (r) {
+        var s = r[0], e = r[1];
+        if (be <= s || bs >= e) { next.push([s, e]); return; }
+        if (bs > s) next.push([s, bs]);
+        if (be < e) next.push([be, e]);
+      });
+      out = next;
+    });
+    return out;
+  };
+  var needsTravel = function (mode) { return mode === 'home' || mode === 'public'; };
+
+  function leadCutoff(dateKey) {
+    var earliest = new Date(Date.now() + LEAD_MIN * 60000);
+    var earliestKey = ymd(earliest);
+    if (dateKey < earliestKey) return null;
+    if (dateKey > earliestKey) return 0;
+    return Math.ceil((earliest.getHours() * 60 + earliest.getMinutes()) / STEP) * STEP;
+  }
+  /* ช่วงว่างจริงของวันหนึ่ง หลังหักคาบที่จองแล้ว + กันเวลาเดินทาง + ตัดช่วงที่จองไม่ทัน 24 ชม. */
+  function freeBlocks(dateKey, weekday, mode, minLen) {
+    if (DAYOFF[dateKey]) return [];
+    var merged = mergeRanges(WEEKLY[weekday] || []);
+    if (!merged.length) return [];
+    var busy = (BOOKED[dateKey] || []).map(function (r) {
+      return needsTravel(mode) ? [r[0] - TRAVEL_BUFFER, r[1] + TRAVEL_BUFFER] : [r[0], r[1]];
+    });
+    var free = subtract(merged, busy).filter(function (r) { return r[1] - r[0] >= minLen; });
+    var cutoff = leadCutoff(dateKey);
+    if (cutoff === null) return [];
+    if (cutoff > 0) {
+      free = free.map(function (r) { return [Math.max(r[0], cutoff), r[1]]; })
+                 .filter(function (r) { return r[1] - r[0] >= minLen; });
+    }
+    return free;
+  }
+  /* เวลาเริ่มที่เลือกได้ของวันนั้น (ทุก 30 นาที และต้องมีที่พอสำหรับความยาวคาบเดิม) */
+  function startOptions(dateKey, weekday, mode, len) {
+    var out = [];
+    freeBlocks(dateKey, weekday, mode, len).forEach(function (r) {
+      var first = Math.ceil(r[0] / STEP) * STEP;
+      for (var t = first; t + len <= r[1]; t += STEP) out.push(t);
+    });
+    return out;
+  }
+  function hhmm(m) {
+    var h = Math.floor(m / 60), mm = m % 60;
+    return String(h).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+  function dateFromKey(key) { var p = key.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function dayText(dateKey) {
+    var d = dateFromKey(dateKey);
+    return d.toLocaleDateString('th-TH', { weekday: 'long' }) + 'ที่ ' + d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  }
+  function whenText(r) { return dayText(r.dateKey) + ' ' + hhmm(r.start) + '–' + hhmm(r.start + r.len); }
+  /* คำขอจองตรงไม่ใช่ "โพสต์" — ห้ามยืมข้อความของ postedText() มาใช้ (คนละเส้นทาง) */
+  function sentText(h) {
+    if (h < 1) return 'เพิ่งส่งมา';
+    if (h < 24) return 'ส่งมา ' + h + ' ชม.ที่แล้ว';
+    return 'ส่งมา ' + Math.floor(h / 24) + ' วันที่แล้ว';
+  }
+  function lenText(m) { return m % 60 === 0 ? (m / 60) + ' ชม.' : Math.floor(m / 60) + ' ชม. ' + (m % 60) + ' นาที'; }
+
+  /* วันแรก ๆ ที่ครูว่างจริง — ใช้ตั้งข้อมูลสมมติให้ตรงกับปฏิทินจริงเสมอ
+     (ถ้าพิมพ์วันตายไว้ พอเวลาผ่านไปคำขอจะกลายเป็นวันที่จองไม่ได้แล้ว = ทดสอบไม่ได้) */
+  function nextFreeDays(count, mode, len) {
+    var out = [];
+    for (var i = 2; i <= 13 && out.length < count; i++) {
+      var d = addDays(today0, i), key = ymd(d);
+      var blocks = freeBlocks(key, d.getDay(), mode, len);
+      if (blocks.length) out.push({ key: key, start: Math.ceil(blocks[0][0] / STEP) * STEP });
+    }
+    return out;
+  }
+
+  /* ══ คำขอจองตรงที่ส่งถึงครูคนนี้ (ข้อมูลสมมติ — ยังไม่มี DB) ══
+     🔴 ใบ BGT-2085 ตั้งใจให้ตรงกับงานใบเดียวกันใน my-jobs.html (ฝั่งผู้เรียน)
+        เพื่อให้ไล่ท่อข้ามหน้าได้จริง: ครูตอบที่นี่ -> ผู้เรียนเห็นผลที่หน้านั้น */
+  var _dHome = nextFreeDays(3, 'home', 90);
+  var _dOn = nextFreeDays(3, 'online', 60);
+  var REQS = [
+    {
+      id: 'BGT-2085', learner: 'น้องใบเตย', grade: 'ป.5', subject: 'คณิตศาสตร์', goal: 'exam_prep',
+      mode: 'home', zone: 'กรุงเทพมหานคร', zoneDetail: 'เขตบางนา',
+      price: 450, len: 90, sentH: 1,
+      dateKey: _dHome[0] ? _dHome[0].key : ymd(addDays(today0, 2)),
+      start: _dHome[0] ? _dHome[0].start : 960,
+      status: 'pending'
+    },
+    {
+      id: 'BGT-2092', learner: 'น้องข้าวปุ้น', grade: 'ป.6', subject: 'คณิตศาสตร์', goal: 'catch_up',
+      mode: 'online', zone: '', zoneDetail: '',
+      price: 380, len: 60, sentH: 2,
+      dateKey: _dOn[1] ? _dOn[1].key : ymd(addDays(today0, 3)),
+      start: _dOn[1] ? _dOn[1].start + 60 : 1020,
+      status: 'pending'
+    },
+    {
+      id: 'BGT-2088', learner: 'น้องแทน', grade: 'ม.1', subject: 'ฟิสิกส์', goal: 'exam_prep',
+      mode: 'online', zone: '', zoneDetail: '',
+      price: 420, len: 120, sentH: 6,
+      dateKey: _dOn[2] ? _dOn[2].key : ymd(addDays(today0, 6)),
+      start: _dOn[2] ? _dOn[2].start : 1140,
+      status: 'awaiting_payment'
+    }
+  ];
+
+  /* ป้ายสถานะฝั่งครู — รหัสชุดเดียวกับ SYSTEM ข้อ 8 (ข้อความไทยเป็นแค่ป้ายบนจอ) */
+  var REQ_STATE_TH = {
+    pending: 'รอคุณตอบ',
+    counter_offered: 'เสนอเวลาใหม่แล้ว รอผู้เรียนตอบ',
+    awaiting_payment: 'คุณรับแล้ว รอผู้เรียนชำระเงิน',
+    confirmed: 'ยืนยันแล้ว',
+    declined_by_teacher: 'คุณไม่รับงานนี้',
+    declined_by_learner: 'ผู้เรียนไม่เลือกเวลาที่คุณเสนอ',
+    expired: 'หมดเวลาตอบ'
+  };
+  var REQ_STATE_TONE = { pending: 'is-wait', counter_offered: 'is-wait', awaiting_payment: 'is-ok', confirmed: 'is-ok' };
+
+  /* ทาง A ยังไม่มี DB — คำตอบของครูฝากไว้ให้ my-jobs.html (ฝั่งผู้เรียน) อ่านต่อ
+     🔴 งาน B: สถานะมาจากเซิร์ฟเวอร์ แล้วลบก้อนนี้ทิ้งทั้งหมด */
+  var REPLY_KEY = 'bgt_direct_reply';
+  /* 🔴 เก็บแยกเป็นรายงาน (คีย์ = รหัสงาน) ไม่ใช่ช่องเดียว
+     ผลตรวจ logic 2026-08-23: เดิมครูตอบงานใบที่ 2 แล้วคำตอบของใบแรกหายทั้งใบ
+     และค่าเก่าอย่าง paid/timedOut ค้างข้ามรอบจนงานเด้งเป็น 'ยืนยันแล้ว' เองโดยไม่มีใครจ่าย */
+  function stampReply(r, action, extra) {
+    var box = { v: 2, ts: Date.now(), jobs: {} };
+    try {
+      var cur = JSON.parse(sessionStorage.getItem(REPLY_KEY) || 'null');
+      if (cur && cur.v === 2 && cur.jobs) box.jobs = cur.jobs;
+    } catch (e) { }
+    /* เขียนทับ 'ทั้งใบ' ของงานนี้เสมอ — คำตอบใหม่ต้องไม่แบกสถานะรอบเก่า (paid/timedOut/learner) มาด้วย */
+    box.jobs[r.id] = { ts: Date.now(), tid: 'ploy', action: action,
+                       price: r.price, len: r.len, mode: r.mode, subject: r.subject };
+    if (extra) Object.keys(extra).forEach(function (k) { box.jobs[r.id][k] = extra[k]; });
+    try { sessionStorage.setItem(REPLY_KEY, JSON.stringify(box)); } catch (e) { }
+  }
+
+  /* เวลาที่ครูตกลงแล้ว (กดรับ หรือ เสนอเวลาใหม่) = ล็อกจริง ต้องเข้าปฏิทินของครูทันที
+     ไม่งั้นครูเปิดแผงใบถัดไปแล้วยังเห็นช่องเดิมว่างอยู่ -> ล็อกทับกันเอง ผู้เรียน 2 คนจ่ายได้ทั้งคู่
+     (ผิด SYSTEM ข้อ 2 กฎแม่ · ผลตรวจ logic 2026-08-23) */
+  function holdSlot(dateKey, start, len) {
+    if (!BOOKED[dateKey]) BOOKED[dateKey] = [];
+    BOOKED[dateKey].push([start, start + len]);
+  }
+
+  /* ── แถวคำขอจองตรง (ก้อน 2 · 2026-09-01) — ท่าเดียวกับแถวงานในแท็บแรก ────
+     ของเดิมเป็นการ์ดใหญ่ `.req-card` ที่กางทุกอย่างพร้อมกัน
+     ของใหม่: 1 คำขอ = 1 แถว · วงกลมระดับชั้น + 2 บรรทัด + ปุ่มหลัก 1 ปุ่มขวาสุด
+     🔴 ปุ่มที่เหลือ (ไม่รับ · เสนอเวลาอื่น) กับรายละเอียดทั้งหมด อยู่ในแผงที่กดกางออก
+        ไม่มีปุ่มไหนหาย — reqFoot() ตัวเดิมถูกยกมาทั้งดุ้น รวมถึงขั้นถามย้ำตอนกด "ไม่รับ" (uiAsk)
+     🔴 กติกาเดิม: ขวาสุด = ของฉัน 1 ชิ้นเสมอ ทุกสถานะโครงเดียวกัน */
+  function reqCard(r) {
+    var li = el('li', 'jrow' + (r.status === 'pending' ? ' is-live' : '') +
+      (r.status === 'declined_by_teacher' || r.status === 'declined_by_learner' ? ' is-closed' : ''));
+
+    var main = el('button', 'jrow-main');
+    main.type = 'button';
+    main.setAttribute('aria-expanded', 'false');
+    main.setAttribute('aria-controls', 'reqdet-' + r.id);
+
+    var av = el('span', 'jav', (r.grade || '').replace(/\./g, '').slice(0, 3));
+    av.setAttribute('aria-hidden', 'true');
+    main.appendChild(av);
+
+    var txt = el('span', 'jtxt');
+    txt.appendChild(el('b', null, 'สอน' + r.subject + 'ให้' + r.learner));
+    txt.appendChild(el('small', null,
+      [whenText(r), lenText(r.len), baht(r.price) + '/ชม.'].join(' · ')));
+    main.appendChild(txt);
+    li.appendChild(main);
+
+    /* ขวาสุด: ยังไม่ตอบ = ปุ่มรับงาน · สถานะอื่น = ป้ายบอกสถานะ */
+    var act = el('span', 'jact');
+    if (r.status === 'pending' && !r.uiAsk) {
+      var bA = el('button', 'jbadge is-go', 'รับงานนี้');
+      bA.type = 'button';
+      bA.setAttribute('data-req-accept', r.id);
+      act.appendChild(bA);
+    } else {
+      var tone = r.status === 'pending' ? 'is-sent' : 'is-off';
+      act.appendChild(el('span', 'jbadge ' + tone, REQ_STATE_TH[r.status] || r.status));
+    }
+    li.appendChild(act);
+
+    /* ── แผงรายละเอียด — ของเดิมทั้งหมด + ปุ่มที่เหลือ ── */
+    var det = el('div', 'jdet');
+    det.id = 'reqdet-' + r.id;
+    /* 🔴 ตอนถามย้ำว่าจะเสนอเวลาอื่นไหม (uiAsk) ต้องกางค้างไว้ ไม่งั้นคนกด "ไม่รับ" แล้วจะไม่เห็นคำถาม */
+    det.hidden = !r.uiAsk;
+
+    var head = el('div', 'jdet-head');
+    head.appendChild(el('span', 'jdet-title', 'สอน' + r.subject + 'ให้' + r.learner));
+    head.appendChild(el('span', 'req-code', '#' + r.id));
+    head.appendChild(el('span', 'req-state ' + (REQ_STATE_TONE[r.status] || ''), REQ_STATE_TH[r.status] || r.status));
+    det.appendChild(head);
+
+    var when = el('div', 'req-when');
+    when.appendChild(metaSpan('🗓', whenText(r)));
+    when.appendChild(metaSpan('⏱', lenText(r.len)));
+    when.appendChild(metaSpan('💵', baht(r.price) + '/ชม.'));
+    det.appendChild(when);
+
+    var meta = el('div', 'req-meta');
+    meta.appendChild(metaSpan('🎓', r.grade));
+    meta.appendChild(metaSpan(r.mode === 'online' ? '💻' : '🏠', MODE_LABEL[r.mode] || r.mode));
+    if (r.zone) meta.appendChild(metaSpan('📍', r.zone + (r.zoneDetail ? ' · ' + r.zoneDetail : '')));
+    meta.appendChild(metaSpan('🎯', GOAL_LABEL[r.goal] || r.goal));
+    meta.appendChild(metaSpan('🕐', sentText(r.sentH)));
+    det.appendChild(meta);
+
+    /* เวลาที่เสนอกลับไป — โชว์คู่กับเวลาเดิมเสมอ ไม่ให้ครูต้องจำเอง */
+    if (r.status === 'counter_offered' && r.counter) {
+      var swap = el('div', 'req-swap');
+      swap.appendChild(el('span', 'old', whenText(r)));
+      swap.appendChild(el('span', 'arrow', '→'));
+      swap.appendChild(el('span', 'new', dayText(r.counter.dateKey) + ' ' + hhmm(r.counter.start) + '–' + hhmm(r.counter.start + r.len)));
+      if (r.counter.msg) swap.appendChild(el('span', null, '· ' + r.counter.msg));
+      det.appendChild(swap);
+    }
+
+    det.appendChild(reqFoot(r));
+    li.appendChild(det);
+
+    if (r.uiAsk) { main.setAttribute('aria-expanded', 'true'); li.classList.add('is-open'); }
+
+    main.addEventListener('click', function () {
+      var open = det.hidden;
+      det.hidden = !open;
+      main.setAttribute('aria-expanded', open ? 'true' : 'false');
+      li.classList.toggle('is-open', open);
+    });
+
+    return li;
+  }
+
+  function reqFoot(r) {
+    var foot = el('div', 'req-foot');
+    var note = '', btns = [];
+
+    /* กด "ไม่รับงานนี้" แล้ว การ์ดใบนั้นถามต่อตรงนี้ ไม่เด้ง popup ของเบราว์เซอร์
+       (SYSTEM ข้อ 3ก: ไม่รับ -> ถามว่าเสนอเวลาอื่นไหม -> ไม่ = จบที่ declined_by_teacher) */
+    if (r.uiAsk && r.status === "pending") {
+      foot.appendChild(el("span", "req-note", "ไม่รับช่วงเวลานี้ — อยากเสนอเวลาอื่นให้" + r.learner + "แทนไหม? ถ้าปฏิเสธไปเลย ใบนี้จะปิดและเขาจะไปหาครูคนอื่น"));
+      var bKeep = el("button", "btn btn-secondary btn-sm", "ย้อนกลับ");
+      bKeep.type = "button";
+      bKeep.setAttribute("data-req-keep", r.id);
+      var bNo = el("button", "btn btn-secondary btn-sm", "ปฏิเสธไปเลย");
+      bNo.type = "button";
+      bNo.setAttribute("data-req-decline2", r.id);
+      var bYes = el("button", "btn btn-primary btn-sm", "เสนอเวลาอื่น");
+      bYes.type = "button";
+      bYes.setAttribute("data-req-counter2", r.id);
+      [bKeep, bNo, bYes].forEach(function (b) { foot.appendChild(b); });
+      return foot;
+    }
+
+    if (r.status === 'pending') {
+      note = 'ผู้เรียนเลือกวัน-เวลานี้มาเอง · ตอบภายใน ' + REPLY_WINDOW_TEXT
+           + ' · ช่วงนี้ยังไม่ถูกกันให้ใคร คนอื่นจองทับได้จนกว่าคุณจะกดรับ';
+      var bDecline = el('button', 'btn btn-secondary btn-sm', 'ไม่รับงานนี้');
+      bDecline.type = 'button';
+      bDecline.setAttribute('data-req-decline', r.id);
+      var bCounter = el('button', 'btn btn-secondary btn-sm', 'เสนอเวลาอื่น');
+      bCounter.type = 'button';
+      bCounter.setAttribute('data-req-counter', r.id);
+      var bAccept = el('button', 'btn btn-primary btn-sm', 'รับงานนี้');
+      bAccept.type = 'button';
+      bAccept.setAttribute('data-req-accept', r.id);
+      btns = [bDecline, bCounter, bAccept];
+    } else if (r.status === 'counter_offered') {
+      note = 'เวลาใหม่ถูกล็อกไว้ให้ผู้เรียนแล้ว · เวลาเดิมกลับไปเปิดว่างให้คนอื่นจองได้'
+           + ' · ถ้าเขาไม่ตอบภายใน ' + REPLY_WINDOW_TEXT + ' ระบบปลดล็อกให้อัตโนมัติ';
+    } else if (r.status === 'awaiting_payment') {
+      note = 'คุณรับงานแล้ว — ผู้เรียนมีเวลาชำระเงิน ' + PAY_WINDOW_MIN + ' นาที'
+           + ' · จ่ายแล้วระบบส่งเบอร์ให้ทั้ง 2 ฝั่งทาง LINE OA · จ่ายไม่ทัน ช่องเวลาคืนให้คุณเอง';
+    } else if (r.status === 'declined_by_teacher') {
+      note = 'คุณไม่รับงานนี้ · ช่วงเวลานั้นยังว่างอยู่ตามเดิม ผู้เรียนไปหาครูคนอื่นต่อได้';
+    } else if (r.status === 'declined_by_learner') {
+      note = 'ผู้เรียนไม่เลือกเวลาที่คุณเสนอ · ช่วงที่ล็อกไว้ถูกปลดแล้ว';
+    } else {
+      note = REQ_STATE_TH[r.status] || '';
+    }
+
+    foot.appendChild(el('span', 'req-note', note));
+    btns.forEach(function (b) { foot.appendChild(b); });
+    return foot;
+  }
+
+  function paintReqs() {
+    var box = $('req-list');
+    if (!box) return;
+    box.textContent = '';
+    if (!REQS.length) {
+      var li = el('li');
+      li.appendChild(el('div', 'req-empty', 'ยังไม่มีคำขอจองตรง — ระหว่างนี้ยื่นข้อเสนอกับงานบนกระดานด้านล่างได้เลย'));
+      box.appendChild(li);
+    } else {
+      REQS.forEach(function (r) { box.appendChild(reqCard(r)); });
+    }
+    var n = REQS.filter(function (r) { return r.status === 'pending'; }).length;
+    var nav = $('n-reqs');
+    if (nav) nav.textContent = String(n);
+  }
+
+  function reqById(id) { return REQS.filter(function (r) { return r.id === id; })[0] || null; }
+
+  /* ── แผงเสนอเวลาอื่น ─────────────────────────────────────────── */
+  var cModal = $('counter-modal');
+  var cReq = null;          /* คำขอที่กำลังเสนอเวลาใหม่ */
+  var cTrigger = null;
+  var cPick = { dateKey: '', start: null };
+
+  function cmDays() {
+    if (!cReq) return [];
+    var out = [];
+    for (var i = 1; i <= 14 && out.length < 7; i++) {
+      var d = addDays(today0, i), key = ymd(d);
+      if (!startOptions(key, d.getDay(), cReq.mode, cReq.len).length) continue;
+      out.push(key);
+    }
+    return out;
+  }
+
+  function paintCmStarts() {
+    var box = $('cm-starts');
+    box.textContent = '';
+    if (!cReq || !cPick.dateKey) {
+      $('cm-start-help').textContent = 'เลือกวันก่อน แล้วเวลาเริ่มที่ว่างจะขึ้นตรงนี้';
+      return;
+    }
+    var d = dateFromKey(cPick.dateKey);
+    startOptions(cPick.dateKey, d.getDay(), cReq.mode, cReq.len).forEach(function (t) {
+      var lab = el('label', 'cm-start');
+      var inp = document.createElement('input');
+      inp.type = 'radio';
+      inp.name = 'cm-start';
+      inp.value = String(t);
+      if (cPick.start === t) inp.checked = true;
+      lab.appendChild(inp);
+      lab.appendChild(el('span', null, hhmm(t) + '–' + hhmm(t + cReq.len)));
+      box.appendChild(lab);
+    });
+    $('cm-start-help').textContent = 'คาบยาว ' + lenText(cReq.len) + ' เท่าที่ผู้เรียนขอไว้ · เลือกได้เฉพาะช่วงที่คุณว่างจริงและเหลือเวลาก่อนเรียนเกิน 24 ชม.';
+  }
+
+  function paintCmSummary() {
+    var s = $('cm-summary');
+    if (cReq && cPick.dateKey && cPick.start !== null) {
+      s.className = 'req-state is-ok';
+      s.textContent = 'จะเสนอ: ' + dayText(cPick.dateKey) + ' ' + hhmm(cPick.start) + '–' + hhmm(cPick.start + cReq.len);
+    } else {
+      s.className = 'req-state';
+      s.textContent = 'ยังไม่ได้เลือกเวลา';
+    }
+  }
+
+  function openCounter(r, trigger) {
+    cReq = r;
+    cTrigger = trigger || null;
+    cPick = { dateKey: '', start: null };
+
+    $('cm-job-title').textContent = 'สอน' + r.subject + 'ให้' + r.learner + ' · #' + r.id;
+    $('cm-job-facts').textContent = r.grade + ' · ' + (MODE_LABEL[r.mode] || r.mode)
+      + (r.zone ? ' · ' + r.zone : '') + ' · เขาขอไว้ ' + whenText(r) + ' · ' + baht(r.price) + '/ชม.';
+    $('cm-day-help').className = 'helper';
+    $('cm-day-help').textContent = 'แสดงเฉพาะวันที่คุณเปิดไว้ในตารางสอน และเหลือเวลาก่อนเรียนเกิน 24 ชั่วโมง';
+
+    var box = $('cm-days');
+    box.textContent = '';
+    /* 🔴 ต้องเช็คขั้นต่ำต่อคาบของตัวเองก่อน ไม่งั้นเสนอไปแล้วหน้าจองตีตก ผู้เรียนเจอทางตัน
+       (ผลตรวจ logic 2026-08-23 — ตอนนี้ข้อมูลสมมติบังเอิญผ่านพอดี ไม่ได้ผ่านเพราะมีกฎ) */
+    var minNeed = (ME.minMinutes && ME.minMinutes[r.mode]) || 60;
+    if (r.len < minNeed) {
+      $('cm-day-help').className = 'helper err';
+      $('cm-day-help').textContent = 'คาบนี้ยาว ' + lenText(r.len) + ' แต่คุณตั้งขั้นต่ำของ'
+        + (MODE_LABEL[r.mode] || r.mode) + ' ไว้ ' + lenText(minNeed)
+        + ' — เสนอเวลาใหม่ให้คาบนี้ไม่ได้ ถ้าอยากรับต้องลดขั้นต่ำในโปรไฟล์ก่อน';
+      $('cm-starts').textContent = '';
+      $('cm-msg').value = '';
+      $('cm-msg-count').textContent = '0';
+      $('cm-pdpa').hidden = true;
+      paintCmSummary();
+      cModal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      return;
+    }
+    var days = cmDays();
+    if (!days.length) {
+      box.appendChild(el('p', 'helper', 'ตอนนี้ตารางของคุณไม่มีช่วงว่างยาวพอสำหรับคาบนี้เลยใน 2 สัปดาห์ข้างหน้า — กด "ไม่รับงานนี้" ไปก่อน แล้วค่อยเปิดวันว่างเพิ่มในโปรไฟล์'));
+    }
+    days.forEach(function (key) {
+      var lab = el('label', 'cm-day');
+      var inp = document.createElement('input');
+      inp.type = 'radio';
+      inp.name = 'cm-day';
+      inp.value = key;
+      lab.appendChild(inp);
+      var d = dateFromKey(key);
+      var sp = el('span');
+      sp.appendChild(el('b', null, d.toLocaleDateString('th-TH', { weekday: 'short' })));
+      sp.appendChild(el('small', null, d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })));
+      lab.appendChild(sp);
+      box.appendChild(lab);
+    });
+
+    $('cm-msg').value = '';
+    $('cm-msg-count').textContent = '0';
+    $('cm-pdpa').hidden = true;
+    paintCmStarts();
+    paintCmSummary();
+    cModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    var firstDay = cModal.querySelector('input[name="cm-day"]');
+    if (firstDay) firstDay.focus();
+  }
+
+  function closeCounter() {
+    cModal.hidden = true;
+    document.body.style.overflow = '';
+    cReq = null;
+    if (cTrigger && document.body.contains(cTrigger)) cTrigger.focus();
+    cTrigger = null;
+  }
+
+  cModal.addEventListener('click', function (e) {
+    if (e.target.closest('[data-cclose]')) { closeCounter(); return; }
+    var day = e.target.closest('input[name="cm-day"]');
+    if (day) {
+      cPick.dateKey = day.value;
+      cPick.start = null;
+      paintCmStarts();
+      paintCmSummary();
+      return;
+    }
+    var st = e.target.closest('input[name="cm-start"]');
+    if (st) {
+      cPick.start = Number(st.value);
+      paintCmSummary();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !cModal.hidden) closeCounter();
+  });
+
+  $('cm-msg').addEventListener('input', function () {
+    var v = $('cm-msg').value;
+    $('cm-msg-count').textContent = String(v.length);
+    /* ยาม PDPA ตัวเดียวกับตอนยื่นข้อเสนอ — ครูชอบแปะไอดีไลน์เพื่อคุยนอกระบบ */
+    var risk = contactRisk(v);
+    $('cm-pdpa').hidden = !risk.length;
+    if (risk.length) $('cm-pdpa-what').textContent = 'เจอ' + risk.join(' และ ');
+  });
+
+  $('cm-submit').addEventListener('click', function () {
+    if (!cReq) return;
+    if (!cPick.dateKey || cPick.start === null) {
+      $('cm-day-help').className = 'helper err';
+      $('cm-day-help').textContent = 'เลือกวันและเวลาเริ่มก่อน แล้วค่อยกดส่ง';
+      return;
+    }
+    /* 🔴 ตรวจซ้ำตอนกดส่ง ไม่ใช่เชื่อสิ่งที่วาดไว้ตอนเปิดแผง — ระหว่างนั้นเวลาอาจเลยกำหนด 24 ชม. ไปแล้ว */
+    var d = dateFromKey(cPick.dateKey);
+    if (startOptions(cPick.dateKey, d.getDay(), cReq.mode, cReq.len).indexOf(cPick.start) < 0) {
+      $('cm-day-help').className = 'helper err';
+      $('cm-day-help').textContent = 'ช่วงนี้เพิ่งใช้ไม่ได้แล้ว (ใกล้เกิน 24 ชม. หรือมีคนจองทับ) — เลือกช่วงอื่น';
+      cPick.start = null;
+      paintCmStarts();
+      paintCmSummary();
+      return;
+    }
+    var sent = cReq;
+    sent.status = 'counter_offered';
+    sent.uiAsk = false;
+    sent.counter = { dateKey: cPick.dateKey, start: cPick.start, msg: $('cm-msg').value.trim() };
+    holdSlot(sent.counter.dateKey, sent.counter.start, sent.len);
+    stampReply(sent, 'counter', { dateKey: sent.counter.dateKey, start: sent.counter.start, msg: sent.counter.msg });
+    closeCounter();
+    paintReqs();
+    say('ส่งเวลาที่เสนอให้' + sent.learner + 'แล้ว · ' + dayText(sent.counter.dateKey) + ' ' + hhmm(sent.counter.start));
+  });
+
+  /* ── ปุ่มบนการ์ดคำขอ — ผูกที่ document เพราะการ์ดวาดใหม่ทุกครั้งที่สถานะเปลี่ยน ── */
+  document.addEventListener('click', function (e) {
+    var acc = e.target.closest('[data-req-accept]');
+    if (acc) {
+      var r1 = reqById(acc.getAttribute('data-req-accept'));
+      if (!r1 || r1.status !== 'pending') return;
+      r1.status = 'awaiting_payment';
+      r1.uiAsk = false;
+      holdSlot(r1.dateKey, r1.start, r1.len);
+      stampReply(r1, 'accept', { dateKey: r1.dateKey, start: r1.start });
+      paintReqs();
+      say('รับงาน #' + r1.id + ' แล้ว — ผู้เรียนมีเวลาชำระเงิน ' + PAY_WINDOW_MIN + ' นาที');
+      focusNext(null);   /* ห้ามเด้งไปปุ่มรับของคำขอใบอื่น */
+      return;
+    }
+    /* SYSTEM ข้อ 3ก: กด "ไม่รับ" แล้วระบบต้องถามต่อว่าจะเสนอเวลาอื่นไหม (ไม่ใช่ปฏิเสธเลย) */
+    var dec = e.target.closest('[data-req-decline]');
+    if (dec) {
+      var r2 = reqById(dec.getAttribute('data-req-decline'));
+      if (!r2 || r2.status !== 'pending') return;
+      r2.uiAsk = true;
+      paintReqs();
+      var back = document.querySelector('[data-req-counter2="' + r2.id + '"]');
+      if (back) back.focus();
+      return;
+    }
+    var no = e.target.closest('[data-req-decline2]');
+    if (no) {
+      var r3 = reqById(no.getAttribute('data-req-decline2'));
+      if (!r3 || r3.status !== 'pending') return;
+      r3.status = 'declined_by_teacher';
+      r3.uiAsk = false;
+      stampReply(r3, 'decline', {});
+      paintReqs();
+      say('ปฏิเสธคำขอ #' + r3.id + ' แล้ว · ระบบแจ้งผู้เรียนทาง LINE ให้อัตโนมัติ');
+      focusNext('[data-req-decline2]');
+      return;
+    }
+    var keep = e.target.closest('[data-req-keep]');
+    if (keep) {
+      var r4 = reqById(keep.getAttribute('data-req-keep'));
+      if (!r4) return;
+      r4.uiAsk = false;
+      paintReqs();
+      focusNext('[data-req-keep]');
+      return;
+    }
+    var cnt = e.target.closest('[data-req-counter], [data-req-counter2]');
+    if (cnt) {
+      var id = cnt.getAttribute('data-req-counter') || cnt.getAttribute('data-req-counter2');
+      var r5 = reqById(id);
+      if (r5 && r5.status === 'pending') openCounter(r5, cnt);
+    }
+  });
+
+  paintReqs();
+
+  paintAll();
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ข้อมูลทั้งหมดในหน้านี้เป็น "ข้อมูลสมมติ" ใส่ไว้ให้เห็นหน้าตา
+  ปุ่ม "จองคาบเรียน" / "ส่งข้อความ" / รูปภาพ = จำลองหน้าตาเท่านั้น ยังไม่ต่อระบบ
+  กฎที่หน้านี้ต้องไม่ละเมิด (HANDOFF ขั้น 3): ห้ามแสดง เบอร์โทร · ID LINE · ที่อยู่ · ชื่อ-นามสกุลจริง
+  ราคา: แสดงตัวเลขเดียว = ราคาที่ผู้ปกครองจ่ายจริง ห้ามแสดงเรทดิบของครูคู่กัน
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่อาจมีเงื่อนไขของผู้เรียน) หลุดไปกับ Referer ตอนโหลดฟอนต์/ลิงก์ออกนอกเว็บ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ครูพลอย — โปรไฟล์ครูผู้สอน | BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<style>
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ * genre: modern-minimal · macrostructure: Split Studio · design-system: design.md · designed-as-app
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none (typography only)
+ * theme: custom (ระบบเดียวกับทั้งเว็บ — tokens.css) · diversification: inverted (design.md-managed project)
+ *
+ * ทำไมหน้านี้ต่างจากหน้าสมัคร ทั้งที่ใช้ token ชุดเดียวกัน:
+ *   - หน้าสมัคร = Narrative Workflow (ขั้นมีเลข + ราวเส้นเชื่อมขั้น) เพราะเป็นลำดับเวลา
+ *   - หน้านี้ = Split Studio (ข้อมูลซ้าย ↔ หลักฐานขวา สลับข้างลงไป) เพราะไม่ใช่ลำดับเวลา
+ *     -> จึง "ไม่มี" .section::before rail และ "ไม่มี" เลขหัวข้อ (เลขบนโปรไฟล์อ่านว่าเป็นขั้นตอน ซึ่งผิด)
+ *   - เปลือกที่เหมือนกันทุกหน้าตาม design.md ข้อ 9: โลโก้ · sidebar/mobile header · ปุ่ม · footer 1 บรรทัด · การใช้ accent
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);
+  color:var(--color-ink);
+  line-height:1.65;
+  font-size:16px;
+  overflow-x:clip;
+  background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.chip,.price-big,.stat-num,.eyebrow{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1200px;margin:0 auto;padding:0 var(--space-5)}
+/* .wrap ที่เป็นลูกตรงของ .content-col (flex column) + margin:0 auto = auto margin ทับ stretch
+   -> กล่องจะหดตามเนื้อหา ไม่ยืดเต็มคอลัมน์ (วัดได้ 437px ทั้งที่คอลัมน์กว้าง 621px)
+   ต้องใส่ width:100% กำกับ ไม่งั้นหน้าลอยแคบ ๆ อยู่กลางจอ */
+.content-col > .wrap{width:100%}
+
+/* ---- layout shell (เหมือนหน้าสมัครทุกประการ) ---- */
+.page-shell{display:flex;flex-direction:column;min-height:100vh}
+.content-col{flex:1;min-width:0;display:flex;flex-direction:column}
+@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+
+.logo{
+  font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;
+  display:flex;align-items:center;gap:10px;
+}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;
+  background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;
+  font-size:var(--text-sm);font-weight:600;line-height:1;color:var(--color-ink-2);text-decoration:none;
+  display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);
+  background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);
+  padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.mobile-header .logo{height:40px}
+
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;
+    width:264px;flex:0 0 264px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);
+    border-right:1px solid var(--color-rule);
+    background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+
+/* ---- แถบหัวหน้า: ตัวตนของครู ---- */
+.hero-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.pro-intro{padding:var(--space-12) 0 var(--space-10)}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);
+  margin-bottom:var(--space-6);
+}
+.pro-id{display:flex;gap:var(--space-6);align-items:flex-start;flex-wrap:wrap}
+.pro-avatar{
+  flex:0 0 auto;width:104px;height:104px;border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--color-accent-soft);border:1px solid var(--color-rule);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-2xl);color:var(--color-accent-deep);
+}
+.pro-avatar img{width:100%;height:100%;object-fit:cover}
+.pro-headline{min-width:0;flex:1 1 260px}
+.pro-headline h1{font-size:var(--text-display-s);line-height:1.15}
+.name-row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.pro-sub{color:var(--color-ink-2);margin-top:var(--space-2);font-size:var(--text-base)}
+.pro-tagline{margin-top:var(--space-5);font-size:var(--text-lg);line-height:1.6;max-width:52ch;color:var(--color-ink)}
+
+/* ตรา "ยืนยันตัวตนแล้ว" — เขียว = สถานะเท่านั้น (design.md ข้อ 4) */
+.badge-verified{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+  color:var(--color-ok);background:var(--color-ok-soft);
+  border:1px solid var(--color-ok);
+  padding:6px 14px;border-radius:var(--radius-pill);white-space:nowrap;
+}
+.badge-verified .tick{
+  width:18px;height:18px;border-radius:50%;background:var(--color-ok);color:var(--color-surface);
+  display:flex;align-items:center;justify-content:center;font-size:11px;flex:0 0 auto;
+}
+
+/* ดาว */
+.stars{display:inline-flex;align-items:center;gap:2px;color:var(--color-accent);font-size:var(--text-lg);line-height:1}
+.stars .off{color:var(--color-rule)}
+.rating-line{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-4)}
+.rating-num{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg)}
+.rating-count{color:var(--color-ink-2);font-size:var(--text-sm)}
+
+/* ---- โครงหลัก: คอลัมน์เนื้อหา + ราวจอง ---- */
+.pro-body{display:flex;flex-direction:column;gap:var(--space-8);padding:var(--space-10) 0 var(--space-16)}
+.pro-rail{order:-1}
+@media (min-width:1120px){
+  /* DOM เรียง rail ก่อน main (เพื่อให้จอเล็กเห็นการ์ดจองก่อน) -> บนกริดต้องสั่งคอลัมน์ให้ชัด
+     ไม่งั้น rail จะไปกินคอลัมน์ 1fr แล้วเนื้อหาหดเหลือ 320px */
+  .pro-body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--space-12);align-items:start}
+  .pro-main{grid-column:1;grid-row:1}
+  .pro-rail{grid-column:2;grid-row:1;order:0;position:sticky;top:var(--space-6)}
+}
+/* container query: ให้ "ครึ่งซ้าย-ครึ่งขวา" ตัดสินจากความกว้างของคอลัมน์เนื้อหาจริง
+   ไม่ใช่ความกว้างจอ — เพราะจอ 900-1200px โดน sidebar 264px + ราวจอง 320px กินไปแล้ว
+   ถ้าใช้ @media จะได้ครึ่งละ ~237px ซึ่งแคบเกินจนหัวตารางเวลาแตกเป็น 3 บรรทัด */
+.pro-main{min-width:0;display:flex;flex-direction:column;gap:var(--space-8);container-type:inline-size}
+
+/* ---- การ์ดจอง ---- */
+.book-card{
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+  padding:var(--space-6);box-shadow:var(--shadow-lift);
+}
+.price-big{font-size:var(--text-2xl);line-height:1.2;font-weight:700}
+.price-big small{font-family:var(--font-sans);font-size:var(--text-base);font-weight:400;color:var(--color-ink-2)}
+.price-note{color:var(--color-ink-2);font-size:var(--text-sm);margin-top:var(--space-2)}
+.book-card .btn{width:100%;margin-top:var(--space-5)}
+.book-card .btn + .btn{margin-top:var(--space-3)}
+.book-facts{list-style:none;margin-top:var(--space-5);padding-top:var(--space-5);border-top:1px solid var(--color-rule);display:flex;flex-direction:column;gap:var(--space-3)}
+.book-facts li{display:flex;gap:10px;font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55}
+.book-facts b{color:var(--color-ink);font-weight:600}
+.book-facts .ic{flex:0 0 auto;width:18px;text-align:center;color:var(--color-accent-deep)}
+
+/* ---- Split Studio: ทุกบล็อกแบ่งครึ่ง สลับข้างลงไป ---- */
+.section{
+  background:var(--color-surface);
+  border:1px solid var(--color-rule);
+  border-radius:var(--radius-lg);
+  padding:var(--space-8);
+  box-shadow:var(--shadow-raise);
+  scroll-margin-top:var(--space-16);
+}
+@media (max-width:560px){.section{padding:var(--space-6) var(--space-4);border-radius:var(--radius-md)}}
+.split{display:grid;gap:var(--space-6)}
+/* 560px = จุดที่แบ่งครึ่งแล้วยังได้ครึ่งละ ~260px (อ่านได้จริง)
+   บนจอ 1280 คอลัมน์เนื้อหาเหลือ ~620px หลังหัก sidebar 264 + ราวจอง 320 -> ต้องต่ำกว่า 620 ไม่งั้น diptych ไม่เคยโผล่ */
+@container (min-width:560px){
+  .split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-10);align-items:start}
+  .split--flip .split-a{order:2}
+  .split--flip .split-b{order:1}
+}
+/* เผื่อเบราว์เซอร์เก่าที่ไม่รู้จัก container query — ยังได้ 2 คอลัมน์บนจอกว้างที่ไม่มีราวจอง */
+@supports not (container-type:inline-size){
+  @media (min-width:760px) and (max-width:1119px){
+    .split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-10);align-items:start}
+    .split--flip .split-a{order:2}
+    .split--flip .split-b{order:1}
+  }
+}
+/* ตารางเวลา 7 วัน × 4 ช่วง ต้องการความกว้างเต็มคอลัมน์ — ครึ่งเดียวทำให้หัวตารางแตก 3 บรรทัด
+   Split Studio ยอมให้มีบล็อกเต็มความกว้างได้ ถ้าเนื้อหานั้นเป็นตาราง/ภาพที่หั่นครึ่งแล้วอ่านไม่ออก */
+.split--stack{grid-template-columns:minmax(0,1fr) !important}
+.split--stack .split-a,.split--stack .split-b{order:0 !important}
+.split-a,.split-b{min-width:0;container-type:inline-size}
+.sec-head h2{font-size:var(--text-xl);line-height:1.25}
+.sec-head p{color:var(--color-ink-2);font-size:var(--text-base);margin-top:var(--space-3);max-width:52ch}
+.sec-head + *{margin-top:var(--space-5)}
+.body-text{color:var(--color-ink);line-height:1.7;max-width:60ch}
+.body-text + .body-text{margin-top:var(--space-4)}
+
+/* ป้ายกำกับกลุ่มย่อยในครึ่งหนึ่ง */
+.mini-label{
+  display:block;font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+  color:var(--color-ink-2);margin-bottom:var(--space-3);
+}
+.mini-label + .mini-label,.tag-group + .mini-label,.meta-list + .mini-label{margin-top:var(--space-6)}
+
+/* แท็กวิชา/ระดับชั้น (อ่านอย่างเดียว — ไม่ใช่ .chip ที่กดได้) */
+.tag-group{display:flex;flex-wrap:wrap;gap:8px}
+/* สีแท็กเปลี่ยน 2026-08-12 ตามคำสั่ง Owner (แท็กอย่าใช้ส้ม) — ต้องเปลี่ยนพร้อมหน้าค้นหา
+   เพราะ design.md ข้อ 9 กำหนดว่าหน้าตาคอมโพเนนต์ร่วมต้องเหมือนกันทุกหน้า
+   วิชา = สีที่ 3 (น้ำเงินหม่น) · ระดับชั้น = ขอบบางไม่มีพื้น */
+/* แท็ก 2 ชนิด = น้ำเงินตระกูลเดียว 2 น้ำหนัก (ต้องเหมือนหน้าค้นหาเป๊ะ — design.md ข้อ 9)
+   วิชา = ทึบเข้ม · ระดับชั้น = อ่อนสว่าง
+   Owner ทัก 2026-08-12: ชิปพื้นโปร่ง/ขอบบาง อ่านว่า "ปิดอยู่ / ไม่ได้เลือก" ไม่ใช่ "ครูสอนระดับนี้" */
+.tag{
+  display:inline-flex;align-items:center;
+  background:var(--color-subject);color:var(--color-surface);
+  font-size:var(--text-sm);font-weight:600;padding:7px 12px;border-radius:var(--radius-sm);
+}
+.tag--plain{background:var(--color-level-soft);color:var(--color-level);font-weight:600}
+
+/* รายการข้อมูล (สถานที่/จังหวัด) */
+.meta-list{list-style:none;display:flex;flex-direction:column;gap:var(--space-3)}
+.meta-list li{display:flex;gap:10px;line-height:1.55}
+.meta-list .ic{flex:0 0 auto;width:20px;text-align:center;color:var(--color-accent-deep)}
+.meta-list b{font-weight:600}
+
+/* ตัวเลขสรุป */
+.stat-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4)}
+.stat{background:var(--color-paper-2);border-radius:var(--radius-md);padding:var(--space-4) var(--space-5)}
+.stat-num{display:block;font-size:var(--text-xl);font-weight:700;line-height:1.2}
+.stat-cap{display:block;font-size:var(--text-sm);color:var(--color-ink-2);margin-top:2px}
+
+/* ราคา */
+.price-list{display:flex;flex-direction:column}
+.price-item{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-4);
+  padding:var(--space-4) 0;border-top:1px solid var(--color-rule);
+}
+.price-item:first-child{border-top:none;padding-top:0}
+.price-what{min-width:0}
+.price-what b{display:block;font-weight:600}
+.price-what span{display:block;font-size:var(--text-sm);color:var(--color-ink-2)}
+.price-amt{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);white-space:nowrap}
+.price-amt small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+
+/* กล่องอธิบาย (ใช้ซ้ำจากหน้าสมัคร) */
+.note-box{
+  display:flex;gap:var(--space-4);align-items:flex-start;
+  background:var(--color-paper-2);border:1px solid var(--color-rule);
+  border-radius:var(--radius-md);padding:var(--space-5);
+  font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.note-box .note-icon{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:var(--color-ok);color:var(--color-surface);
+  display:flex;align-items:center;justify-content:center;font-weight:700;
+}
+.note-box .note-icon--neutral{background:var(--color-accent-deep);color:var(--color-accent-ink)}
+
+/* รูปผลงาน */
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+@media (min-width:560px) and (max-width:759px){.gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.shot{
+  position:relative;aspect-ratio:4/3;border-radius:var(--radius-md);overflow:hidden;
+  border:1px solid var(--color-rule);background:var(--color-paper-2);
+  display:flex;align-items:center;justify-content:center;
+  /* ใช้ ink-2 ไม่ใช่ muted — muted บนพื้น paper-2 ได้แค่ 4.05:1 (ต่ำกว่าเกณฑ์ 4.5) */
+  font-size:var(--text-sm);color:var(--color-ink-2);text-align:center;padding:var(--space-3);
+}
+.shot img{width:100%;height:100%;object-fit:cover}
+
+/* รีวิว */
+.score-block{background:var(--color-paper-2);border-radius:var(--radius-md);padding:var(--space-6);text-align:center}
+.score-num{font-family:var(--font-display);font-size:var(--text-3xl);font-weight:700;line-height:1}
+.score-of{color:var(--color-ink-2);font-size:var(--text-sm);margin-top:var(--space-2)}
+.bars{margin-top:var(--space-5);display:flex;flex-direction:column;gap:6px}
+.bar-row{display:grid;grid-template-columns:40px minmax(0,1fr) 28px;align-items:center;gap:var(--space-3);font-size:var(--text-sm);color:var(--color-ink-2)}
+.bar{height:8px;border-radius:var(--radius-pill);background:var(--color-rule);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--color-accent);border-radius:var(--radius-pill)}
+.review{padding:var(--space-5) 0;border-top:1px solid var(--color-rule)}
+.review:first-child{border-top:none;padding-top:0}
+.review-top{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.review-who{font-weight:600}
+.review-when{color:var(--color-muted);font-size:var(--text-sm);margin-left:auto}
+.review p{margin-top:var(--space-3);color:var(--color-ink);line-height:1.65}
+.review .stars{font-size:var(--text-base)}
+
+/* ปฏิทินเวลาว่าง 7 วันข้างหน้า (ทาง 3 · Owner เคาะ 2026-08-15 — โชว์วันที่จริง ไม่ใช่ จ.–อา. ลอย ๆ)
+   อ่านอย่างเดียว: กดช่วงว่าง = ไป booking.html ไม่จบ flow ในหน้านี้ (นั่นคือ section 3) */
+.cal{border:1px solid var(--color-rule);border-radius:var(--radius-md);overflow:hidden;background:var(--color-surface)}
+.cal-head{display:flex;align-items:center;gap:var(--space-3);padding:10px 12px;background:var(--color-paper-2);border-bottom:1px solid var(--color-rule)}
+.cal-range{font-family:var(--font-display);font-weight:700;font-size:var(--text-sm);color:var(--color-ink);flex:1;min-width:0}
+.cal-nav{display:flex;gap:6px;flex:none}
+.cal-nav button{
+  width:44px;height:44px;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink);font-size:18px;line-height:1;cursor:pointer;
+}
+.cal-nav button:hover:not(:disabled){background:var(--color-paper-2)}
+.cal-nav button:disabled{opacity:.35;cursor:not-allowed}
+.cal-day{
+  display:grid;grid-template-columns:112px minmax(0,1fr);gap:var(--space-3);
+  align-items:start;padding:10px 12px;border-top:1px solid var(--color-rule);
+}
+.cal-day:first-child{border-top:none}
+.cal-date{font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--color-ink);line-height:1.35;padding-top:10px}
+.cal-date small{display:block;font-family:var(--font-sans);font-weight:400;font-size:12px;color:var(--color-ink-2);margin-top:1px}
+.cal-slots{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+/* ช่วงว่าง = พื้นอ่อน+ขอบเข้ม (ภาษาเดียวกับ tg-mark.on เดิม) · ตัวหนังสือสีหมึกปกติเพื่อให้ contrast เหลือเฟือ */
+.slot{
+  min-height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;
+  border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:600;
+  background:var(--color-accent-soft);border:1px solid var(--color-accent-deep);color:var(--color-ink);
+  font-family:var(--font-sans);cursor:pointer;
+}
+.slot:hover{background:var(--color-surface);border-color:var(--color-accent)}
+.slot .slot-go{color:var(--color-accent-deep);font-weight:700}
+/* มีคาบแล้ว = ทรงเดียวกันแต่จืดและกดไม่ได้ (ต้องต่างที่ "น้ำหนักสี" ไม่ใช่เติมคำอย่างเดียว) */
+/* ขอบใช้ rule-2 ไม่ใช่ rule — rule ตัดกับพื้นการ์ดแค่ 1.37:1 ชิปจะแทบมองไม่เห็น (วัดแล้ว) */
+.slot.is-busy{background:var(--color-surface-2);border-color:var(--color-rule-2);color:var(--color-ink-2);cursor:default;font-weight:400}
+.cal-off{font-size:var(--text-sm);color:var(--color-muted);padding:12px 0}
+.cal-foot{margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+/* บีบตามความกว้างของ "ครึ่งที่มันอยู่" ไม่ใช่ความกว้างจอ */
+@container (max-width:380px){
+  .cal-day{grid-template-columns:minmax(0,1fr);gap:6px}
+  .cal-date{padding-top:0}
+  .cal-date small{display:inline;margin-left:6px}
+  .slot{width:100%;justify-content:space-between}
+}
+.legend{display:flex;gap:var(--space-5);flex-wrap:wrap;margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{width:18px;height:18px;border-radius:var(--radius-sm);border:1px solid var(--color-rule);background:var(--color-paper-2);display:inline-block}
+.legend i.on{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+.legend i.busy{background:var(--color-surface-2);border-color:var(--color-rule)}
+
+/* ---- ปุ่ม (เสียงเดียวกับทุกหน้า) ---- */
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active,.btn.is-active{transform:translateY(1px)}
+.btn:focus-visible,.btn.is-focus{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover,.btn-primary.is-hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover,.btn-secondary.is-hover{background:var(--color-paper-2)}
+.btn[disabled],.btn.is-disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn[data-state=loading]{opacity:.75;cursor:progress}
+.btn[data-state=error]{background:var(--color-error);color:var(--color-accent-ink)}
+.btn[data-state=success]{background:var(--color-ok);color:var(--color-accent-ink)}
+
+/* ---- footer Ft2 ---- */
+.site-footer{
+  margin-top:auto;border-top:1px solid var(--color-rule);
+  padding:var(--space-6) 0 var(--space-8);
+  font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+
+<div class="page-shell">
+  <aside class="sidebar">
+    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <!-- 🔴 2026-09-01 — เดิมชี้ index.html ทั้งที่ป้ายเขียนว่า "กลับผลค้นหา" (บั๊กเก่า มีมาก่อนจัดโฟลเดอร์) -->
+    <a class="back-link" href="teacher-search.html">← กลับผลค้นหา</a>
+    <nav class="sidenav" id="pillnav" aria-label="สารบัญโปรไฟล์">
+      <a href="#sec-about">เกี่ยวกับครูพลอย</a>
+      <a href="#sec-subject">วิชาและสถานที่สอน</a>
+      <a href="#sec-price">ราคา</a>
+      <a href="#sec-work">รูปผลงาน</a>
+      <a href="#sec-review">รีวิวจากผู้ปกครอง</a>
+      <a href="#sec-time">เวลาว่าง &amp; จอง</a>
+    </nav>
+  </aside>
+
+  <header class="mobile-header">
+    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <a class="back-link" href="teacher-search.html">← กลับ</a>
+  </header>
+
+  <main class="content-col">
+
+  <div class="hero-band">
+    <div class="wrap">
+      <div class="pro-intro">
+        <span class="eyebrow">ตัวอย่างโปรไฟล์ · ข้อมูลสมมติ</span>
+        <div class="pro-id">
+          <div class="pro-avatar" aria-hidden="true">พ</div>
+          <div class="pro-headline">
+            <div class="name-row">
+              <h1>ครูพลอย</h1>
+              <span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span>
+            </div>
+            <p class="pro-sub">ครูผู้หญิง · ประสบการณ์สอน 6 ปี · กรุงเทพมหานคร</p>
+            <div class="rating-line">
+              <span class="stars" role="img" aria-label="คะแนนเฉลี่ย 4.9 จาก 5 ดาว">★★★★★</span>
+              <span class="rating-num">4.9</span>
+              <span class="rating-count">จาก 12 รีวิว</span>
+            </div>
+          </div>
+        </div>
+        <p class="pro-tagline">สอนคณิตศาสตร์และฟิสิกส์ให้เด็กที่ “ไม่ชอบเลข” มา 6 ปี เริ่มจากรื้อพื้นฐานที่หายไปก่อนเสมอ ไม่เร่งตามหลักสูตร</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="pro-body">
+
+      <!-- ราวจอง — บนจอ ≥1120px อยู่ขวาและติดหนึบ · จอเล็กกว่านั้นเลื่อนขึ้นมาบนสุด -->
+      <aside class="pro-rail" aria-label="จองคาบเรียน">
+        <div class="book-card">
+          <div class="price-big">฿380 <small>/ ชั่วโมง (เริ่มต้น)</small></div>
+          <p class="price-note">ราคานี้คือราคาที่ผู้ปกครองจ่ายจริง ไม่มีค่าใช้จ่ายเพิ่มตอนจอง</p>
+          <a class="btn btn-primary" href="booking.html?t=ploy">จองคาบเรียน</a>
+          <!-- ก้อน C1ข: บอกให้เห็นว่าวิชาที่เลือกไว้ตั้งแต่หน้าค้นหา ถูกยกมาให้แล้ว -->
+          <p class="price-note" id="carry-note" hidden></p>
+          <button type="button" class="btn btn-secondary">ส่งข้อความหาครู</button>
+          <ul class="book-facts">
+            <li><span class="ic" aria-hidden="true">◷</span><span>ครูมีเวลาว่าง <b>จันทร์–เสาร์</b> ดูตารางด้านล่าง</span></li>
+            <li><span class="ic" aria-hidden="true">◎</span><span>สอน <b>ออนไลน์</b> และ <b>ที่บ้าน</b></span></li>
+            <li><span class="ic" aria-hidden="true">✎</span><span>ส่งคำถามถึงครูผ่าน <b>กล่องข้อความในระบบ</b> ก่อนตัดสินใจได้ (ครูตอบเป็นรอบ ไม่ใช่แชทสด)</span></li>
+          </ul>
+        </div>
+      </aside>
+
+      <div class="pro-main">
+
+        <!-- 1. เกี่ยวกับครู — ข้อความซ้าย ↔ หลักฐานขวา -->
+        <section class="section" id="sec-about">
+          <div class="split">
+            <div class="split-a">
+              <div class="sec-head">
+                <h2>เกี่ยวกับครูพลอย</h2>
+              </div>
+              <p class="body-text">จบวิศวกรรมศาสตร์ และสอนพิเศษเต็มเวลามา 6 ปี ถนัดเด็กที่พื้นฐานหาย ตามในห้องไม่ทัน หรือกลัวเลขจนไม่กล้าถามครูที่โรงเรียน</p>
+              <p class="body-text">คาบแรกจะยังไม่สอนเนื้อหาใหม่ แต่ใช้เวลาไล่หาว่าพื้นฐานขาดตรงไหน แล้ววางลำดับให้ก่อน ผู้ปกครองจะได้สรุปสั้น ๆ หลังคาบทุกครั้งว่าวันนี้ทำอะไรไปบ้าง</p>
+            </div>
+            <div class="split-b">
+              <div class="stat-row">
+                <div class="stat"><span class="stat-num">6 ปี</span><span class="stat-cap">ประสบการณ์สอน</span></div>
+                <div class="stat"><span class="stat-num">12</span><span class="stat-cap">รีวิวจากผู้ปกครอง</span></div>
+                <div class="stat"><span class="stat-num">3</span><span class="stat-cap">วิชาที่เปิดสอน</span></div>
+                <div class="stat"><span class="stat-num">3</span><span class="stat-cap">ระดับชั้นที่รับสอน</span></div>
+              </div>
+              <div class="note-box" style="margin-top:var(--space-5)">
+                <span class="note-icon" aria-hidden="true">✓</span>
+                <span><b>ยืนยันตัวตนแล้ว</b> — ครูส่งเอกสารยืนยันตัวตนให้ทีมงาน BGT Tutor ตรวจแล้ว เราเก็บเฉพาะผลว่า “ผ่าน” และวันที่ตรวจ ไม่ได้เก็บไฟล์เอกสารไว้เอง</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. วิชา + สถานที่ (สลับข้าง) -->
+        <section class="section" id="sec-subject">
+          <div class="split split--flip">
+            <div class="split-a">
+              <div class="sec-head">
+                <h2>วิชาและสถานที่สอน</h2>
+                <p>ครูรับสอนเฉพาะวิชาและระดับชั้นที่แสดงไว้นี้เท่านั้น</p>
+              </div>
+              <span class="mini-label">วิชาที่สอน</span>
+              <div class="tag-group" id="subject-tags">
+                <span class="tag">คณิตศาสตร์</span>
+                <span class="tag">ฟิสิกส์</span>
+                <span class="tag">วิทยาศาสตร์</span>
+              </div>
+              <span class="mini-label">ระดับชั้นที่รับสอน</span>
+              <div class="tag-group">
+                <span class="tag tag--plain">ประถมปลาย</span>
+                <span class="tag tag--plain">มัธยมต้น</span>
+                <span class="tag tag--plain">มัธยมปลาย / ปวช.</span>
+              </div>
+            </div>
+            <div class="split-b">
+              <span class="mini-label">สอนที่ไหนได้บ้าง</span>
+              <ul class="meta-list">
+                <li><span class="ic" aria-hidden="true">◎</span><span><b>ออนไลน์</b> — เข้าห้องเรียนผ่านปุ่มในเว็บ ระบบบันทึกเวลาเข้า-ออกให้เอง</span></li>
+                <li><span class="ic" aria-hidden="true">⌂</span><span><b>ที่บ้าน</b> — กรอกที่อยู่ตอนจองคาบ ครูจะเห็นหลังชำระเงินแล้วเท่านั้น</span></li>
+              </ul>
+              <span class="mini-label">จังหวัดที่เดินทางไปสอนได้</span>
+              <ul class="meta-list">
+                <li><span class="ic" aria-hidden="true">▣</span><span>กรุงเทพมหานคร · นนทบุรี</span></li>
+              </ul>
+              <div class="note-box" style="margin-top:var(--space-6)">
+                <span class="note-icon note-icon--neutral" aria-hidden="true">✎</span>
+                <span>เบอร์โทรและ LINE ของครูไม่แสดงในหน้านี้ — ส่งข้อความหากันผ่าน<b>กล่องข้อความในระบบ</b>ก่อน แล้วค่อยแลกช่องทางกันเมื่อชำระเงินแล้ว</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. ราคา -->
+        <section class="section" id="sec-price">
+          <div class="split">
+            <div class="split-a">
+              <div class="sec-head">
+                <h2>ราคาค่าสอน</h2>
+                <p>ตัวเลขที่เห็นคือราคาที่จ่ายจริงต่อ 1 ชั่วโมง คิดตามระดับชั้นและรูปแบบการสอน</p>
+              </div>
+              <div class="note-box">
+                <span class="note-icon note-icon--neutral" aria-hidden="true">฿</span>
+                <span>ราคาสอนที่บ้านสูงกว่าออนไลน์ เพราะรวมเวลาเดินทางของครูไว้แล้ว · ยังไม่มีการเก็บเงินในระบบช่วงทดลองใช้</span>
+              </div>
+            </div>
+            <div class="split-b">
+              <!-- 🔴 2026-08-15: ผูกรหัสให้ทุกแถว (data-mode / data-level / data-price) — หน้าตาเหมือนเดิมทุกอย่าง
+                   เหตุผล: หน้าจอง (booking.html) ต้องหยิบราคาที่ตรงกับ "โหมด × ระดับชั้น" ของผู้เรียน
+                   ห้ามให้ระบบอ่านจากข้อความไทยบนจอ (CLAUDE.md กฎข้อ 8)
+                   ⚠️ ข้อมูลสมมติของครูพลอย · ของจริงมาจากแถวราคาที่ครูกรอกใน signup-teacher.html -->
+              <div class="price-list" id="price-list">
+                <div class="price-item" data-mode="online" data-level="middle" data-price="380">
+                  <span class="price-what"><b>ออนไลน์</b><span>มัธยมต้น</span></span>
+                  <span class="price-amt">฿380 <small>/ ชม.</small></span>
+                </div>
+                <div class="price-item" data-mode="online" data-level="high" data-price="420">
+                  <span class="price-what"><b>ออนไลน์</b><span>มัธยมปลาย / ปวช.</span></span>
+                  <span class="price-amt">฿420 <small>/ ชม.</small></span>
+                </div>
+                <div class="price-item" data-mode="home" data-level="primary_high" data-price="450">
+                  <span class="price-what"><b>ที่บ้าน</b><span>ประถมปลาย</span></span>
+                  <span class="price-amt">฿450 <small>/ ชม.</small></span>
+                </div>
+                <!-- แถวเดียวครอบ 2 ช่วงชั้น — เขียนเป็น "middle,high" ไม่ใช่แตกเป็น 2 แถวซ่อนไว้
+                     (เคยลองแตกแถวแล้วซ่อนด้วย hidden → โดน display:flex ทับ แถวโผล่ขึ้นมาจริง = หน้าตาเพี้ยน) -->
+                <div class="price-item" data-mode="home" data-level="middle,high" data-price="520">
+                  <span class="price-what"><b>ที่บ้าน</b><span>มัธยมต้น–ปลาย</span></span>
+                  <span class="price-amt">฿520 <small>/ ชม.</small></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. รูปผลงาน (สลับข้าง) -->
+        <section class="section" id="sec-work">
+          <div class="split split--flip">
+            <div class="split-a">
+              <div class="sec-head">
+                <h2>รูปผลงาน</h2>
+                <p>บรรยากาศการสอน ชีทที่ครูทำเอง และผลคะแนนของนักเรียนที่เจ้าตัวอนุญาตให้เผยแพร่</p>
+              </div>
+            </div>
+            <div class="split-b">
+              <div class="gallery">
+                <div class="shot">รูปผลงาน 1<br>(ตัวอย่าง)</div>
+                <div class="shot">รูปผลงาน 2<br>(ตัวอย่าง)</div>
+                <div class="shot">รูปผลงาน 3<br>(ตัวอย่าง)</div>
+                <div class="shot">รูปผลงาน 4<br>(ตัวอย่าง)</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. รีวิว -->
+        <section class="section" id="sec-review">
+          <div class="split">
+            <div class="split-a">
+              <div class="sec-head">
+                <h2>รีวิวจากผู้ปกครอง</h2>
+                <p>เขียนได้เฉพาะผู้ปกครองที่จองผ่าน BGT Tutor และเรียนจบคาบแล้วเท่านั้น</p>
+              </div>
+              <div class="score-block">
+                <div class="score-num">4.9</div>
+                <span class="stars" role="img" aria-label="คะแนนเฉลี่ย 4.9 จาก 5 ดาว">★★★★★</span>
+                <div class="score-of">จาก 12 รีวิว</div>
+                <div class="bars">
+                  <div class="bar-row"><span>5 ดาว</span><span class="bar"><i style="width:92%"></i></span><span>11</span></div>
+                  <div class="bar-row"><span>4 ดาว</span><span class="bar"><i style="width:8%"></i></span><span>1</span></div>
+                  <div class="bar-row"><span>3 ดาว</span><span class="bar"><i style="width:0%"></i></span><span>0</span></div>
+                  <div class="bar-row"><span>2 ดาว</span><span class="bar"><i style="width:0%"></i></span><span>0</span></div>
+                  <div class="bar-row"><span>1 ดาว</span><span class="bar"><i style="width:0%"></i></span><span>0</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="split-b">
+              <article class="review">
+                <div class="review-top">
+                  <span class="stars" role="img" aria-label="5 ดาว">★★★★★</span>
+                  <span class="review-who">คุณแม่น้องอิม</span>
+                  <span class="review-when">ก.ค. 2026</span>
+                </div>
+                <p>ลูกเคยได้เลข 42 เทอมที่แล้ว เทอมนี้ 71 ครูไม่ได้ติวข้อสอบอย่างเดียว แต่ย้อนกลับไปสอน ป.6 ใหม่ให้ก่อน</p>
+              </article>
+              <article class="review">
+                <div class="review-top">
+                  <span class="stars" role="img" aria-label="5 ดาว">★★★★★</span>
+                  <span class="review-who">คุณพ่อน้องภูมิ</span>
+                  <span class="review-when">มิ.ย. 2026</span>
+                </div>
+                <p>เรียนออนไลน์ทุกเสาร์เช้า ครูตรงเวลาทุกครั้ง มีสรุปหลังคาบส่งมาให้ตลอดว่าวันนี้ทำอะไรไปบ้าง</p>
+              </article>
+              <article class="review">
+                <div class="review-top">
+                  <span class="stars" role="img" aria-label="4 ดาว">★★★★<span class="off">★</span></span>
+                  <span class="review-who">คุณแม่น้องเบล</span>
+                  <span class="review-when">มิ.ย. 2026</span>
+                </div>
+                <p>สอนดีมากค่ะ ลูกกล้าถามขึ้นเยอะ ติดอย่างเดียวคือคิวครูเต็มเร็ว จองล่วงหน้าไม่ทันหลายรอบ</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. เวลาว่าง & จองคาบ -->
+        <section class="section" id="sec-time">
+          <div class="split split--stack">
+            <div class="split-a">
+              <div class="sec-head">
+                <h2>เวลาว่าง &amp; จองคาบ</h2>
+                <p>ช่วงที่ครูเปิดรับจริงใน 7 วันข้างหน้า — กดช่วงที่ต้องการ แล้วไปเลือกเวลาเริ่มกับความยาวคาบในหน้าถัดไป</p>
+              </div>
+              <div class="legend">
+                <span><i class="on"></i> ว่าง กดจองได้</span>
+                <span><i class="busy"></i> มีคาบแล้ว</span>
+              </div>
+              <div class="note-box" style="margin-top:var(--space-5)">
+                <span class="note-icon note-icon--neutral" aria-hidden="true">◷</span>
+                <span>ปฏิทินนี้แสดงเวลาที่ครูเปิดรับทั้งหมด — ถ้าเลือก <b>สอนที่บ้าน</b> ระบบจะกันเวลาเดินทางให้ครู 60 นาที ก่อน-หลังคาบ ตอนเลือกเวลาในหน้าจอง</span>
+              </div>
+            </div>
+            <div class="split-b">
+              <!-- Owner เคาะ 2026-08-20: ให้โน้ตกติกาไว้บนกล่องเวลา แทนการติดป้าย "จองไม่ทันแล้ว" รายช่อง -->
+              <p class="cal-foot" style="margin:0 0 var(--space-3)">จองได้ก่อนเรียน <b>24 ชั่วโมง</b> — ช่วงที่ใกล้กว่านั้นจึงไม่ขึ้นในปฏิทิน</p>
+              <div class="cal">
+                <div class="cal-head">
+                  <span class="cal-range" id="cal-range"></span>
+                  <span class="cal-nav">
+                    <button type="button" id="cal-prev" aria-label="สัปดาห์ก่อนหน้า">‹</button>
+                    <button type="button" id="cal-next" aria-label="สัปดาห์ถัดไป">›</button>
+                  </span>
+                </div>
+                <div id="cal-body"></div>
+              </div>
+              <p class="cal-foot">ช่วงที่ครูเปิดติดกันถูกรวมเป็นก้อนเดียวให้แล้ว — เช่น <b>16:00–22:00</b> จองคร่อม 18:00–20:00 ได้ ไม่ต้องแยก 2 คาบ</p>
+              <p class="sr-only" id="cal-sr" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /.pro-main -->
+    </div><!-- /.pro-body -->
+  </div><!-- /.wrap -->
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span class="foot-brand">BGT Tutor</span>
+      <span>แพลตฟอร์มจับคู่ครูสอนพิเศษกับผู้ปกครอง</span>
+      <nav aria-label="ลิงก์ทางกฎหมาย">
+        <a href="#">ข้อตกลงการใช้งาน</a>
+        <a href="#">นโยบายความเป็นส่วนตัว</a>
+        <a href="#">ติดต่อเรา</a>
+      </nav>
+    </div>
+  </footer>
+
+  </main>
+</div>
+
+<script>
+/* ===== ก้อน C1ข (2026-08-20) — รับเงื่อนไขจากหน้าค้นหา แล้วส่งต่อให้หน้าจอง =====
+   ปัญหาเดิม: หน้านี้ "ไม่อ่าน query เลยสักตัว" -> วิชาที่ผู้เรียนติ๊กไว้หายทุกครั้งที่แวะดูโปรไฟล์
+   รับ: subj (วิชาที่เลือกไว้) · kid (ผู้เรียนคนไหนในบัญชี) · t (รหัสครู — หน้านี้ยังเป็นครูพลอยหน้าเดียว จึงยังไม่ใช้)
+   ส่งต่อ: ต่อท้ายลิงก์ booking.html ทุกเส้น (ปุ่มจองบนราวขวา + ทุกช่วงว่างในปฏิทิน)
+   🔴 ตรวจก่อนส่งเสมอ: ครูคนนี้ต้องสอนวิชานั้นจริง (อ่านจากป้ายบนหน้า ไม่ตั้งลิสต์ใหม่) */
+window.__handoff = (function () {
+  var p;
+  try { p = new URLSearchParams(location.search); } catch (e) { return ''; }
+
+  var mine = [].map.call(document.querySelectorAll('#subject-tags .tag'), function (t) {
+    return t.textContent.trim();
+  });
+  var want = (p.get('subj') || '').trim();
+  var subj = (want && mine.indexOf(want) > -1) ? want : '';
+  /* 🔴 ทาง A มีหน้าโปรไฟล์จริงหน้าเดียว (ครูพลอย) — กดครูคนอื่นจากหน้าค้นหาก็มาโผล่ที่นี่
+     ถ้าไม่รู้ตัว จะขึ้นว่า "ครูคนนี้ไม่ได้สอนภาษาจีน" ทั้งที่ครูจีจี้สอน = ข้อความหลอกคนอ่าน
+     (ผลตรวจ logic 2026-08-20 ข้อ 5) */
+  var whoAsked = (p.get('t') || '').trim();
+  var otherTeacher = whoAsked && whoAsked !== 'ploy';
+  var kid = (p.get('kid') || '').trim();
+
+  var q = '';
+  if (subj) q += '&subj=' + encodeURIComponent(subj);
+  if (/^[A-Za-z0-9_]{1,12}$/.test(kid)) q += '&kid=' + encodeURIComponent(kid);   /* รับเฉพาะรูปแบบรหัส กันค่าแปลกปลอมจาก URL */
+
+  var note = document.getElementById('carry-note');
+  if (note) {
+    if (otherTeacher) {
+      note.textContent = 'ตัวอย่างนี้มีหน้าโปรไฟล์จริงของครูพลอยหน้าเดียว — ครูคนที่คุณกดมายังไม่มีหน้าของตัวเอง';
+      note.hidden = false;
+    } else if (subj) {
+      note.textContent = 'ยกวิชา “' + subj + '” ที่คุณเลือกไว้มาให้แล้ว — เปลี่ยนได้ในหน้าจอง';
+      note.hidden = false;
+    } else if (want) {
+      /* ผู้เรียนเลือกวิชาไว้ แต่ครูคนนี้ไม่ได้สอน — ต้องบอกตรง ๆ ไม่ใช่เงียบแล้วปล่อยให้ไปเจอตอนจอง
+         🔴 ห้ามสะท้อนข้อความจาก URL ลงบรรทัดนี้ — มันอยู่ใต้ปุ่ม "จองคาบเรียน" พอดี
+            ใครส่งลิงก์ยัดข้อความ ("โอนมัดจำก่อนกดจอง") มาให้ จะดูเหมือนข้อความของระบบทันที
+            (ผลตรวจ security 2026-08-20 · กติกาเดียวกับ post-job.html ค้น from=) */
+      note.textContent = 'ครูคนนี้ไม่ได้สอนวิชาที่คุณเลือกไว้ — วิชาที่สอนอยู่ข้างล่าง เลือกใหม่ได้ในหน้าจอง';
+      note.hidden = false;
+    }
+  }
+
+  [].forEach.call(document.querySelectorAll('a[href^="booking.html"]'), function (a) {
+    var h = a.getAttribute('href');
+    /* ลิงก์ที่ยังไม่มี ? ต้องขึ้นต้นด้วย ? ไม่ใช่ & (เผื่อมีปุ่มจองเส้นใหม่ในอนาคต) */
+    a.href = h + (h.indexOf('?') > -1 ? q : q.replace(/^&/, '?'));
+  });
+  return q;
+})();
+
+(function(){
+  /* สารบัญด้านซ้าย: ไฮไลต์หัวข้อที่กำลังอ่าน (ตัวเดียวกับหน้าสมัคร) */
+  const pills = document.querySelectorAll('#pillnav a');
+  const sections = [...pills].map(p=>document.querySelector(p.getAttribute('href')));
+  const spy = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const id='#'+e.target.id;
+        pills.forEach(p=>p.classList.toggle('active', p.getAttribute('href')===id));
+      }
+    });
+  }, {rootMargin:'-40% 0px -50% 0px'});
+  sections.forEach(s=>s && spy.observe(s));
+
+  /* PROTOTYPE: ปุ่มยังไม่ต่อระบบ — แสดงสถานะให้เห็นว่าเกิดอะไรขึ้นเมื่อกด */
+  document.querySelectorAll('.book-card button.btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const original = btn.textContent;
+      btn.dataset.state = 'loading';
+      btn.textContent = 'กำลังเปิดกล่องข้อความ…';
+      setTimeout(()=>{
+        btn.dataset.state = '';
+        btn.textContent = original;
+        alert('หน้าตัวอย่าง — กล่องข้อความจะทำในขั้นถัดไป');
+      }, 600);
+    });
+  });
+
+  /* ---------- ปฏิทินเวลาว่าง 7 วันข้างหน้า (ทาง 3 · Owner เคาะ 2026-08-15) ----------
+     ต้นทางเดียว = ตารางที่ครูกรอกใน signup-teacher.html (availability รายวัน)
+     หน้านี้อ่านอย่างเดียว: กดช่วงว่าง → booking.html · flow จองจริงอยู่ section 3
+     🔴 ต้องรวมช่วงที่ติดกันก่อนปล่อยให้กดเสมอ — เคสที่ Owner จับได้เอง:
+        ครูเปิด 16:00–19:00 + 19:00–22:00 ต้องจอง 18:00–20:00 คร่อมเส้น 19:00 ได้ */
+  const MIN_LEN = 60;                                   /* คาบสั้นสุด 1 ชม. (ขั้นต่ำจริงที่ครูตั้งเอง = section 3) */
+  /* 🔴 จองล่วงหน้าขั้นต่ำ 24 ชม. — สำเนาของ booking.html (ค้น LEAD_MIN / leadCutoff ที่นั่น)
+     ต้นฉบับตัวเลข: SYSTEM_สถานะงาน.md ข้อ 5 · แก้ที่ไหนต้องแก้ให้ครบทั้ง 2 ไฟล์
+     ทำไมต้องมีที่นี่ด้วย (Owner เคาะ 2026-08-20): เดิมหน้านี้โชว์ช่วงของวันนี้/พรุ่งนี้ให้กด
+     แต่หน้าจองไม่รับ → กดแล้วไปถึงหน้าจองแบบไม่มีวันเวลาให้ และไม่มีข้อความบอกว่าทำไม */
+  const LEAD_MIN = 24 * 60;
+  const STEP_MIN = 30;                                  /* จุดเริ่มทุก 30 นาที = เท่ากับ STEP ในหน้าจอง */
+  function leadCutoff(dateKey){
+    const earliest = new Date(Date.now() + LEAD_MIN * 60000);
+    const earliestKey = ymd(earliest);
+    if (dateKey < earliestKey) return null;             /* ทั้งวันจองไม่ทันแล้ว */
+    if (dateKey > earliestKey) return 0;                /* จองได้ทั้งวัน */
+    return Math.ceil((earliest.getHours() * 60 + earliest.getMinutes()) / STEP_MIN) * STEP_MIN;
+  }
+  const toHHMM = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+  const mergeRanges = ranges => {                       /* ก๊อบตรรกะจาก signup-teacher.html ห้ามให้ 2 หน้าคิดคนละแบบ */
+    const out=[];
+    ranges.map(r=>[r[0],r[1]]).sort((x,y)=>x[0]-y[0]).forEach(r=>{
+      const last=out[out.length-1];
+      if(last && r[0] <= last[1]) last[1]=Math.max(last[1],r[1]);
+      else out.push([r[0],r[1]]);
+    });
+    return out;
+  };
+  /* ตัดคาบที่มีคนจองแล้วออกจากช่วงว่าง */
+  const subtract = (free,busy) => {
+    let out=free.map(r=>[r[0],r[1]]);
+    busy.forEach(([bs,be])=>{
+      const next=[];
+      out.forEach(([s,e])=>{
+        if(be<=s||bs>=e){ next.push([s,e]); return; }
+        if(bs>s) next.push([s,bs]);
+        if(be<e) next.push([be,e]);
+      });
+      out=next;
+    });
+    return out;
+  };
+
+  /* ข้อมูลสมมติของ "ครูพลอย" — ต้องตรงกับการ์ดใน teacher-search.html และ job-board.html
+     คีย์ = Date.getDay() คือ 0=อาทิตย์ … 6=เสาร์ */
+  const WEEKLY = {
+    0: [],
+    1: [[960,1140],[1140,1320]],   /* จันทร์ 16:00–19:00 + 19:00–22:00 → ต้องรวมเป็น 16:00–22:00 ก้อนเดียว */
+    2: [[960,1140],[1140,1320]],
+    3: [[1140,1320]],              /* พุธ 19:00–22:00 */
+    4: [[960,1320]],               /* พฤหัส 16:00–22:00 */
+    5: [[960,1140]],               /* ศุกร์ 16:00–19:00 */
+    6: [[540,720],[780,1140]]      /* เสาร์ 09:00–12:00 + 13:00–19:00 (ไม่ติดกัน = คนละก้อน ห้ามรวม) */
+  };
+  const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const addDays = (d,n) => { const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; };
+
+  /* 📌 นี่คือของที่ "ตารางประจำสัปดาห์" เก็บไม่ได้ และเป็นเหตุผลที่ Owner เลือกแบบมีวันที่:
+     คาบที่ถูกจองไปแล้วผูกกับ "วันที่จริง" ไม่ใช่ "วันจันทร์" ลอย ๆ
+     ข้อมูลสมมติ — ผูกกับวันนี้เพื่อให้หน้าตัวอย่างมีของให้ดูเสมอ ไม่ว่าเปิดดูวันไหน */
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  const BOOKED = {};
+  BOOKED[ymd(addDays(today0,2))] = [[1020,1140]];   /* +2 วัน 17:00–19:00 */
+  BOOKED[ymd(addDays(today0,4))] = [[1140,1260]];   /* +4 วัน 19:00–21:00 */
+  /* วันที่ครูปิดเป็นครั้งคราว (ลา/วันหยุดยาว) — โครงข้อมูลรองรับไว้แล้ว
+     ⬜ หน้าจอให้ครูกดปิดวันเอง ยังไม่มี → ไปทำขั้น 9 หลังบ้าน (หนี้ค้างที่จดไว้ใน savepoint) */
+  const DAYOFF = {};
+  DAYOFF[ymd(addDays(today0,5))] = true;             /* ข้อมูลสมมติ 1 วัน ให้เห็นว่าสถานะนี้หน้าตาเป็นยังไง */
+
+  const calBody = document.getElementById('cal-body');
+  const calRange = document.getElementById('cal-range');
+  const calPrev = document.getElementById('cal-prev');
+  const calNext = document.getElementById('cal-next');
+  const calSr = document.getElementById('cal-sr');
+  const fmtDay = d => d.toLocaleDateString('th-TH',{weekday:'long'});
+  const fmtDate = d => d.toLocaleDateString('th-TH',{day:'numeric',month:'short'});
+  let weekOffset = 0;
+
+  function renderCal(){
+    const base = new Date(); base.setHours(0,0,0,0);
+    const start = addDays(base, weekOffset*7);
+    calBody.innerHTML='';
+    let freeDays = 0;
+    for(let i=0;i<7;i++){
+      const d = addDays(start,i);
+      const key = ymd(d);
+      const row = document.createElement('div');
+      row.className='cal-day';
+
+      const dateCell = document.createElement('div');
+      dateCell.className='cal-date';
+      let tag = '';
+      if(key===ymd(base)) tag=' · วันนี้';
+      else if(key===ymd(addDays(base,1))) tag=' · พรุ่งนี้';
+      dateCell.innerHTML = fmtDay(d)+'<small>'+fmtDate(d)+tag+'</small>';
+
+      const slots = document.createElement('div');
+      slots.className='cal-slots';
+
+      const merged = mergeRanges(WEEKLY[d.getDay()]||[]);
+      const busy = DAYOFF[key] ? merged : (BOOKED[key]||[]);
+      let free = DAYOFF[key] ? [] : subtract(merged, busy).filter(([s,e])=> e-s >= MIN_LEN);
+      /* ตัดด้วยกติกา 24 ชม. แบบเดียวกับหน้าจอง (ตัดครึ่งช่วงได้ ไม่ใช่ตัดทิ้งทั้งก้อน)
+         เช่น ครูเปิด 16:00–22:00 แต่เริ่มจองได้ 20:30 → เหลือ 20:30–22:00 ถ้ายังยาวพอ */
+      const cutoff = leadCutoff(key);
+      if (cutoff === null) free = [];
+      else if (cutoff > 0) free = free.map(([s,e]) => [Math.max(s, cutoff), e]).filter(([s,e]) => e-s >= MIN_LEN);
+
+      /* ⚠️ ห้ามใช้คำว่า "วันนี้" ในข้อความพวกนี้ — แถวนี้เป็นวันไหนก็ได้ใน 7 วันข้างหน้า ไม่ใช่วันนี้เสมอไป */
+      if(merged.length===0){
+        slots.innerHTML='<span class="cal-off">ไม่เปิดสอน</span>';
+      }else if(DAYOFF[key]){
+        slots.innerHTML='<span class="cal-off">ครูแจ้งปิดรับ (ลา/ติดธุระ)</span>';
+      }else{
+        /* เรียงตามเวลาเริ่ม เพื่อให้ "ว่าง" กับ "มีคาบแล้ว" อยู่ตามลำดับเวลาจริง ไม่ใช่แยกกอง */
+        const all = free.map(r=>({r,busy:false})).concat(busy.map(r=>({r,busy:true}))).sort((a,b)=>a.r[0]-b.r[0]);
+        all.forEach(({r,busy:isBusy})=>{
+          const label = toHHMM(r[0])+'–'+toHHMM(r[1]);
+          if(isBusy){
+            const el=document.createElement('span');
+            el.className='slot is-busy';
+            el.innerHTML=label+' <span>มีคาบแล้ว</span>';
+            slots.appendChild(el);
+          }else{
+            const el=document.createElement('a');
+            el.className='slot';
+            el.href='booking.html?t=ploy&d='+key+'&s='+r[0]+'&e='+r[1]+(window.__handoff||'');   /* ก้อน C1ข: พ่วงวิชา+ผู้เรียนไปด้วย */
+            el.innerHTML=label+' <span class="slot-go" aria-hidden="true">→</span>';
+            el.setAttribute('aria-label','จอง '+fmtDay(d)+' '+fmtDate(d)+' ช่วง '+label);
+            slots.appendChild(el);
+          }
+        });
+        if(free.length) freeDays++;
+        /* กันช่องว่างเปล่า — เกิดได้ทั้งตอนคาบเต็มและตอนที่ช่วงของวันนั้นจองไม่ทันแล้ว
+           🔴 ข้อความต้องเป็นกลาง ห้ามติดป้าย "จองไม่ทันแล้ว" รายช่อง (Owner เคาะ 2026-08-20) */
+        if(!slots.children.length){
+          slots.innerHTML='<span class="cal-off">ไม่มีช่วงว่าง</span>';
+        }
+      }
+      row.appendChild(dateCell); row.appendChild(slots);
+      calBody.appendChild(row);
+    }
+    calRange.textContent = fmtDate(start)+' – '+fmtDate(addDays(start,6));
+    calPrev.disabled = weekOffset===0;                  /* ย้อนไปจองอดีตไม่ได้ */
+    calSr.textContent = 'ช่วงวันที่ '+calRange.textContent+' ครูเปิดรับ '+freeDays+' วัน';
+  }
+  calPrev.addEventListener('click', ()=>{ if(weekOffset>0){ weekOffset--; renderCal(); } });
+  calNext.addEventListener('click', ()=>{ weekOffset++; renderCal(); });
+  renderCal();
+
+  /* เปิดหน้าค้างข้ามเที่ยงคืน วันที่ต้องขยับเอง ไม่งั้น "วันนี้" จะค้างเป็นเมื่อวาน */
+  let calToday = ymd(new Date());
+  const calTick = ()=>{
+    const now = ymd(new Date());
+    if(now !== calToday){ calToday = now; weekOffset = 0; renderCal(); return true; }
+    return false;
+  };
+  setInterval(calTick, 60000);
+  /* PROTOTYPE: เปิดไว้ให้เทสต์อัตโนมัติเรียกได้ (เร่งนาฬิกาจริงไม่ได้) — ตอนต่อ DB จริงเอาบรรทัดนี้ออก */
+  window.__cal = { tick: calTick, render: renderCal, today: ()=>calToday };
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

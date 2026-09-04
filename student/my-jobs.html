@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ข้อมูลไม่ถูกบันทึกที่ไหน
+  ก้อน C② · ขั้น 7ก — "งานหาครูของฉัน" ฝั่งผู้เรียน
+  บ้านหลักของทุกงาน: โพสต์หาครู + คำขอจองตรง + ข้อเสนอที่ครูยื่นเข้ามา อยู่ที่เดียว
+  (Owner เคาะ 2026-08-21 · LOG รายการ 138 ข้อ 13)
+
+  ระบบดีไซน์: design.md + tokens.css (ห้ามสร้างสีหรือฟอนต์ใหม่ในไฟล์นี้)
+
+  🔗 ของที่หน้านี้ "ยืมมาใช้ ห้ามออกแบบใหม่" (SYSTEM ข้อ 4.6):
+     · การ์ดงาน = โครง .j-card ชุดเดียวกับ post-job.html / job-board.html
+     · ชิปสถานะ .st / .st--wait|act|ok|off = ชุดเดียวกับ booking.html
+     · STATUS_LABEL = ลอกจาก booking.html ซึ่งลอกจาก SYSTEM ข้อ 8 (ห้ามตั้งคำใหม่เอง)
+     · SLOT_LABEL / MODE_LABEL / GOAL_LABEL = สำเนาลิสต์กลาง ต้นฉบับ signup-parent.html
+     · โปรไฟล์ผู้เรียน = sessionStorage['bgt_learners'] (ต้นฉบับสัญญาข้อมูล: signup-parent.html)
+     · ขั้นชำระเงิน = ส่งต่อไป booking.html ไม่สร้างขั้นจ่ายซ้ำในหน้านี้
+
+  🔴 สถานะใช้ชุดเดียวของ SYSTEM ข้อ 8 · รหัสอังกฤษคือของจริง ข้อความไทยเป็นแค่ป้ายบนจอ
+     ป้ายเปลี่ยนตามมุมคนดูได้ (ข้อ 8 กติกาข้อ 1) — โพสต์ที่มีข้อเสนอค้างยังเป็นรหัส pending
+     แต่ป้ายบนจอพูดความจริงว่า "มีข้อเสนอ N ใบ — รอคุณเลือก" ไม่ใช่ "รอครูตอบ"
+  🚩 declined_by_learner = รหัสใหม่ที่ยังไม่มีในตารางข้อ 8 (ผู้เรียนปฏิเสธข้อเสนอรายใบ)
+     ตรรกะเคาะแล้วที่ SYSTEM ข้อ 3ก ข้อ 5 แต่ยังไม่ได้ตั้งรหัส — รอ Owner ยืนยันก่อนจดเข้าตาราง
+
+  🔐 ห้ามแสดงทุกหน้า: เบอร์ · ID LINE · ที่อยู่เต็ม · ชื่อ-นามสกุลจริง
+  ⚠️ แผง/modal ห้ามใช้ transition+visibility -> สลับ display ตรง ๆ (กับดักที่รู้แล้ว)
+  ⚠️ การพับ/กางแผง ใช้ [hidden] เท่านั้น ห้าม max-height+overflow:hidden (กับดัก 2026-08-19 ข้อ 4)
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่มีรหัสผู้เรียน/รหัสงาน) หลุดไปกับ Referer ตอนโหลดฟอนต์ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>การจองของฉัน — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-jobrow.css">
+<style>
+/* Hallmark · macrostructure: Ecosystem Index · genre: modern-minimal · design-system: design.md
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none (typography only)
+ * ชื่อคลาสร่วมกับ job-board.html / post-job.html / booking.html ทั้งหมด ห้ามคิดชื่อใหม่ให้ของเดิม
+ *
+ * ⚠️ คลาสใหม่ที่หน้านี้เพิ่ม (ไม่มีในหน้าอื่น) และเหตุผลที่ต้องเป็นของตัวเอง:
+ *    .learner-strip / .lchip = แถบสลับชื่อลูก (ผู้ปกครองมีลูกได้หลายคน — CLAUDE.md กฎ 8ข ข้อ 2)
+ *    .offers-panel / .off-* = รายการข้อเสนอที่กางออกใต้การ์ด (ฝั่งครูไม่มีแผงนี้)
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* [hidden] ต้องประกาศในชั้นของเราเอง ไม่งั้นคลาสที่มี display: จะทับ (บั๊ก 2026-08-13) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);color:var(--color-ink);
+  line-height:1.65;font-size:16px;overflow-x:clip;background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.chip{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1200px;width:100%;margin:0 auto;padding:0 var(--space-5)}
+
+.page-shell{display:flex;flex-direction:column;min-height:100vh}
+.content-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.content-col > .wrap{width:100%}
+@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+
+.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
+  color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);white-space:nowrap;
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+}
+.sidebar{display:none}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
+    position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
+    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-8)}
+.sidenav a{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);font-weight:400;color:var(--color-ink-2);text-decoration:none;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.sidenav-num{font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;color:var(--color-muted);min-width:20px;font-variant-numeric:tabular-nums;text-align:right}
+@media (hover:hover){.sidenav a:hover{background:var(--color-paper-2);color:var(--color-ink)}}
+.sidenav a.active{background:var(--color-accent-soft);color:var(--color-ink);font-weight:600}
+.sidenav a.active .sidenav-num{color:var(--color-accent-deep)}
+.sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
+.side-note{
+  margin-top:auto;padding-top:var(--space-6);font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55;
+  border-top:1px solid var(--color-rule);
+}
+.side-note strong{display:block;font-family:var(--font-display);color:var(--color-ink);margin-bottom:4px}
+.side-cta{margin-top:var(--space-6);display:flex;flex-direction:column;gap:var(--space-2)}
+
+/* ตัวนับ "รอคุณตัดสินใจ" — ต้องเห็นตลอดทั้งจอเล็กและจอใหญ่ (ทรงเดียวกับ .quota ของ job-board) */
+.quota{
+  display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;
+  border-radius:var(--radius-pill);background:var(--color-paper-2);border:1px solid var(--color-rule);
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--color-ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.quota .q-num{color:var(--color-accent-deep)}
+.quota.is-hot{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+
+/* ── หัวหน้า ─────────────────────────────────────────────────── */
+.hero-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.intro{padding:var(--space-12) 0 var(--space-8)}
+.intro .eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);margin-bottom:var(--space-4);
+}
+.intro h1{font-size:var(--text-2xl);line-height:1.25;max-width:24ch}
+.intro p{margin-top:var(--space-4);color:var(--color-ink-2);font-size:var(--text-base);max-width:62ch;line-height:1.65}
+
+/* ── แถบสลับชื่อลูก ───────────────────────────────────────────
+   🔴 CLAUDE.md กฎ 8ข ข้อ 2: "ของสิ่งนี้มีได้มากกว่า 1 อันไหม" — ผู้ปกครองมีลูกได้หลายคน
+   ชื่อลูกดึงจากโปรไฟล์ ไม่ให้พิมพ์เอง (กฎ 8 ข้อ 4) */
+/* แถบเตือนคาบรอยืนยัน — ต้องเด่นกว่าทุกอย่างบนหัวหน้า เพราะมีนาฬิกา 48 ชม.เดินอยู่
+   ใช้ display:flex สลับกับ hidden ตรง ๆ ห้ามใช้ transform+transition (Browser pane ไม่วาดเฟรม -> แถบไม่โผล่) */
+.lesson-alert{
+  display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3);
+  margin-top:var(--space-4); padding:var(--space-4) var(--space-5);
+  border:2px solid var(--color-accent); border-radius:var(--radius-md);
+  background:var(--color-accent-soft); color:var(--color-ink);
+  font-size:var(--text-sm); line-height:1.6;
+}
+.lesson-alert[hidden]{display:none}
+.lesson-alert b{font-size:var(--text-base)}
+.lesson-alert .btn{margin-inline-start:auto; flex:none}
+@media (max-width:600px){ .lesson-alert .btn{margin-inline-start:0; width:100%} }
+
+.learner-strip{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding:var(--space-4) var(--space-5);
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+}
+.learner-strip .ls-label{font-size:var(--text-sm);color:var(--color-ink-2);font-weight:600}
+.lchip-group{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.lchip{
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;white-space:nowrap;
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);cursor:pointer;
+  background:var(--color-surface);font-family:var(--font-display);font-size:var(--text-sm);font-weight:600;color:var(--color-ink);
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+.lchip .l-n{font-variant-numeric:tabular-nums;color:var(--color-ink-2);font-weight:400}
+.lchip[aria-pressed=true]{background:var(--color-accent);color:var(--color-accent-ink);border-color:var(--color-accent)}
+.lchip[aria-pressed=true] .l-n{color:var(--color-accent-ink);opacity:.85}
+.lchip:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+@media (hover:hover){.lchip:hover{background:var(--color-paper-2)}.lchip[aria-pressed=true]:hover{background:var(--color-accent)}}
+.learner-strip .back-link{margin-left:auto}
+
+/* ── ส่วนรายการงาน ───────────────────────────────────────────── */
+.jobs{padding:var(--space-10) 0 var(--space-2);scroll-margin-top:var(--space-12)}
+.jobs:last-of-type{padding-bottom:var(--space-8)}
+.jobs-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-4);margin-bottom:var(--space-2)}
+.jobs-head h2{font-size:var(--text-xl)}
+.jobs-count{font-size:var(--text-sm);color:var(--color-ink-2);font-variant-numeric:tabular-nums}
+.jobs-why{font-size:var(--text-sm);color:var(--color-ink-2);margin-bottom:var(--space-5);max-width:64ch}
+/* วัดจากความกว้างคอลัมน์จริง ไม่ใช่ความกว้างจอ (จอ 900-1280 โดน sidebar 264px กินไปแล้ว) */
+.jobs .wrap{container-type:inline-size}
+/* 🔴 align-items:start — ค่าเริ่มต้น stretch ทำให้การ์ดที่เนื้อหาสั้นถูกยืดจนมีช่องว่างค้าง
+   (Owner ทัก 2026-08-14 รอบ 3 · เช็คลิสต์ข้อ 8ค) */
+.jobs-list{display:grid;gap:var(--space-5);grid-template-columns:minmax(0,1fr);align-items:start}
+/* การ์ดของหน้านี้กางแผงข้อเสนอออกมาในตัว = สูงมาก -> 1 คอลัมน์จนกว่าจะกว้างจริง */
+@container (min-width:1000px){.jobs-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.empty-state{
+  border:1px dashed var(--color-rule-2);border-radius:var(--radius-lg);background:var(--color-paper-2);
+  padding:var(--space-10) var(--space-6);text-align:center;color:var(--color-ink-2);
+}
+.empty-state strong{display:block;font-family:var(--font-display);color:var(--color-ink);font-size:var(--text-lg);margin-bottom:var(--space-2)}
+.empty-state .btn{margin-top:var(--space-5)}
+
+/* ── การ์ดงาน = โครงเดียวกับ post-job.html / job-board.html ── */
+.j-card{--card-pad:var(--space-6);background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--card-pad);box-shadow:var(--shadow-raise);display:flex;flex-direction:column}
+.j-top{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.j-title{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);line-height:1.3;overflow-wrap:anywhere}
+.j-code{font-size:var(--text-sm);color:var(--color-muted);font-variant-numeric:tabular-nums}
+.tag-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--space-4)}
+.tag{
+  display:inline-flex;align-items:center;
+  background:var(--color-subject);color:var(--color-surface);
+  font-size:var(--text-sm);font-weight:600;padding:5px 10px;border-radius:var(--radius-sm);
+}
+.tag--plain{background:var(--color-level-soft);color:var(--color-level);font-weight:600}
+.j-meta{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.j-meta span{display:inline-flex;align-items:center;gap:6px}
+.j-meta .ic{color:var(--color-accent-deep)}
+.j-body{margin-top:var(--space-4);font-size:var(--text-base);color:var(--color-ink);line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;
+  --lines:4;display:-webkit-box;-webkit-line-clamp:var(--lines);line-clamp:var(--lines);-webkit-box-orient:vertical;overflow:hidden}
+.j-body.is-open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+.j-more{align-self:flex-start;margin-top:2px}
+.j-foot{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;margin-top:auto;padding-top:var(--space-5);border-top:1px solid var(--color-rule)}
+.j-price{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-ink)}
+.j-price small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+.j-card.is-closed{background:var(--color-paper-2);box-shadow:none}
+.j-card.is-closed .j-code,.j-card.is-closed .j-title,.j-card.is-closed .j-price{color:var(--color-ink-2)}
+
+/* ── แถบท้ายการ์ด: ซ้าย = สถานะ 1 ป้าย · ขวา = ปุ่มหลัก 1 ปุ่ม ──
+   (กติกาเดียวกับ job-board.html — ทุกสถานะโครงเดียวกันเป๊ะ ปุ่มจะได้ไม่ตกบรรทัด) */
+.j-actions{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin:var(--space-5) calc(var(--card-pad) * -1) calc(var(--card-pad) * -1);
+  padding:var(--space-4) var(--card-pad);
+  background:var(--color-paper-2);border-top:1px solid var(--color-rule);
+  border-radius:0 0 var(--radius-md) var(--radius-md);
+}
+.j-actions > :first-child{margin-top:0}
+.j-actions .btn{margin-left:auto}
+.j-note{font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.5;flex:1 1 220px;min-width:0}
+@media (max-width:430px){.j-actions .btn{margin-left:0;flex:1 1 100%}}
+.j-card.is-closed .j-actions{background:var(--color-surface)}
+
+/* ชิปสถานะ = ชุดเดียวกับ booking.html ห้ามตั้งสีใหม่ */
+.st{font-size:var(--text-sm);font-weight:600;padding:4px 12px;border-radius:var(--radius-pill);border:1px solid var(--color-rule);white-space:nowrap;background:var(--color-surface)}
+.st--wait{background:var(--color-surface-2);color:var(--color-ink-2)}
+.st--act{background:var(--color-accent);color:var(--color-accent-ink);border-color:transparent}
+.st--ok{background:var(--color-ok-soft);color:var(--color-ok);border-color:transparent}
+.st--off{background:transparent;color:var(--color-ink-2);opacity:.75}
+
+/* ── แผงข้อเสนอที่กางออกใต้การ์ด ──────────────────────────────
+   🔴 ห้ามพับด้วย max-height/overflow:hidden — ใช้ [hidden] เท่านั้น (กับดัก 2026-08-19 ข้อ 4)
+   แผงที่พับอยู่หลุดจาก layout tree ไปเลย -> การ์ด 10 ใบกิน layout พอ ๆ กับ 1 ใบ */
+.offers-panel{
+  margin:var(--space-5) calc(var(--card-pad) * -1) 0;
+  padding:var(--space-5) var(--card-pad) 0;
+  border-top:1px solid var(--color-rule);
+}
+.offers-panel h4{font-family:var(--font-display);font-size:var(--text-base);font-weight:700}
+.offers-panel > p{font-size:var(--text-sm);color:var(--color-ink-2);margin-top:var(--space-1)}
+.off-list{list-style:none;display:grid;gap:var(--space-3);margin-top:var(--space-4)}
+/* align-items:flex-start เหตุผลเดียวกับกริดการ์ด — แถวที่ข้อความสั้นห้ามถูกยืด */
+.off-row{
+  display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--space-3) var(--space-4);
+  padding:var(--space-4);border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  background:var(--color-surface);
+}
+.off-row.is-dead{background:var(--color-paper-2);opacity:.8}
+.off-row.is-win{border-color:var(--color-accent-deep);background:var(--color-accent-soft)}
+.off-ava{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  background:var(--color-surface-2);border:1px solid var(--color-rule);font-family:var(--font-display);font-weight:700}
+.off-main{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.off-name{font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);overflow-wrap:anywhere}
+.off-name a{text-decoration:none;border-bottom:1px solid var(--color-rule)}
+.off-name a:hover{border-bottom-color:var(--color-accent)}
+.off-name a:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+.off-badge{font-size:var(--text-sm);font-weight:600;color:var(--color-ok);background:var(--color-ok-soft);padding:2px 8px;border-radius:var(--radius-sm)}
+.off-facts{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2)}
+.off-facts b{color:var(--color-ink);font-weight:600}
+.off-msg{font-size:var(--text-base);line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;
+  --lines:3;display:-webkit-box;-webkit-line-clamp:var(--lines);line-clamp:var(--lines);-webkit-box-orient:vertical;overflow:hidden}
+.off-msg.is-open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+.off-side{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-2);margin-left:auto}
+.off-price{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);font-variant-numeric:tabular-nums;white-space:nowrap}
+.off-price small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+.off-diff{font-size:var(--text-sm);color:var(--color-ink-2);white-space:nowrap}
+.off-diff.over{color:var(--color-error);font-weight:600}
+.off-btns{display:flex;flex-wrap:wrap;gap:var(--space-2);justify-content:flex-end}
+/* จอแคบ: ปุ่มเต็มความกว้าง จะได้ไม่เป็นปุ่มลอยชิดขวา (บทเรียนเดียวกับ .j-actions) */
+@media (max-width:560px){
+  .off-side{align-items:stretch;width:100%;margin-left:0}
+  .off-btns{justify-content:stretch}
+  .off-btns .btn{flex:1 1 100%}
+}
+.off-dead-note{font-size:var(--text-sm);color:var(--color-ink-2);flex:1 1 100%}
+
+/* ── ปุ่ม ─────────────────────────────────────────────────────── */
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-weight:700;font-size:var(--text-base);cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover{background:var(--color-paper-2)}
+.btn-sm{height:44px;padding:0 18px;font-size:var(--text-sm)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn[disabled]:active{transform:none}
+.link-btn{
+  background:none;border:none;font:inherit;font-size:var(--text-sm);font-weight:600;color:var(--color-accent-deep);
+  cursor:pointer;min-height:44px;display:inline-flex;align-items:center;padding:0 4px;border-radius:var(--radius-sm);
+}
+.link-btn:hover{text-decoration:underline}
+.link-btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* ── ข้อความแจ้งผล (เงียบ ๆ ไม่ใช่ toast เด้ง) ─────────────────── */
+.live-note{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding:var(--space-3) var(--space-4);
+  background:var(--color-ok-soft);border-radius:var(--radius-md);
+  font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.note{
+  display:flex;gap:var(--space-4);align-items:flex-start;background:var(--color-paper-2);
+  border:1px solid var(--color-rule);border-radius:var(--radius-md);
+  padding:var(--space-5);font-size:var(--text-sm);color:var(--color-ink);line-height:1.6;
+}
+.note strong{display:block;font-family:var(--font-display);margin-bottom:4px}
+.note-mark{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--color-ok);color:var(--color-surface);
+}
+.note--warn{background:var(--color-error-soft);border-color:var(--color-error)}
+.note--warn .note-mark{background:var(--color-error)}
+
+/* ── แผงยืนยันรับข้อเสนอ ─────────────────────────────────────────
+   🔴 ห้ามใช้ transition + visibility (เฟรมไม่ถูกวาด แผงไม่โผล่) — สลับ display ตรง ๆ */
+.modal{position:fixed;inset:0;z-index:var(--z-modal);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:720px){.modal{align-items:center}}
+.modal-backdrop{position:absolute;inset:0;background:oklch(21% 0.016 48 / 0.45)}
+.modal-card{
+  position:relative;background:var(--color-surface);width:100%;max-width:600px;max-height:92vh;overflow-y:auto;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:var(--space-6);box-shadow:var(--shadow-lift);
+}
+@media (min-width:720px){.modal-card{border-radius:var(--radius-lg);padding:var(--space-8)}}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.modal-head h2{font-size:var(--text-xl)}
+.modal-close{
+  flex:0 0 auto;width:44px;height:44px;border-radius:var(--radius-sm);border:1px solid var(--color-rule-2);
+  background:var(--color-surface);color:var(--color-ink);font-size:18px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--color-paper-2)}
+.modal-close:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.modal-sum{
+  margin-top:var(--space-4);padding:var(--space-4);border-radius:var(--radius-md);
+  background:var(--color-paper-2);font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.modal-sum b{display:block;font-family:var(--font-display);color:var(--color-ink);font-size:var(--text-base);margin-bottom:4px;overflow-wrap:anywhere}
+/* ⭐ ก้อน D — ตัวเลือกเหตุผลในแผงแจ้งปัญหา (พื้นที่แตะต้องใหญ่พอบนมือถือ) */
+.issue-set{border:0;padding:0;margin:var(--space-5) 0 0}
+.issue-set legend{font-weight:600;font-size:var(--text-sm);margin-bottom:var(--space-2)}
+.issue-set label{
+  display:flex;align-items:center;gap:var(--space-3);min-height:44px;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);font-size:var(--text-sm);cursor:pointer;
+}
+@media (hover:hover){.issue-set label:hover{background:var(--color-paper-2)}}
+.issue-set input:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.modal-steps{list-style:none;display:grid;gap:var(--space-3);margin-top:var(--space-5)}
+.modal-steps li{display:flex;gap:var(--space-3);font-size:var(--text-sm);line-height:1.55}
+.modal-steps .n{
+  flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--color-accent-soft);color:var(--color-accent-deep);
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-xs);display:grid;place-items:center;margin-top:2px;
+}
+.modal-foot{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3);
+  margin-top:var(--space-6);padding-top:var(--space-5);border-top:1px solid var(--color-rule);
+}
+.modal-foot .btn-primary{margin-left:auto}
+@media (max-width:560px){.modal-foot .btn{flex:1 1 100%;margin-left:0}}
+
+/* ── ปุ่มจำลองสถานะ (ต้นแบบเท่านั้น — ตรงกับ .sim ของ booking.html) ── */
+.sim{margin:var(--space-10) 0 var(--space-16);padding-top:var(--space-5);border-top:1px dashed var(--color-rule)}
+.sim-label{display:block;font-size:var(--text-xs);color:var(--color-ink-2);margin-bottom:var(--space-3)}
+.sim-row{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.btn-sim{font-size:var(--text-sm)}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-6) 0 var(--space-8);font-size:var(--text-sm);color:var(--color-ink-2)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+/* ⭐ ก้อน C2 (2026-08-23) — แผง "ครูเสนอเวลาอื่น" ในการ์ดงานจองตรง */
+.j-counter{margin-top:var(--space-4);padding:var(--space-4);border:1px solid var(--color-accent);border-radius:var(--radius-sm);background:var(--color-accent-soft);display:flex;flex-direction:column;gap:var(--space-2)}
+.jc-head{font-weight:700;font-size:var(--text-sm)}
+.jc-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--space-2) var(--space-3);font-size:var(--text-sm)}
+.jc-old{text-decoration:line-through;color:var(--color-ink-2)}
+.jc-arrow{color:var(--color-ink-2)}
+.jc-new{font-weight:700;font-size:var(--text-base)}
+.jc-msg{font-size:var(--text-sm);color:var(--color-ink-2);line-height:1.55}
+.jc-note{font-size:var(--text-xs);color:var(--color-ink-2);line-height:1.5}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+  <header class="mobile-header">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <span class="quota" id="quota-mobile">รอคุณตัดสินใจ <span class="q-num">0</span></span>
+  </header>
+
+  <aside class="sidebar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="back-link" href="teacher-search.html">ค้นหาครู</a>
+    <nav class="sidenav" aria-label="หมวดการจองของฉัน">
+      <a href="#need-you"><span class="sidenav-num" id="nav-n-need">0</span>รอคุณตัดสินใจ</a>
+      <a href="#running"><span class="sidenav-num" id="nav-n-run">0</span>กำลังดำเนินอยู่</a>
+      <a href="#closed"><span class="sidenav-num" id="nav-n-closed">0</span>ปิดแล้ว</a>
+    </nav>
+    <div class="side-cta">
+      <span class="quota" id="quota-side">รอคุณตัดสินใจ <span class="q-num">0</span></span>
+      <a class="btn btn-secondary btn-sm" href="post-job.html">โพสต์หาครูเพิ่ม</a>
+    </div>
+    <p class="side-note">
+      <strong>ครูที่ยื่นข้อเสนอ = ตอบรับไปแล้ว</strong>
+      กดรับได้เลย ไม่ต้องรอครูตอบอีกรอบ — เลือกวัน-เวลาจากช่วงที่เขาเสนอ แล้วชำระเงินเพื่อยืนยันคาบ
+    </p>
+  </aside>
+
+  <div class="content-col">
+
+    <div class="hero-band">
+      <div class="wrap">
+        <div class="intro">
+          <span class="eyebrow">สำหรับผู้เรียน · การจองของฉัน</span>
+          <h1>การจองของฉัน — คำขอหาครูและคาบเรียนอยู่ที่เดียว</h1>
+          <p>ทั้งโพสต์หาครูและคำขอจองครูโดยตรงมารวมกันที่นี่ พร้อมข้อเสนอที่ครูยื่นเข้ามาให้เทียบกันได้ในที่เดียว <b>ครูที่ยื่นข้อเสนอมาแล้ว = ตอบรับล่วงหน้าไปแล้ว</b> คุณกดรับได้เลย แล้วเลือกวัน-เวลาจากช่วงที่เขาว่าง</p>
+
+          <div class="learner-strip">
+            <span class="ls-label">ดูการจองของ</span>
+            <div class="lchip-group" id="learner-chips" role="group" aria-label="เลือกผู้เรียน"></div>
+            <a class="back-link" href="signup-parent.html">แก้โปรไฟล์ผู้เรียน</a>
+          </div>
+
+          <!-- แถบเตือนคาบที่รอยืนยัน — เนื้อหาสร้างจาก paintLessonAlert() -->
+          <div class="lesson-alert" id="lesson-alert" role="status" hidden></div>
+
+          <p class="live-note" id="live-note" role="status" tabindex="-1" hidden>
+            <span id="live-text"></span>
+            <button type="button" class="link-btn" id="undo-btn" hidden>เลิกทำ</button>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <section class="jobs" id="need-you" aria-labelledby="h-need">
+      <div class="wrap">
+        <div class="jobs-head">
+          <h2 id="h-need">รอคุณตัดสินใจ</h2>
+          <span class="jobs-count" id="count-need">— งาน</span>
+        </div>
+        <p class="jobs-why">มีครูยื่นข้อเสนอเข้ามาแล้ว หรือเป็นงานที่ไม่มีครูรับและต้องเลือกทางไปต่อ</p>
+        <div class="jobs-list" id="list-need"></div>
+      </div>
+    </section>
+
+    <section class="jobs" id="running" aria-labelledby="h-run">
+      <div class="wrap">
+        <div class="jobs-head">
+          <h2 id="h-run">กำลังดำเนินอยู่</h2>
+          <span class="jobs-count" id="count-run">— งาน</span>
+        </div>
+        <p class="jobs-why">ยังรอครูตอบ หรือรอชำระเงิน หรือยืนยันคาบแล้วรอถึงวันเรียน</p>
+        <div class="jobs-list" id="list-run"></div>
+      </div>
+    </section>
+
+    <section class="jobs" id="closed" aria-labelledby="h-closed">
+      <div class="wrap">
+        <div class="jobs-head">
+          <h2 id="h-closed">ปิดแล้ว</h2>
+          <span class="jobs-count" id="count-closed">— งาน</span>
+        </div>
+        <p class="jobs-why">เรียนจบแล้ว ถอนเอง หรือหมดเวลาไปแล้ว — เก็บไว้ให้ย้อนดูได้</p>
+        <div class="jobs-list" id="list-closed"></div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="sim">
+        <span class="sim-label">🧪 ปุ่มจำลอง (ต้นแบบเท่านั้น — ของจริงเปลี่ยนสถานะจากฝั่งครู/ระบบ ไม่มีปุ่มพวกนี้)</span>
+        <div class="sim-row">
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-offer">ครูยื่นข้อเสนอเพิ่ม 1 ใบ</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-counter">ครูเสนอเวลาอื่น</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-expire">ไม่มีครูรับ (หมดเวลาทุกใบ)</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-sim" id="sim-reset">เริ่มใหม่</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span class="foot-brand">BGT Tutor</span>
+        <span>คนกลางที่ทำให้ครูกับผู้เรียนเจอกันได้จริง</span>
+        <nav aria-label="ลิงก์ทางกฎหมาย">
+          <a href="#">ข้อตกลงการใช้งาน</a>
+          <a href="#">นโยบายความเป็นส่วนตัว</a>
+          <a href="#">ติดต่อเรา</a>
+        </nav>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
+<!-- แผงยืนยันรับข้อเสนอ — ต้องบอกให้ครบว่ากดแล้วเกิดอะไรขึ้นบ้าง (SYSTEM ข้อ 7 ความโปร่งใส) -->
+<div class="modal" id="accept-modal" hidden role="dialog" aria-modal="true" aria-labelledby="am-title">
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="am-title">รับข้อเสนอนี้</h2>
+      <button type="button" class="modal-close" data-close="1" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-sum" id="am-sum"></div>
+    <ol class="modal-steps">
+      <li><span class="n" aria-hidden="true">1</span><span>ไปหน้าจอง แล้ว<b>เลือกวัน-เวลาแน่นอน</b>จากช่วงที่ครูเสนอ (จองล่วงหน้าอย่างน้อย 24 ชั่วโมง)</span></li>
+      <li><span class="n" aria-hidden="true">2</span><span><b>ชำระเงินภายใน 1 ชั่วโมง</b> ไม่งั้นคำขอถูกยกเลิก และต้อง<b>เริ่มหาครูใหม่</b> (ข้อเสนอเดิมกลับมาไม่ได้)</span></li>
+      <li><span class="n" aria-hidden="true">3</span><span>ข้อเสนอของครูคนอื่นในงานนี้<b>ปิดทันทีที่คุณกดยืนยัน</b> — โควตาคืนให้เขาเลย ไม่ต้องรอผลการจ่ายเงิน</span></li>
+    </ol>
+    <div class="note" id="am-note" style="margin-top:var(--space-5)">
+      <span class="note-mark" aria-hidden="true">i</span>
+      <span id="am-note-text"></span>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-secondary" data-close="1">ยังไม่ตัดสินใจ</button>
+      <a class="btn btn-primary" id="am-go" href="#">ไปเลือกวัน-เวลา</a>
+    </div>
+  </div>
+</div>
+
+<!-- ⭐ ก้อน D — แผงแจ้งปัญหาของคาบ (SYSTEM ข้อ 15 ขั้น ① ต้องเลือกก่อนว่าเรื่องอะไร)
+     🔴 ปุ่มนี้แช่เงินของครูไว้ ห้ามกดพลาดด้วยนิ้วเดียว และแอดมินต้องได้เหตุผลติดมาด้วย
+        (ผลตรวจ logic 2026-08-24 ข้อ 4 — เดิมกดปุ๊บเขียน disputed ทันที ไม่ถามอะไรเลย) -->
+<div class="modal" id="issue-modal" hidden role="dialog" aria-modal="true" aria-labelledby="im-title">
+  <div class="modal-backdrop" data-close-issue="1"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="im-title">แจ้งปัญหาของคาบนี้</h2>
+      <button type="button" class="modal-close" data-close-issue="1" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-sum" id="im-sum"></div>
+    <fieldset class="issue-set">
+      <legend>เกิดอะไรขึ้น</legend>
+      <label><input type="radio" name="issue-reason" value="teacher_no_show" checked>ครูไม่มาตามนัด</label>
+      <label><input type="radio" name="issue-reason" value="learner_no_show">ผู้เรียนไม่ได้เข้าเรียนเอง</label>
+      <label><input type="radio" name="issue-reason" value="not_as_agreed">สอนไม่ตรงกับที่ตกลงกันไว้</label>
+      <label><input type="radio" name="issue-reason" value="money">เรื่องเงิน</label>
+      <label><input type="radio" name="issue-reason" value="other">เรื่องอื่น</label>
+    </fieldset>
+    <div class="note" style="margin-top:var(--space-5)">
+      <span class="note-mark" aria-hidden="true">i</span>
+      <span>กดแล้วคาบนี้จะเข้าสู่การตรวจสอบ <b>เงินของครูจะยังไม่ถูกปล่อยจนกว่าจะได้ข้อสรุป</b> — ทีมงานติดต่อกลับทาง LINE OA</span>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-secondary" data-close-issue="1">ยังไม่แจ้ง</button>
+      <button type="button" class="btn btn-primary" id="im-go">ส่งเรื่องให้ตรวจสอบ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==========================================================================
+     0 · ค่าตั้งได้ — ห้าม hardcode ตัวเลขลงข้อความบนจอโดยตรง
+        (savepoint: "ตัวเลขชั่วคราว → ห้าม hardcode ตัวเลขลงหน้าเว็บเด็ดขาด")
+     ========================================================================== */
+  var CONFIG = {
+    leadHours: 24,          /* จองล่วงหน้าขั้นต่ำ — SYSTEM ข้อ 5 */
+    payWindowMin: 60,       /* เวลาที่ผู้เรียนมีไว้ชำระเงิน — Owner เคาะ LOG 138 ข้อ 14 ("จ่ายภายใน 1 ชม.")
+                               ✅ Owner เคาะ 2026-08-21: **ใช้เลขเดียวกันทั้งจองตรงและรับข้อเสนอ**
+                               🔴 ต้องตรงกับ PAY_WINDOW_MIN ใน booking.html เสมอ (ชุดตรวจไล่เทียบให้แล้ว) */
+    replyWindowText: '1-2 ชั่วโมง'  /* เวลาที่ครูมีให้ตอบรับ — SYSTEM ข้อ 5 */
+  };
+
+  /* ==========================================================================
+     1 · ตัวช่วยพื้นฐาน (ชุดเดียวกับ job-board.html / booking.html)
+     ========================================================================== */
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt != null) n.textContent = txt;
+    return n;
+  }
+  /* 🔴 หนีอักขระ HTML ก่อนยัดลง innerHTML — ค่าพวกนี้เป็นของที่ผู้ใช้พิมพ์เองแล้วเดินข้ามหน้ามา
+     (ชุดเดียวกับ booking.html / signup-parent.html ค้น function esc) */
+  function esc(t) {
+    return String(t == null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function baht(n) { return '฿' + Number(n).toLocaleString('th-TH'); }
+  function metaSpan(icon, text) {
+    var s = document.createElement('span');
+    var i = el('span', 'ic', icon);
+    i.setAttribute('aria-hidden', 'true');
+    s.appendChild(i);
+    s.appendChild(document.createTextNode(text));
+    return s;
+  }
+  function postedText(h) {
+    if (h < 1) return 'เพิ่งส่ง';
+    if (h < 24) return h + ' ชม.ที่แล้ว';
+    return Math.floor(h / 24) + ' วันที่แล้ว';
+  }
+  function hoursText(min) {
+    return (min % 60 === 0 ? (min / 60) : (min / 60).toFixed(1)) + ' ชม.';
+  }
+
+  /* ==========================================================================
+     2 · ลิสต์กลาง — สำเนาทั้งหมด ต้นฉบับอยู่ที่ไฟล์ที่ระบุ ห้ามตั้งคำใหม่เอง
+        (CLAUDE.md กฎเหล็กข้อ 8: 1 ลิสต์ = 1 เจ้าของ · ไฟล์อื่นเป็นสำเนา)
+     ========================================================================== */
+  /* ต้นฉบับ signup-parent.html ค้น SLOT_CODES */
+  var SLOT_LABEL = { morning: 'เช้า', afternoon: 'บ่าย', evening: 'เย็น', night: 'ค่ำ' };
+  /* ต้นฉบับ signup-parent.html · รหัสล็อกทั้งเว็บ: online / home / public */
+  var MODE_LABEL = { online: 'ออนไลน์', home: 'ที่บ้าน', public: 'สถานที่อื่นๆ' };
+  /* ต้นฉบับ signup-parent.html ค้น const GOALS */
+  var GOAL_LABEL = { catch_up: 'ตามให้ทันในห้องเรียน', exam_prep: 'เตรียมสอบเข้า', contest: 'แข่งขัน/โอลิมปิก', enrich: 'เรียนเสริมทักษะ' };
+
+  /* ป้ายสถานะฝั่งผู้เรียน — ลอกจาก booking.html ซึ่งลอกจาก SYSTEM ข้อ 8 · ห้ามตั้งคำใหม่
+     🔴 รหัสอังกฤษคือของจริง ข้อความไทยเป็นแค่ป้ายบนจอ */
+  var STATUS_LABEL = {
+    pending:               'รอครูตอบ',
+    awaiting_payment:      'ครูรับแล้ว — ชำระเงิน',
+    confirmed:             'ยืนยันแล้ว',
+    completed:             'เรียนแล้ว',
+    declined_by_teacher:   'ครูไม่ว่างช่วงนี้',
+    expired:               'ไม่มีครูตอบรับทัน',
+    lost_to_other_teacher: 'ปิดแล้ว (ครูคนอื่นรับไปก่อน)',
+    payment_timeout:       'ไม่ได้ชำระในเวลา คำขอถูกยกเลิก',
+    withdrawn:             'คุณถอนคำขอแล้ว',
+    /* 🚩 ยังไม่มีในตาราง SYSTEM ข้อ 8 — ตรรกะเคาะแล้ว (ข้อ 3ก ข้อ 5) แต่รหัสรอ Owner ยืนยัน */
+    declined_by_learner:   'คุณปฏิเสธข้อเสนอนี้',
+    /* ⭐ ก้อน C2 — ครูไม่ว่างเวลาที่ขอ แต่เสนอเวลาใหม่กลับมา (SYSTEM ข้อ 3ก · ข้อ 8) */
+    counter_offered:       'ครูเสนอเวลาอื่น รอคุณตอบ'
+  };
+  var STATUS_TONE = { pending: 'wait', awaiting_payment: 'act', counter_offered: 'act', confirmed: 'ok', completed: 'ok' };
+  function toneOf(code) { return STATUS_TONE[code] || 'off'; }
+
+  /* ==========================================================================
+     3 · โปรไฟล์ผู้เรียนในบัญชีนี้
+        ต้นฉบับสัญญาข้อมูล: signup-parent.html (ค้น bgt_learners) · อายุ 2 ชม. เท่ากันทุกหน้า
+        🔴 ชุดสำรองต้องเป็นครอบครัวเดียวกับ booking.html (k1/k2/k3) ไม่งั้นรหัส kid= ส่งข้ามหน้าแล้วไม่เจอ
+     ========================================================================== */
+  function readStoredLearners() {
+    var raw = null;
+    try { raw = sessionStorage.getItem('bgt_learners'); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !Array.isArray(o.learners) || !o.learners.length) return null;
+    if (!o.ts || (Date.now() - o.ts) > 2 * 60 * 60 * 1000) return null;
+    var list = o.learners.filter(function (L) { return L && typeof L.id === 'string' && L.nick; })
+      .map(function (L) { return { id: L.id, nick: L.nick, grade: L.grade || '' }; });
+    return list.length ? list : null;
+  }
+  var FALLBACK_KIDS = [
+    { id: 'k1', nick: 'น้องภูมิ', grade: 'ม.2' },
+    { id: 'k2', nick: 'น้องใบเตย', grade: 'ป.5' },
+    { id: 'k3', nick: 'น้องแพร', grade: 'ป.2' }
+  ];
+  var KIDS = readStoredLearners() || FALLBACK_KIDS;
+  var usingStored = !!readStoredLearners();
+  function kidById(id) { return KIDS.filter(function (k) { return k.id === id; })[0] || null; }
+  function kidNick(id) { var k = kidById(id); return k ? k.nick : 'ผู้เรียน'; }
+  function kidGrade(id) { var k = kidById(id); return k ? k.grade : ''; }
+
+  /* ==========================================================================
+     4 · ครูในระบบ (สมมติ) — 🔴 รหัสต้องตรงกับ booking.html (TEACHER + ALT_TEACHERS)
+        ไม่งั้นกดรับข้อเสนอแล้วส่ง ?t= ไปหน้าจอง หน้าจองจะไม่รู้จักครูคนนั้น
+        ค้นยืนยัน: booking.html ค้น "var TEACHER" และ "var ALT_TEACHERS"
+     ========================================================================== */
+  var TEACHERS = {
+    ploy: { id: 'ploy', name: 'ครูพลอย', initial: 'พ', rating: 4.9, reviews: 38, verified: true,  hasProfilePage: true },
+    nont: { id: 'nont', name: 'ครูนนท์', initial: 'น', rating: 4.7, reviews: 12, verified: true,  hasProfilePage: false },
+    /* ครูที่ยังไม่ได้ยืนยันตัวตน = เห็นด้วยตาว่าตราหายไป (Owner เคาะ 2026-08-21 LOG 137:
+       ครูที่รับงานที่จ่ายเงินล่วงหน้าต้องยืนยันตัวตน — ของจริงคนนี้จะยื่นข้อเสนอไม่ได้เลย) */
+    fah:  { id: 'fah',  name: 'ครูฟ้า',  initial: 'ฟ', rating: 4.8, reviews: 5,  verified: false, hasProfilePage: false }
+  };
+
+  /* ==========================================================================
+     5 · งานของบ้านนี้ (สมมติทั้งหมด — ยังไม่มี DB)
+        kind: 'post'   = โพสต์หาครูสาธารณะ (post-job.html) -> ครูยื่น "ข้อเสนอ"
+              'direct' = คำขอจองตรง (booking.html)        -> ออก "ใบคำขอ" ใบละครู
+        🔴 ทั้ง 2 ชนิดใช้ตารางสถานะชุดเดียวกัน (SYSTEM ข้อ 8) ห้ามมีชุดที่ 2
+     ========================================================================== */
+  var SEED = [
+    {
+      id: 'BGT-2087', kind: 'post', kidId: 'k1', subjects: ['คณิตศาสตร์'], goal: 'catch_up',
+      places: ['home', 'online'], zone: 'กรุงเทพมหานคร', zoneDetail: 'เขตบางนา',
+      slots: ['evening', 'night'], times: ['tue-2', 'tue-3', 'thu-2', 'thu-3'], start: 'ภายใน 2 สัปดาห์',
+      budget: 450, flexible: true, sesLen: 120, perWeek: 1,
+      postedH: 5, closeIn: 6, status: 'pending',
+      detail: 'น้องตามเรื่องสมการกำลังสองไม่ทัน สอบกลางภาคได้ 12/40 อยากได้ครูใจเย็นที่อธิบายซ้ำได้ไม่รำคาญ เรียนที่บ้านหรือออนไลน์ก็ได้',
+      offers: [
+        { tid: 'ploy', price: 520, slots: ['evening', 'night'], msg: 'สอนคณิต ม.ต้น มา 6 ปีค่ะ ถนัดปูพื้นสมการกำลังสองใหม่ตั้งแต่ต้น มีชุดโจทย์แยกระดับให้ทำหลังเรียนทุกครั้ง เย็นวันธรรมดาว่างหลัง 17:00 ค่ะ', sentH: 3, status: 'pending' },
+        { tid: 'nont', price: 480, slots: ['night'], msg: 'รับเฉพาะช่วงค่ำครับ สอนแบบไล่โจทย์ไปทีละข้อ ให้เด็กพูดวิธีคิดออกมาเอง จะได้รู้ว่าติดตรงไหนจริง ๆ', sentH: 2, status: 'pending' },
+        { tid: 'fah',  price: 300, slots: ['evening'], msg: 'สอนออนไลน์อย่างเดียวค่ะ ราคานี้เป็นราคาเปิดตัว รับได้ 2 คนเท่านั้น', sentH: 1, status: 'pending' }
+      ]
+    },
+    {
+      id: 'BGT-2085', kind: 'direct', kidId: 'k2', subjects: ['คณิตศาสตร์'], goal: 'exam_prep',
+      places: ['home'], zone: 'กรุงเทพมหานคร', zoneDetail: 'เขตบางนา',
+      slots: ['afternoon'], times: ['sun-1'], start: 'เร็วที่สุด',
+      budget: 450, flexible: false, sesLen: 90, perWeek: 1,
+      postedH: 1, closeIn: 0, status: 'pending',
+      detail: 'ขอจองครูโดยตรง เลือกวันเวลาไว้แล้วในหน้าจอง',
+      when: null,   /* เติมตอนโหลดจากปฏิทินจริง (ค้น demoDayAhead) — ห้ามพิมพ์วันตาย เดี๋ยววันเปลี่ยนแล้วโกหก */
+      tickets: [{ tid: 'ploy', price: 450, status: 'pending' }]
+    },
+    {
+      id: 'BGT-2081', kind: 'post', kidId: 'k1', subjects: ['ฟิสิกส์'], goal: 'exam_prep',
+      places: ['online'], zone: '', zoneDetail: '',
+      slots: ['night'], times: ['tue-3', 'fri-3'], start: 'เร็วที่สุด',
+      budget: 600, flexible: false, sesLen: 120, perWeek: 2,
+      postedH: 72, closeIn: 3, status: 'confirmed',
+      detail: 'เตรียมสอบเข้าห้อง gifted ต้องการติวกลศาสตร์เป็นหลัก เรียนออนไลน์หลังสามทุ่ม',
+      when: null,   /* เติมตอนโหลดจากปฏิทินจริง (ค้น demoDayAhead) — ห้ามพิมพ์วันตาย เดี๋ยววันเปลี่ยนแล้วโกหก */
+      offers: [
+        { tid: 'ploy', price: 560, slots: ['night'], msg: 'ติวกลศาสตร์ให้ครบทุกหัวข้อภายใน 8 คาบค่ะ มีสรุปสูตรให้ก่อนเริ่มเรียน', sentH: 70, status: 'accepted' },
+        { tid: 'nont', price: 600, slots: ['night'], msg: 'สอนฟิสิกส์สายวิศวะครับ เน้นทำโจทย์เก่า', sentH: 69, status: 'lost_to_other_teacher' }
+      ]
+    },
+    {
+      id: 'BGT-2076', kind: 'post', kidId: 'k3', subjects: ['ภาษาอังกฤษ'], goal: 'enrich',
+      places: ['home'], zone: 'กรุงเทพมหานคร', zoneDetail: 'เขตบางนา',
+      slots: ['afternoon'], times: ['sat-1', 'sun-1'], start: 'ภายใน 2 สัปดาห์',
+      budget: 300, flexible: false, sesLen: 60, perWeek: 2,
+      postedH: 120, closeIn: 0, status: 'expired',
+      detail: 'อยากให้น้องกล้าพูดอังกฤษมากขึ้น ไม่เน้นติวสอบ เน้นเล่นเกมและสนทนา',
+      offers: []
+    },
+    {
+      id: 'BGT-2064', kind: 'direct', kidId: 'k2', subjects: ['วิทยาศาสตร์'], goal: 'catch_up',
+      places: ['home'], zone: 'กรุงเทพมหานคร', zoneDetail: 'เขตบางนา',
+      slots: ['afternoon'], times: ['sun-1'], start: 'เร็วที่สุด',
+      budget: 450, flexible: false, sesLen: 90, perWeek: 1,
+      postedH: 260, closeIn: 0, status: 'completed',
+      detail: 'ทบทวนบทระบบสุริยะก่อนสอบปลายภาค',
+      when: null,   /* เติมตอนโหลดเป็น "วันอาทิตย์ที่ผ่านมาจริง" (ค้น demoDayBack) — ห้ามพิมพ์วันตาย
+                       ของเดิมเขียน 'อาทิตย์ที่ 10 ส.ค.' ซึ่ง 10 ส.ค. 2026 เป็นวันจันทร์ (ผลตรวจ logic 2026-08-24) */
+      tickets: [{ tid: 'ploy', price: 450, status: 'completed' }]
+    }
+  ];
+
+  function cloneSeed() {
+    var list = JSON.parse(JSON.stringify(SEED));
+    /* งานจองตรงที่ยังรอครูตอบ = ผู้เรียนเลือกวันจากปฏิทินจริงมาแล้ว -> ต้องเป็นวันที่ครูเปิดสอนจริง
+       (ผลตรวจ logic 2026-08-23: ของเดิมพิมพ์ 'อาทิตย์ที่ 24 ส.ค.' ซึ่งเป็นวันจันทร์ และครูไม่สอนวันอาทิตย์) */
+    list.forEach(function (j) {
+      if (j.kind !== 'direct' || j.when) return;
+      if (j.status === 'completed') return;   /* งานที่เรียนจบแล้วต้องเป็นวันในอดีต — เติมที่ลูปด้านล่าง */
+      var key = demoDayAhead(2);
+      if (key) j.when = whenTextOf({ dateKey: key, start: 1200, len: j.sesLen || 90 });
+    });
+    /* 🔴 ใบ post ที่ยืนยันแล้วก็ห้ามพิมพ์วันตายเหมือนกัน — ของเดิมเขียน "อังคารที่ 26 ส.ค."
+       ซึ่ง 26 ส.ค. 2026 เป็น "วันพุธ" (ผลตรวจ logic 2026-08-24 ข้อ 8 · ตรวจซ้ำด้วย node แล้ว)
+       และวันนั้นต้องเป็นวันเดียวกับที่ตารางครูใน teacher-jobs.html วางคาบไว้ */
+    list.forEach(function (j) {
+      if (j.kind !== 'post' || j.status !== 'confirmed') return;
+      var key2 = demoDayAhead(2);
+      if (key2) j.when = whenTextOf({ dateKey: key2, start: 1200, len: j.sesLen || 120 });
+    });
+    /* งานที่เรียนจบไปแล้ว = วันในอดีตที่ตรงกับวันในสัปดาห์ที่ผู้เรียนขอไว้จริง */
+    list.forEach(function (j) {
+      if (j.status !== 'completed' || j.when) return;
+      var key3 = demoDayBack(j.times && j.times.length ? j.times[0] : 'sun-1');
+      if (key3) j.when = whenTextOf({ dateKey: key3, start: 840, len: j.sesLen || 90 });
+    });
+    return list;
+  }
+  var JOBS = cloneSeed();
+
+  /* ── ของที่ฝากไว้ตอนกดรับข้อเสนอแล้วเด้งไปหน้าจอง ──────────────────
+     ทาง A ยังไม่มี DB — ถ้าไม่ฝากไว้ พอกลับมาหน้านี้จะเห็นสถานะเก่าเหมือนไม่เคยกด
+     ของจริง (งาน B) สถานะมาจากเซิร์ฟเวอร์ แล้วลบตัวนี้ทิ้ง */
+  var ACCEPT_KEY = 'bgt_accepted_offer';
+  function readAccepted() {
+    var raw = null;
+    try { raw = sessionStorage.getItem(ACCEPT_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !o.jobId || !o.tid) return null;
+    if (!o.ts || (Date.now() - o.ts) > 2 * 60 * 60 * 1000) return null;
+    return o;
+  }
+  /* 🔴 ฝาก "ราคา" ไปด้วย เพื่อให้หน้าจองมีค่าที่เชื่อถือได้กว่า `?price=` ใน URL ที่ใครก็แก้ได้
+     ทาง A กันได้แค่นี้ · งาน B: ยอดเงินต้องคิดที่เซิร์ฟเวอร์จาก offer_id เท่านั้น (ผลตรวจ security 2026-08-21) */
+  function writeAccepted(jobId, tid, price) {
+    try { sessionStorage.setItem(ACCEPT_KEY, JSON.stringify({ v: 1, ts: Date.now(), jobId: jobId, tid: tid, price: price })); }
+    catch (e) { /* โหมดส่วนตัวของเบราว์เซอร์เขียนไม่ได้ — ไม่ให้หน้าพัง */ }
+  }
+  function clearAccepted() {
+    try { sessionStorage.removeItem(ACCEPT_KEY); } catch (e) { }
+  }
+  /* เอาของที่ฝากไว้มาทาบกับข้อมูลสมมติ — booking.html เขียนกลับมาว่าจ่ายแล้วหรือหมดเวลาแล้ว
+     ถ้าไม่ทาบ หน้านี้จะโชว์ "ยังไม่จ่าย" ทั้งที่จ่ายไปแล้ว = ผิด SYSTEM ข้อ 7 ข้อ 3 */
+  function applyAccepted() {
+    var a = readAccepted();
+    if (!a) return;
+    var j = JOBS.filter(function (x) { return x.id === a.jobId; })[0];
+    if (!j || !j.offers) return;
+    if (j.status !== 'pending') return;         /* งานที่ตายแล้วห้ามฟื้น — กฎแม่ข้อ 2 */
+    var hit = j.offers.filter(function (o) { return o.tid === a.tid && o.status === 'pending'; })[0];
+    if (!hit) return;
+    if (!acceptOfferState(j, hit)) return;
+    if (a.when) j.when = a.when;
+    /* 🔴 จำวัน-เวลาที่ผู้เรียนเลือกไปแล้วในหน้าจอง แม้ยังไม่ได้จ่าย
+       ไม่งั้นกดปุ่ม "ไปชำระเงิน" อีกรอบ จะพากลับไปเลือกสถานที่+เวลาใหม่ตั้งแต่ต้น
+       (Owner เจอจริง 2026-08-25 · เส้นทางจองตรงเคยแก้ไปแล้วด้วย t.agreed แต่ตกเส้นทางข้อเสนอ
+        = กับดัก "ทางเข้าหน้าจองมี 4 แบบ แก้ที่เดียวไม่พอ") */
+    if (a.dateKey && typeof a.start === 'number' && a.len > 0) {
+      hit.agreed = { dateKey: a.dateKey, start: a.start, len: a.len };
+      if (a.mode) hit.mode = a.mode;
+    }
+    if (a.paid) {
+      j.status = 'confirmed';
+    } else if (a.timedOut) {
+      /* 🔴 จ่ายไม่ทัน = จองไม่สำเร็จ → **ต้องหาครูใหม่** (Owner ยืนยัน 2026-08-21)
+         ข้อเสนอเจ้าอื่นดับไปตั้งแต่ตอนกดรับแล้ว ห้ามฟื้นกลับมาให้เลือกซ้ำ
+         ทางไปต่ออยู่ที่ปุ่มของสถานะ payment_timeout (โพสต์ด้วยข้อมูลเดิม / หาครูเอง) */
+      hit.status = 'payment_timeout';
+      j.status = 'payment_timeout';
+    }
+  }
+
+  /* ==========================================================================
+     6 · ตรรกะสถานะ — ทุกอย่างคำนวณจากใบลูก ห้ามเก็บสถานะรวมเป็นตัวแปรแยก
+        (SYSTEM ข้อ 12 · ตัวเดียวกับ stage() ใน booking.html)
+     ========================================================================== */
+  function liveOffers(j) {
+    return (j.offers || []).filter(function (o) { return o.status === 'pending'; });
+  }
+  function acceptedOffer(j) {
+    return (j.offers || []).filter(function (o) { return o.status === 'accepted'; })[0] || null;
+  }
+  /* ใบที่ถืองานอยู่ของเส้นทางจองตรง */
+  function holdingTicket(j) {
+    return (j.tickets || []).filter(function (t) {
+      return ['awaiting_payment', 'confirmed', 'completed'].indexOf(t.status) > -1;
+    })[0] || null;
+  }
+  /* ครูที่ได้งานไป (ใช้ได้ทั้ง 2 เส้นทาง) */
+  function winnerOf(j) {
+    var a = acceptedOffer(j);
+    if (a) return TEACHERS[a.tid] || null;
+    var t = holdingTicket(j);
+    if (t) return TEACHERS[t.tid] || null;
+    return null;
+  }
+  function priceOf(j) {
+    var a = acceptedOffer(j);
+    if (a) return a.price;
+    var t = holdingTicket(j);
+    if (t) return t.price;
+    return null;
+  }
+  /* 🔴 งานจองตรง: สถานะรวมต้องคำนวณจากใบลูกเสมอ ห้ามเก็บเป็นตัวแปรแยกแล้วเดินแก้ 2 ที่
+     (SYSTEM ข้อ 12 · ตัวเดียวกับ stage() ใน booking.html · ผลตรวจ logic 2026-08-21)
+     งานแบบโพสต์ไม่ต้องใช้ตัวนี้ — โพสต์คือใบเอง มีสถานะของตัวเองถูกต้องอยู่แล้ว */
+  function syncDirect(j) {
+    if (j.kind !== 'direct' || !j.tickets) return;
+    var t = j.tickets;
+    var has = function (s) { return t.some(function (x) { return x.status === s; }); };
+    if (has('completed')) j.status = 'completed';
+    else if (has('confirmed')) j.status = 'confirmed';
+    else if (has('awaiting_payment')) j.status = 'awaiting_payment';
+    else if (has('payment_timeout')) j.status = 'payment_timeout';
+    /* ⭐ ก้อน C2: ครูเสนอเวลาใหม่มา = ลูกบอลอยู่ที่ผู้เรียน ต้องมาก่อน pending
+       (แต่ยังตามหลัง payment_timeout เพราะจ่ายไม่ทัน = จองไม่สำเร็จแล้ว ต้องหาครูใหม่) */
+    else if (has('counter_offered')) j.status = 'counter_offered';
+    else if (has('pending')) j.status = 'pending';
+    else if (t.every(function (x) { return x.status === 'withdrawn' || x.status === 'lost_to_other_teacher'; })) j.status = 'withdrawn';
+    /* 🔴 ไม่เหลือใบที่ยังรออยู่แล้ว — ต้องแยกว่าจบเพราะอะไร ไม่งั้นป้ายกับข้อความบนการ์ดใบเดียวกันจะขัดกันเอง
+       (เคสจริง 2026-08-23: ป้ายขึ้น 'ไม่มีครูตอบรับทัน' แต่ข้อความข้างล่างเขียนว่า 'คุณปฏิเสธเวลาที่ครูเสนอ') */
+    else if (has('declined_by_learner')) j.status = 'declined_by_learner';
+    else if (has('declined_by_teacher')) j.status = 'declined_by_teacher';
+    else j.status = 'expired';   /* หมดเวลาทุกใบ = ระบบหาให้ไม่ได้ ต้องมีทางไปต่อเสมอ */
+  }
+  function syncAllDirect() { JOBS.forEach(syncDirect); }
+
+  /* งานใบนี้ต้องให้ผู้เรียนทำอะไรต่อไหม (SYSTEM ข้อ 8 กติกาข้อ 3) */
+  function needsYou(j) {
+    /* ⭐ ก้อน D — ครูกดจบคาบแล้ว ลูกบอลอยู่ที่ผู้เรียน ต้องขึ้นหมวด "รอคุณตัดสินใจ" เสมอ */
+    if (pendingLesson(j)) return true;
+    if (j.status === 'pending' && liveOffers(j).length) return true;
+    if (['awaiting_payment', 'counter_offered', 'expired', 'payment_timeout'].indexOf(j.status) > -1) return true;
+    /* งานจองตรงที่ตันแล้ว (ครูไม่รับ / เราไม่รับเวลาที่เขาเสนอ) = ต้องหาครูใหม่ ยังเป็นงานที่ค้างอยู่ในมือ */
+    if (j.kind === 'direct' && ['declined_by_teacher', 'declined_by_learner'].indexOf(j.status) > -1) return true;
+    return false;
+  }
+  function isClosed(j) {
+    return ['completed', 'withdrawn', 'lost_to_other_teacher', 'declined_by_teacher'].indexOf(j.status) > -1;
+  }
+  function bucketOf(j) {
+    if (needsYou(j)) return 'need';
+    if (isClosed(j)) return 'closed';
+    return 'run';
+  }
+
+  /* ป้ายสถานะที่ผู้เรียนเห็นบนการ์ด
+     🔴 รหัสไม่เปลี่ยน (pending) แต่ป้ายพูดความจริงของเส้นทางนี้ (ข้อ 8 กติกาข้อ 1)
+        โพสต์ที่มีข้อเสนอค้าง = ครูตอบรับล่วงหน้าไปแล้ว ไม่ใช่ "รอครูตอบ" */
+  /* ⭐ ก้อน D — ป้ายของ "คาบ" ที่ผู้เรียนเห็น · ลอกจาก SYSTEM ข้อ 8 คอลัมน์ผู้ปกครอง ห้ามตั้งคำใหม่
+     🔴 ต้องแสดงทุกสถานะ ไม่ใช่เฉพาะตอนรอกด — เดิมกดแจ้งปัญหาแล้วการ์ดกลับไปเป็น "ยืนยันแล้ว"
+        เหมือนไม่มีอะไรเกิดขึ้น ขณะที่ฝั่งครูยังเห็น "แอดมินกำลังดู" ค้างอยู่ (ผิดข้อ 7.3) */
+  function lessonLabel(j) {
+    var L = lessonOf(j);
+    if (!L) return null;
+    if (L.status === 'in_progress') return { text: 'กำลังเรียนอยู่', tone: 'act' };
+    if (L.status === 'taught') {
+      return pendingLesson(j)
+        ? { text: 'ครูแจ้งว่าสอนจบแล้ว — ยืนยันภายใน ' + CONFIRM_H + ' ชม.', tone: 'act' }
+        : { text: 'ครบเวลายืนยันแล้ว — ระบบกำลังปิดคาบให้เอง', tone: 'wait' };
+    }
+    if (L.status === 'disputed') return { text: 'แจ้งปัญหาแล้ว — แอดมินกำลังดู', tone: 'off' };
+    if (L.status === 'completed') {
+      return { text: L.closedBy === 'auto' ? 'เรียนแล้ว (ระบบยืนยันเมื่อครบเวลา)' : 'เรียนแล้ว', tone: 'ok' };
+    }
+    return null;
+  }
+  function statusText(j) {
+    /* ⭐ ก้อน D — รหัสของใบคำขอยังเป็น confirmed แต่ป้ายต้องพูดเรื่องที่ค้างอยู่จริง (ข้อ 8 กติกาข้อ 1) */
+    var lb = lessonLabel(j);
+    if (lb) return lb.text;
+    var n = liveOffers(j).length;
+    if (j.status === 'pending' && j.kind === 'post' && n) return 'มีข้อเสนอ ' + n + ' ใบ — รอคุณเลือก';
+    if (j.status === 'pending' && j.kind === 'post') return 'รอครูยื่นข้อเสนอ';
+    return STATUS_LABEL[j.status] || j.status;
+  }
+  function statusTone(j) {
+    var lb = lessonLabel(j);              /* ⭐ ก้อน D — โทนต้องมาจากป้ายเดียวกับที่แสดง ไม่ใช่คนละที่ */
+    if (lb) return lb.tone;
+    if (j.status === 'pending' && j.kind === 'post' && liveOffers(j).length) return 'act';
+    return toneOf(j.status);
+  }
+
+  /* ==========================================================================
+     7 · เปลี่ยนสถานะ — ห้ามเปลี่ยนใบที่ตายแล้วกลับมามีชีวิต (กฎแม่ข้อ 2)
+     ========================================================================== */
+  /* 🔴 กติกาที่ Owner ยืนยันซ้ำ 2026-08-21: **กดรับ = ข้อเสนอครูคนอื่นแคนเซิลทันที**
+     ไม่ใช่รอจนจ่ายเงินสำเร็จ · ตรงกับโมเดลแม่ของเส้นทางจองตรงที่เขียนไว้แล้ว
+     (`SYSTEM` ข้อ 12: *"ครูคนแรกกดรับ = ได้งาน · อีก 2 ใบดับทันที"*)
+     🔴 และถ้าเข้าหน้าจ่ายเงินแล้วจองไม่สำเร็จ (ไม่ว่าฝั่งไหน) = **ผู้เรียนต้องหาครูใหม่**
+     ห้ามย้อนกลับไปหยิบข้อเสนอเดิมที่ดับไปแล้ว (`SYSTEM` ข้อ 9 · `LOG` 118: ไม่มีครูสำรองอัตโนมัติ
+     ผู้เรียนกดเองว่าจะโพสต์ด้วยข้อมูลเดิมหรือหาครูใหม่)
+     ⚠️ AI เคยแก้ผิดทางมาแล้วรอบหนึ่ง (2026-08-21) เพราะอ่าน `SYSTEM` ข้อ 4 ④ ตัวเดียวแล้วตีความว่า
+        "ปิดตอนจ่ายเงิน" โดยไม่เปิดข้อ 12 กับ `LOG` 118 ประกอบ — **ห้ามแก้กลับไปทางนั้นอีก** */
+  function acceptOfferState(j, offer) {
+    if (j.status !== 'pending' || offer.status !== 'pending') return false;
+    offer.status = 'accepted';
+    /* ใบอื่นดับทันที · คืนโควตาให้ครูที่ไม่ได้งานเดี๋ยวนั้น ไม่ต้องรอผลการจ่ายเงิน */
+    (j.offers || []).forEach(function (o) {
+      if (o !== offer && o.status === 'pending') o.status = 'lost_to_other_teacher';
+    });
+    j.status = 'awaiting_payment';
+    return true;
+  }
+  /* ปฏิเสธรายใบ = ปิดเฉพาะใบของครูคนนั้น ใบอื่นเดินต่อ (SYSTEM ข้อ 3ก ข้อ 5)
+     🚩 รหัส declined_by_learner ยังรอ Owner ยืนยันให้จดเข้าตารางข้อ 8 */
+  function declineOfferState(j, offer) {
+    if (j.status !== 'pending' || offer.status !== 'pending') return false;
+    offer.status = 'declined_by_learner';
+    return true;
+  }
+
+  /* ==========================================================================
+     8 · ตัวกรองผู้เรียน (ผู้ปกครองมีลูกได้หลายคน)
+     ========================================================================== */
+  var pickedKid = 'all';
+  function visibleJobs() {
+    return JOBS.filter(function (j) { return pickedKid === 'all' || j.kidId === pickedKid; });
+  }
+
+  function paintLearnerChips() {
+    var box = $('learner-chips');
+    box.innerHTML = '';
+    var rows = [{ id: 'all', nick: 'ทุกคน' }].concat(KIDS);
+    rows.forEach(function (k) {
+      var n = JOBS.filter(function (j) { return k.id === 'all' || j.kidId === k.id; }).length;
+      var b = el('button', 'lchip');
+      b.type = 'button';
+      b.setAttribute('data-kid', k.id);
+      b.setAttribute('aria-pressed', pickedKid === k.id ? 'true' : 'false');
+      b.appendChild(document.createTextNode(k.nick + (k.grade ? ' · ' + k.grade : '')));
+      b.appendChild(el('span', 'l-n', String(n)));
+      box.appendChild(b);
+    });
+  }
+
+  /* ==========================================================================
+     9 · วาดการ์ดงาน — โครงเดียวกับ post-job.html / job-board.html
+     ========================================================================== */
+  function placeText(j) {
+    return j.places.map(function (p) { return MODE_LABEL[p] || p; }).join(' · ');
+  }
+  function slotsText(list) {
+    return (list || []).map(function (c) { return SLOT_LABEL[c] || c; }).join(' / ');
+  }
+
+  function buildCard(j) {
+    /* 🔴 'จาง' = จบแล้วไม่ต้องทำอะไรต่อ · ถ้ายังมีสิ่งที่ผู้เรียนต้องตัดสินใจ ห้ามทำให้จาง
+       (ผลตรวจ logic 2026-08-23: การ์ดที่มีปุ่มให้กด 2 ปุ่ม กลับถูกวาดจางเหมือนงานที่ปิดแล้ว) */
+    var closed = !needsYou(j) && (isClosed(j) || j.status === 'expired' || j.status === 'payment_timeout');
+    var card = el('article', 'j-card' + (closed ? ' is-closed' : ''));
+    card.id = 'card-' + j.id;
+
+    var top = el('div', 'j-top');
+    top.appendChild(el('h3', 'j-title',
+      (j.kind === 'direct' ? 'ขอจอง' : 'หาครู') + j.subjects.join(' + ') + 'ให้' + kidNick(j.kidId)));
+    top.appendChild(el('span', 'j-code', '#' + j.id));
+    card.appendChild(top);
+
+    /* แท็กล้วน ห้ามมีคำอธิบายแทรก (design.md ข้อ 4) */
+    var tags = el('div', 'tag-group');
+    j.subjects.forEach(function (s) { tags.appendChild(el('span', 'tag', s)); });
+    if (kidGrade(j.kidId)) tags.appendChild(el('span', 'tag tag--plain', kidGrade(j.kidId)));
+    card.appendChild(tags);
+
+    var meta = el('div', 'j-meta');
+    meta.appendChild(metaSpan('👦', kidNick(j.kidId)));
+    meta.appendChild(metaSpan('💻', placeText(j)));
+    if (j.zone) meta.appendChild(metaSpan('📍', j.zone + (j.zoneDetail ? ' · ' + j.zoneDetail : '')));
+    /* 🔴 คาบที่ตกลงกันแล้ว (j.when) = ข้อเท็จจริง · ช่วง/ความถี่ที่ตั้งไว้ตอนโพสต์ = ความต้องการ
+       โชว์ 2 อย่างพร้อมกันเมื่อไร ตัวเลขจะขัดกันเอง (โพสต์ขอครั้งละ 2 ชม. แต่จองจริง 1 ชม.)
+       -> พอมีคาบจริงแล้ว โชว์คาบจริงอย่างเดียว */
+    if (j.when) meta.appendChild(metaSpan('📆', j.when + (j.status === 'counter_offered' ? ' (เวลาที่คุณขอไว้เดิม)' : '')));
+    else meta.appendChild(metaSpan('🕒', slotsText(j.slots)));
+    meta.appendChild(metaSpan('🎯', GOAL_LABEL[j.goal] || j.goal));
+    if (!j.when && j.sesLen && j.perWeek) meta.appendChild(metaSpan('📅', 'ครั้งละ ' + hoursText(j.sesLen) + ' · สัปดาห์ละ ' + j.perWeek + ' ครั้ง'));
+    card.appendChild(meta);
+
+    card.appendChild(el('p', 'j-body', j.detail));
+
+    var foot = el('div', 'j-foot');
+    var price = el('span', 'j-price');
+    var pv = priceOf(j);
+    if (pv !== null) {
+      price.appendChild(document.createTextNode(baht(pv)));
+      price.appendChild(el('small', null, ' / ชม. (ราคาที่ตกลง)'));
+    } else {
+      price.appendChild(document.createTextNode(baht(j.budget)));
+      price.appendChild(el('small', null, ' / ชม.' + (j.flexible ? ' (งบ · ยืดหยุ่นได้)' : ' (งบที่ตั้งไว้)')));
+    }
+    foot.appendChild(price);
+    foot.appendChild(el('span', 'j-code',
+      (j.kind === 'direct' ? 'ส่งคำขอ ' : 'โพสต์ ') + postedText(j.postedH)
+      + (j.status === 'pending' && j.kind === 'post' && j.closeIn ? ' · ปิดรับใน ' + j.closeIn + ' วัน' : '')));
+    card.appendChild(foot);
+
+    if (j.kind === 'post' && (j.offers || []).length) card.appendChild(buildOffersPanel(j));
+    if (j.status === 'counter_offered') card.appendChild(buildCounterPanel(j));
+    card.appendChild(buildActions(j));
+    return card;
+  }
+
+  /* ── แถบท้ายการ์ด: ซ้าย = สถานะ 1 ป้าย · ขวา = ปุ่มหลัก 1 ปุ่ม ── */
+  function buildActions(j) {
+    var act = el('div', 'j-actions');
+    act.appendChild(el('span', 'st st--' + statusTone(j), statusText(j)));
+
+    var note = '', btn = null, extraBtn = null;
+    var w = winnerOf(j);
+
+    /* ⭐ ก้อน D — ครูแจ้งว่าสอนจบคาบแล้ว รอผู้เรียนยืนยัน (SYSTEM ข้อ 14 · ผังที่แก้ 2026-08-24)
+       🔴 ต้องมาก่อนทุกสาขา เพราะเป็นเรื่องที่ต้องตอบภายในเวลา และเป็นเงื่อนไขปล่อยเงินให้ครู */
+    var pl = pendingLesson(j);
+    if (pl) {
+      var pnote = el('span', 'j-note');
+      pnote.appendChild(document.createTextNode(
+        (w ? w.name : 'ครู') + 'แจ้งว่าสอนจบคาบแล้ว' + (pl.when ? ' (' + pl.when + ')' : '') + ' · '));
+      pnote.appendChild(el('b', null, lessonLeftText(pl.taughtAt)));
+      pnote.appendChild(document.createTextNode(
+        ' · ถ้าไม่กดอะไรจนครบ ' + CONFIRM_H + ' ชั่วโมง ระบบจะยืนยันให้เองและปล่อยเงินให้ครู'));
+      /* มีหลายคาบรอพร้อมกันได้ (สัปดาห์ละหลายครั้ง) — ต้องบอกว่ากำลังตอบใบไหน
+         ไม่งั้นกดแล้วขึ้นการ์ดหน้าตาเหมือนเดิม คนกดนึกว่ากดไม่ติดแล้วกดซ้ำ (ผลตรวจ logic ข้อ 7) */
+      if (pl.total > 1) {
+        pnote.appendChild(document.createTextNode(' · '));
+        pnote.appendChild(el('b', null, 'กำลังตอบคาบที่จะหมดเวลาก่อน · ยังเหลืออีก ' + (pl.total - 1) + ' คาบรอคุณยืนยัน'));
+      }
+      act.appendChild(pnote);
+
+      extraBtn = el('button', 'btn btn-secondary btn-sm', 'ครูไม่มา / มีปัญหา');
+      extraBtn.type = 'button';
+      extraBtn.setAttribute('data-lesson-bad', pl.id);
+      btn = el('button', 'btn btn-primary btn-sm', 'ยืนยัน เรียนแล้ว');
+      btn.type = 'button';
+      btn.setAttribute('data-lesson-ok', pl.id);
+
+      act.appendChild(extraBtn);
+      act.appendChild(btn);
+      return act;
+    }
+
+    if (j.status === 'pending' && j.kind === 'post') {
+      var n = liveOffers(j).length;
+      /* 🔴 ต้องแยก "ยังไม่มีใครยื่น" ออกจาก "ยื่นมาแล้วแต่คุณปฏิเสธหมด" (ผลตรวจ logic 2026-08-21)
+         เดิมพูดว่า "ยังไม่มีครูยื่นข้อเสนอ" ทั้งที่หัวแผงในการ์ดใบเดียวกันเขียนว่า "ข้อเสนอที่ได้รับ 3 ใบ" */
+      var everGot = (j.offers || []).length;
+      if (n) {
+        note = 'ครูที่ยื่นข้อเสนอ = ตอบรับล่วงหน้าไปแล้ว · กดรับได้เลย ไม่ต้องรอเขาตอบอีกรอบ';
+      } else {
+        note = everGot
+          ? 'คุณปฏิเสธข้อเสนอที่เข้ามาแล้วทั้ง ' + everGot + ' ใบ · โพสต์ยังเปิดรับอยู่อีก ' + j.closeIn + ' วัน รอครูคนใหม่ยื่นเข้ามาได้'
+          : 'ยังไม่มีครูยื่นข้อเสนอ · ปิดรับใน ' + j.closeIn + ' วัน — ระหว่างนี้ค้นหาครูเองก็ได้';
+        btn = el('a', 'btn btn-secondary btn-sm', 'ค้นหาครูเอง');
+        btn.href = searchUrl(j);
+      }
+    } else if (j.status === 'pending' && j.kind === 'direct') {
+      /* 🔴 ไม่ใส่ปุ่ม "ดูคำขอ" แล้ว — ทาง A ไม่มี DB หน้าจองเปิดมาก็เป็นฟอร์มจองใหม่ ไม่ใช่ใบนี้
+         ปุ่มที่พาไปผิดที่ = ปุ่มหลอก (ผลตรวจ logic 2026-08-21) */
+      note = 'ครูมีเวลาตอบ ' + CONFIG.replyWindowText + ' (นาฬิกาหยุดเดิน 22:00–07:00) · ช่วงเวลานี้ยังไม่ถูกล็อกจนกว่าจะมีคนกดรับ · เราแจ้งผลทาง LINE ทันทีที่มีครูกดรับ';
+    } else if (j.status === 'counter_offered') {
+      /* ⭐ ก้อน C2 — ครูเสนอเวลาใหม่ · เวลาใหม่ถูกล็อกไว้ให้แล้ว กดรับแล้วไปจ่ายได้เลย
+         ปฏิเสธ = ปิดเฉพาะใบของครูคนนี้ ใบครูคนอื่นเดินต่อ (SYSTEM ข้อ 3ก ข้อ 5) */
+      var ct = counterTicket(j);
+      var ctName = ct ? ((TEACHERS[ct.tid] || {}).name || 'ครู') : 'ครู';
+      note = ctName + 'เสนอเวลาใหม่มาให้ · กดรับแล้วชำระเงินภายใน ' + CONFIG.payWindowMin + ' นาที'
+           + ' · ถ้าเวลานี้ไม่สะดวก กดปฏิเสธได้ ใบของครูคนอื่นไม่กระทบ';
+      extraBtn = el('button', 'btn btn-secondary btn-sm', 'ปฏิเสธเวลานี้');
+      extraBtn.type = 'button';
+      extraBtn.setAttribute('data-counter-decline', j.id);
+      btn = el('a', 'btn btn-primary btn-sm', 'รับเวลานี้ ไปชำระเงิน');
+      btn.href = counterUrl(j, ct);
+      btn.setAttribute('data-counter-accept', j.id);
+    } else if (j.status === 'awaiting_payment') {
+      var closedN = (j.offers || []).filter(function (o) { return o.status === 'lost_to_other_teacher'; }).length;
+      note = (w ? w.name + ' รับงานแล้ว — ' : '')
+        + (j.kind === 'direct'
+            ? ((holdingTicket(j) || {}).via === 'counter'
+                ? 'เวลาที่ครูเสนอถูกล็อกไว้ให้แล้ว ชำระเงินภายใน ' + CONFIG.payWindowMin + ' นาที'
+                : 'วัน-เวลาที่คุณขอไว้ถูกล็อกให้แล้ว ชำระเงินภายใน ' + CONFIG.payWindowMin + ' นาที')
+            : 'เลือกวัน-เวลาแล้วชำระเงินภายใน ' + CONFIG.payWindowMin + ' นาที')
+        + (closedN ? ' · ข้อเสนออีก ' + closedN + ' ใบปิดไปแล้วตั้งแต่คุณกดรับ' : '')
+        + ' · ถ้าจ่ายไม่ทัน คำขอถูกยกเลิกและต้องหาครูใหม่';
+      btn = el('a', 'btn btn-primary btn-sm', 'ไปชำระเงิน');
+      /* 🔴 2 เส้นทางมาถึงขั้นนี้คนละแบบ ปุ่มต้องพาไปคนละที่ (ผลไล่ท่อจริง 2026-08-23:
+         งานจองตรงเคยพาไปหน้าจองเปล่า ๆ ทั้งที่วัน-เวลาตกลงกันแล้ว = ปุ่มหลอก) */
+      if (j.kind === 'direct') {
+        var ht = holdingTicket(j);
+        btn.href = ht ? lockedTimeUrl(j, ht.tid, ht.price, ht.agreed, ht.via || 'fixed') : 'booking.html';
+        btn.setAttribute('data-direct-pay', j.id);
+      } else {
+        btn.href = bookingUrl(j, acceptedOffer(j));
+      }
+    } else if (j.status === 'confirmed') {
+      /* ⭐ ก้อน D — ถ้าคาบล่าสุดมีเรื่องค้างอยู่ ต้องพูดเรื่องนั้นก่อน ไม่ใช่พูดว่า "ยืนยันแล้ว" เฉย ๆ */
+      var lz = lessonOf(j);
+      if (lz && lz.status === 'disputed') {
+        note = 'คุณแจ้งปัญหาของคาบ' + (lz.when ? ' ' + lz.when : '') + ' ไว้แล้ว — ทีมงานกำลังตรวจสอบ'
+             + ' · เงินของครูถูกพักไว้จนกว่าจะได้ข้อสรุป และเราจะติดต่อกลับทาง LINE OA';
+      } else if (lz && lz.status === 'completed') {
+        note = 'คาบล่าสุด' + (lz.when ? ' (' + lz.when + ')' : '') + ' '
+             + (lz.closedBy === 'auto' ? 'ครบเวลายืนยัน ระบบปิดให้เอง' : 'คุณยืนยันแล้ว')
+             + ' · คาบถัดไปตามที่นัดไว้กับ' + (w ? w.name : 'ครู');
+      } else if (lz && lz.status === 'in_progress') {
+        note = 'กำลังเรียนอยู่กับ' + (w ? w.name : 'ครู') + ' · พอครูกดจบคาบ คุณจะได้ยืนยันที่นี่';
+      } else {
+        note = 'ยืนยันแล้วกับ ' + (w ? w.name : 'ครู') + (j.when ? ' · ' + j.when : '')
+             + ' · จ่ายเงินแล้ว ระบบส่งรายละเอียด + เบอร์ติดต่อให้ทั้ง 2 ฝั่งทาง LINE OA เรียบร้อย';
+      }
+    } else if (j.status === 'expired') {
+      /* 🔴 expired ห้ามเป็นทางตัน — ต้องมีปุ่มพาไปต่อเสมอ (SYSTEM ข้อ 12 ข้อ 5) */
+      /* 🔴 งานจองตรงจบลงได้หลายแบบ ข้อความต้องพูดความจริงของแบบนั้น (SYSTEM ข้อ 7 ข้อ 2)
+         เดิมพูดว่า 'ไม่มีครูยื่นข้อเสนอ' กับทุกกรณี = โกหกเมื่อครูตอบมาแล้วแต่ไม่ลงตัว */
+      /* 🔴 ครูปฏิเสธ / เราไม่รับเวลาที่ครูเสนอ ถูกแยกเป็นสถานะของตัวเองแล้วที่ syncDirect()
+         สาขานี้จึงเหลือความหมายเดียว = ไม่มีใครตอบจนหมดเวลาจริง ๆ */
+      note = j.kind === 'direct'
+        ? 'ไม่มีครูตอบรับทันเวลา · จองครูคนใหม่เอง หรือโพสต์หาครูด้วยข้อมูลเดิมให้ครูหลายคนเห็นพร้อมกัน'
+        : 'ไม่มีครูยื่นข้อเสนอจนหมดเวลา · โพสต์ใหม่ด้วยข้อมูลชุดเดิมได้เลย ไม่ต้องกรอกใหม่';
+      btn = el('a', 'btn btn-primary btn-sm', 'โพสต์ด้วยข้อมูลเดิม');
+      btn.href = postJobUrl(j);
+      btn.setAttribute('data-repost', j.id);
+    } else if (j.status === 'declined_by_teacher' || j.status === 'declined_by_learner') {
+      note = (j.status === 'declined_by_learner'
+        ? 'คุณปฏิเสธเวลาที่ครูเสนอ · ช่วงที่ล็อกไว้ถูกปลดคืนแล้ว'
+        : ((w ? w.name : 'ครู') + 'ไม่ว่างช่วงเวลาที่คุณขอไป'))
+        + ' · ไม่เหลือครูที่รอตอบแล้ว — จองครูคนใหม่เอง หรือโพสต์หาครูด้วยข้อมูลเดิมให้ครูหลายคนเห็นพร้อมกัน';
+      extraBtn = el('a', 'btn btn-secondary btn-sm', 'ค้นหาครูเอง');
+      extraBtn.href = searchUrl(j);
+      btn = el('a', 'btn btn-primary btn-sm', 'โพสต์ด้วยข้อมูลเดิม');
+      btn.href = postJobUrl(j);
+      btn.setAttribute('data-repost', j.id);
+    } else if (j.status === 'payment_timeout') {
+      note = 'ช่องเวลาถูกคืนให้ครูแล้ว · จองครูคนใหม่เอง หรือโพสต์หาครูด้วยข้อมูลเดิม';
+      extraBtn = el('a', 'btn btn-secondary btn-sm', 'ค้นหาครูเอง');
+      extraBtn.href = searchUrl(j);
+      btn = el('a', 'btn btn-secondary btn-sm', 'โพสต์ด้วยข้อมูลเดิม');
+      btn.href = postJobUrl(j);
+      btn.setAttribute('data-repost', j.id);
+    } else if (j.status === 'completed') {
+      note = 'เรียนจบแล้วกับ ' + (w ? w.name : 'ครู') + (j.when ? ' · ' + j.when : '');
+      /* 🔴 รีวิวได้เฉพาะคาบที่จ่ายเงินและถึงเวลาเรียนแล้ว (SYSTEM ข้อ 14 ข้อ 1) */
+      btn = el('a', 'btn btn-secondary btn-sm', 'เขียนรีวิว');
+      btn.href = 'teacher-profile.html';
+    } else {
+      note = STATUS_LABEL[j.status] || '';
+    }
+
+    if (note) act.appendChild(el('span', 'j-note', note));
+    /* ปุ่มรองมาก่อนปุ่มหลัก แล้วปุ่มหลักอยู่ขวาสุด (margin-left:auto จับตัวแรก จึงต้องเรียงแบบนี้) */
+    if (extraBtn) act.appendChild(extraBtn);
+    if (btn) act.appendChild(btn);
+    return act;
+  }
+
+  /* ── ข้อความยาวเกินกรอบ = ใส่ปุ่ม "อ่านต่อ" ให้เฉพาะใบที่ล้นจริง ──────
+     🔴 ก๊อบวิธีมาจาก job-board.html (ค้น applyClamp) ห้ามคิดกติกาใหม่
+     ต้องวัดหลังการ์ดเข้า DOM แล้วเท่านั้น (ก่อนหน้านั้นความสูงยังเป็น 0)
+     วัดเป็น "ล้นกรอบไหม" ไม่ใช่ "ยาวกี่ตัวอักษร" เพราะการ์ดกว้างไม่เท่ากันในแต่ละจอ
+     (เช็คลิสต์ข้อ 8ข: ปุ่มที่กดแล้วไม่มีอะไรเปลี่ยน = ปุ่มหลอก ห้ามมี) */
+  function applyClamp(root) {
+    /* 2 รอบแยกกัน: รอบแรก "อ่าน" ความสูงให้ครบก่อน รอบสองค่อย "เขียน" DOM
+       ถ้าอ่าน-เขียนสลับในลูปเดียว เบราว์เซอร์ต้องคำนวณ layout ใหม่ทุกตัว (forced reflow)
+       ผลตรวจ perf 2026-08-21: ที่ 5 งานยังไม่รู้สึก แต่ที่ 50 งาน × 5 ข้อเสนอ = สะดุดชัด */
+    var need = [];
+    [].forEach.call(root.querySelectorAll('.j-body, .off-msg'), function (body) {
+      var nx = body.nextSibling;
+      if (nx && nx.classList && nx.classList.contains('j-more')) return;
+      if (body.scrollHeight > body.clientHeight + 2) need.push(body);
+    });
+    need.forEach(function (body) {
+      var more = el('button', 'link-btn j-more', 'อ่านต่อ');
+      more.type = 'button';
+      more.setAttribute('aria-expanded', 'false');
+      more.addEventListener('click', function () {
+        var open = body.classList.toggle('is-open');
+        more.textContent = open ? 'ย่อลง' : 'อ่านต่อ';
+        more.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      body.parentNode.insertBefore(more, body.nextSibling);
+    });
+  }
+
+  /* 🔴 หมุนจอ / ย่อขยายหน้าต่าง = ความกว้างการ์ดเปลี่ยน = "ล้นกรอบไหม" เปลี่ยนตาม
+     ถ้าไม่วัดใหม่ ปุ่มเก่าจะค้างเป็นปุ่มหลอก (กดแล้วไม่มีอะไรเปลี่ยน) และใบที่เพิ่งล้นจะไม่มีปุ่มให้กาง
+     — เช็คลิสต์ข้อ 8ข · ผลตรวจ perf 2026-08-21
+     ⚠️ ต้องจำว่าใครกางอยู่ก่อนวัดใหม่ แล้วกางคืนให้ ไม่งั้นหมุนจอทีข้อความที่ผู้ใช้กางไว้หุบหมด */
+  function reclamp() {
+    var openTexts = [];
+    [].forEach.call(document.querySelectorAll('.j-body.is-open, .off-msg.is-open'), function (b) { openTexts.push(b.textContent); });
+    [].forEach.call(document.querySelectorAll('.j-more'), function (b) { b.parentNode.removeChild(b); });
+    [].forEach.call(document.querySelectorAll('.j-body, .off-msg'), function (b) { b.classList.remove('is-open'); });
+    applyClamp(document);
+    [].forEach.call(document.querySelectorAll('.j-body, .off-msg'), function (b) {
+      if (openTexts.indexOf(b.textContent) < 0) return;
+      var nx = b.nextSibling;
+      if (nx && nx.classList && nx.classList.contains('j-more')) nx.click();   /* กางคืนผ่านปุ่มจริง ป้ายบนปุ่มจะได้ตรง */
+    });
+  }
+  var reclampTimer = null;
+  function scheduleReclamp() {
+    /* หน่วงก่อน — resize ยิงเป็นร้อยครั้งต่อวินาทีตอนลากขอบหน้าต่าง */
+    if (reclampTimer) clearTimeout(reclampTimer);
+    reclampTimer = setTimeout(reclamp, 200);
+  }
+  window.addEventListener('resize', scheduleReclamp);
+  /* มือถือบางรุ่นยิง orientationchange ก่อน/แทน resize — ผูกทั้งคู่ไว้ ไม่มีผลเสียเพราะ debounce รวมให้อยู่แล้ว */
+  window.addEventListener('orientationchange', scheduleReclamp);
+
+  /* ── แผงข้อเสนอ (เฉพาะเส้นทางโพสต์) ─────────────────────────── */
+  function buildOffersPanel(j) {
+    var panel = el('div', 'offers-panel');
+    var live = liveOffers(j);
+    panel.appendChild(el('h4', null, 'ข้อเสนอที่ได้รับ (' + j.offers.length + ' ใบ)'));
+    panel.appendChild(el('p', null,
+      live.length
+        ? 'เทียบราคา ช่วงที่ครูว่าง และสิ่งที่เขาเขียนตอบมา แล้วเลือกได้คนเดียว · ต้นแบบนี้มีหน้าโปรไฟล์ของครูพลอยหน้าเดียว'
+        : 'ไม่มีใบไหนรออยู่แล้ว'));
+
+    var list = el('ul', 'off-list');
+    j.offers.forEach(function (o) { list.appendChild(buildOfferRow(j, o)); });
+    panel.appendChild(list);
+    return panel;
+  }
+
+  function buildOfferRow(j, o) {
+    var t = TEACHERS[o.tid] || { name: 'ครู', initial: '?', rating: 0, reviews: 0, verified: false };
+    var alive = o.status === 'pending' && j.status === 'pending';
+    var win = o.status === 'accepted';
+    var row = el('li', 'off-row' + (win ? ' is-win' : (alive ? '' : ' is-dead')));
+
+    row.appendChild(el('span', 'off-ava', t.initial));
+
+    var main = el('div', 'off-main');
+    var name = el('div', 'off-name');
+    if (t.hasProfilePage) {
+      var a = el('a', null, t.name);
+      a.href = 'teacher-profile.html';
+      name.appendChild(a);
+    } else {
+      name.appendChild(document.createTextNode(t.name));
+    }
+    /* ตรา "ยืนยันตัวตนแล้ว" — Owner เคาะ 2026-08-21 (LOG 137) ว่าครูที่รับงานจ่ายล่วงหน้าต้องยืนยันตัวตน */
+    if (t.verified) name.appendChild(el('span', 'off-badge', 'ยืนยันตัวตนแล้ว'));
+    main.appendChild(name);
+
+    var facts = el('div', 'off-facts');
+    var r = el('span');
+    r.appendChild(document.createTextNode('★ '));
+    r.appendChild(el('b', null, String(t.rating)));
+    r.appendChild(document.createTextNode(' · ' + t.reviews + ' รีวิว'));
+    facts.appendChild(r);
+    var wf = el('span');
+    wf.appendChild(document.createTextNode('ว่าง '));
+    wf.appendChild(el('b', null, slotsText(o.slots)));
+    facts.appendChild(wf);
+    facts.appendChild(el('span', null, 'ยื่นมา ' + postedText(o.sentH)));
+    main.appendChild(facts);
+
+    /* ปุ่ม "อ่านต่อ" ไม่ได้ใส่ตรงนี้ — ใส่ทีหลังใน applyClamp() เฉพาะใบที่ข้อความล้นกรอบจริง */
+    main.appendChild(el('p', 'off-msg', o.msg));
+    row.appendChild(main);
+
+    var side = el('div', 'off-side');
+    var p = el('span', 'off-price');
+    p.appendChild(document.createTextNode(baht(o.price)));
+    p.appendChild(el('small', null, '/ชม.'));
+    side.appendChild(p);
+    var diff = o.price - j.budget;
+    if (diff > 0) side.appendChild(el('span', 'off-diff over', 'สูงกว่างบ ' + baht(diff)));
+    else if (diff < 0) side.appendChild(el('span', 'off-diff', 'ต่ำกว่างบ ' + baht(-diff)));
+    else side.appendChild(el('span', 'off-diff', 'เท่างบพอดี'));
+
+    if (alive) {
+      var btns = el('div', 'off-btns');
+      var no = el('button', 'btn btn-secondary btn-sm', 'ปฏิเสธ');
+      no.type = 'button';
+      no.setAttribute('data-decline', j.id + '|' + o.tid);
+      btns.appendChild(no);
+      var yes = el('button', 'btn btn-primary btn-sm', 'รับข้อเสนอ');
+      yes.type = 'button';
+      yes.setAttribute('data-accept', j.id + '|' + o.tid);
+      btns.appendChild(yes);
+      side.appendChild(btns);
+    } else if (o.status === 'accepted') {
+      side.appendChild(el('span', 'st st--act', 'คุณรับข้อเสนอนี้'));
+    } else {
+      side.appendChild(el('span', 'st st--' + toneOf(o.status), STATUS_LABEL[o.status] || o.status));
+    }
+    row.appendChild(side);
+
+    /* ความจริง ณ วินาทีนั้นเสมอ (SYSTEM ข้อ 7 ข้อ 3) — บอกด้วยว่าทำไมใบนี้ตาย */
+    if (o.status === 'lost_to_other_teacher') {
+      row.appendChild(el('span', 'off-dead-note', 'ปิดอัตโนมัติตั้งแต่คุณกดรับข้อเสนอของครูคนอื่นในงานนี้ · โควตาข้อเสนอคืนให้เขาทันที'));
+    } else if (o.status === 'declined_by_learner') {
+      row.appendChild(el('span', 'off-dead-note', 'คุณปฏิเสธใบนี้ · ใบของครูคนอื่นยังเดินต่อตามปกติ'));
+    } else if (o.status === 'payment_timeout') {
+      row.appendChild(el('span', 'off-dead-note', 'คุณรับใบนี้ไว้แต่ไม่ได้ชำระเงินในเวลา · คำขอถูกยกเลิก ต้องหาครูใหม่'));
+    }
+    return row;
+  }
+
+  /* ==========================================================================
+     10 · สัญญา URL ระหว่างหน้า
+        เส้นทางที่ 2 (ขั้น 7ก): กดรับข้อเสนอ → booking.html แบบเติมค่ามาแล้ว
+        📌 ต้นฉบับสัญญาเขียนไว้ที่ post-job.html (ค้น "สัญญา URL ของเส้นทางที่ 2")
+     ========================================================================== */
+  /* ══════════════════════════════════════════════════════════════════════════
+     ⭐ ก้อน C2 (2026-08-23) — ครูเสนอเวลาอื่น (counter-offer) ฝั่งผู้เรียน
+     กติกาเต็ม: SYSTEM ข้อ 3ก · ต้นทางคือ job-board.html (ฝั่งครู)
+       · ครูกดส่ง = เวลาใหม่ถูกล็อกให้ผู้เรียนแล้ว → ผู้เรียนกดรับแล้วไปจ่ายเงินได้เลย
+       · ผู้เรียนปฏิเสธ = ปิดเฉพาะใบของครูคนนั้น ใบครูคนอื่นเดินต่อ (ข้อ 3ก ข้อ 5)
+     ทาง A ยังไม่มี DB → คำตอบของครูเดินทางมาทาง sessionStorage
+     🔴 งาน B: สถานะมาจากเซิร์ฟเวอร์ แล้วลบก้อนนี้ทิ้ง
+     ══════════════════════════════════════════════════════════════════════════ */
+  var REPLY_KEY = 'bgt_direct_reply';
+  var REPLY_TTL = 2 * 60 * 60 * 1000;   /* อายุ 2 ชม. เท่าคีย์อื่นทั้งเว็บ */
+  var PRICE_MAX = 20000;                /* เพดานเดียวกับ booking.html / job-board.html */
+
+  /* 🔴 กระเป๋าฝากเก็บ "แยกรายงาน" (คีย์ = รหัสงาน) — ผลตรวจ logic 2026-08-23:
+     ของเดิมเป็นช่องเดียว ครูตอบงานใบที่ 2 แล้วคำตอบใบแรกหายทั้งใบ
+     และค่าเก่า (paid / timedOut) ค้างข้ามรอบจนงานเด้งเป็น "ยืนยันแล้ว" เองโดยไม่มีใครจ่าย */
+  function readReplyBox() {
+    var raw = null;
+    try { raw = sessionStorage.getItem(REPLY_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 2 || !o.jobs || typeof o.jobs !== 'object') return null;
+    return o;
+  }
+  /* ตรวจซ้ำทุกค่าที่อ่านกลับจาก storage เท่ากับตอนรับจาก URL
+     (ผลตรวจ security 2026-08-23: ค่าใน storage แก้ได้ไม่ต่างจาก URL) */
+  function validReply(e) {
+    if (!e || !e.tid || !e.action) return null;
+    if (!e.ts || (Date.now() - e.ts) > REPLY_TTL) return null;
+    if (['accept', 'decline', 'counter'].indexOf(e.action) < 0) return null;
+    if (e.price != null && (typeof e.price !== 'number' || !isFinite(e.price) || e.price <= 0 || e.price > PRICE_MAX)) return null;
+    if (e.start != null && (typeof e.start !== 'number' || e.start < 0 || e.start >= 1440)) return null;
+    if (e.len != null && (typeof e.len !== 'number' || e.len <= 0 || e.len > 300)) return null;
+    return e;
+  }
+  function writeReply(jobId, patch) {
+    var box = readReplyBox() || { v: 2, ts: Date.now(), jobs: {} };
+    var e = box.jobs[jobId] || { ts: Date.now() };
+    Object.keys(patch).forEach(function (k) { e[k] = patch[k]; });
+    e.ts = Date.now();
+    box.jobs[jobId] = e;
+    box.ts = Date.now();
+    try { sessionStorage.setItem(REPLY_KEY, JSON.stringify(box)); } catch (e2) { }
+  }
+
+  /* เอาคำตอบของครูมาทาบกับข้อมูลสมมติ — ไม่ทาบ = หน้านี้โชว์ "รอครูตอบ" ทั้งที่ครูตอบไปแล้ว
+     (ผิด SYSTEM ข้อ 7 ข้อ 3 สิ่งที่โชว์ต้องเป็นความจริง ณ วินาทีนั้น) */
+  function applyDirectReply() {
+    var box = readReplyBox();
+    if (!box) return;
+    Object.keys(box.jobs).forEach(function (jobId) {
+      var a = validReply(box.jobs[jobId]);
+      if (!a) return;
+      var j = JOBS.filter(function (x) { return x.id === jobId; })[0];
+      if (!j || j.kind !== 'direct' || !j.tickets) return;
+      var t = j.tickets.filter(function (x) { return x.tid === a.tid; })[0];
+      if (!t) return;
+      var when = (a.dateKey && typeof a.start === 'number' && a.len > 0)
+        ? { dateKey: a.dateKey, start: a.start, len: a.len } : null;
+
+      /* 🔴 ใบที่ตายแล้วห้ามฟื้น (กฎแม่ข้อ 2) — รับคำตอบครูได้เฉพาะตอนใบยังรออยู่ */
+      if (t.status === 'pending') {
+        if (a.action === 'accept') {
+          t.status = 'awaiting_payment';
+          /* เวลาที่ตกลง = เวลาที่ผู้เรียนขอไปตั้งแต่ต้น ครูแค่กดรับ -> ต้องพกไปหน้าจ่ายเงินด้วย
+             ไม่งั้นปุ่ม "ไปชำระเงิน" พาไปหน้าจองเปล่า = ปุ่มหลอก */
+          if (when) { t.agreed = when; t.via = 'fixed'; j.when = whenTextOf(when); }
+        } else if (a.action === 'decline') {
+          t.status = 'declined_by_teacher';
+        } else if (a.action === 'counter' && when) {
+          t.status = 'counter_offered';
+          t.counter = { dateKey: when.dateKey, start: when.start, len: when.len, msg: a.msg || '' };
+          if (typeof a.price === 'number') t.price = a.price;
+        }
+      }
+      /* คำตอบของผู้เรียนเองที่ค้างไว้ก่อนออกจากหน้า */
+      if (a.learner === 'declined' && t.status === 'counter_offered') t.status = 'declined_by_learner';
+      if (a.learner === 'accepted' && t.status === 'counter_offered') {
+        t.status = 'awaiting_payment';
+        /* 🔴 ต้องจำ "เวลาที่ตกลง" ไว้ด้วย ไม่งั้นกด Back กลับมาแล้วปุ่มไปชำระเงินพาไปหน้าจองเปล่า
+           แล้วผู้เรียนเลือกวัน-เวลา-ความยาวใหม่เองได้ (ผลตรวจ logic+security 2026-08-23) */
+        if (t.counter) {
+          t.agreed = { dateKey: t.counter.dateKey, start: t.counter.start, len: t.counter.len };
+          t.via = 'counter';
+          j.when = whenTextOf(t.agreed);
+        }
+      }
+      if (a.when) j.when = a.when;
+      /* 🔴 หมดเวลาชำระต้องชนะ "จ่ายแล้ว" เสมอ — ใบที่ตายเพราะจ่ายไม่ทัน ห้ามฟื้นด้วยการกดจ่ายบนแท็บเก่า
+         (savepoint: จ่ายไม่ทัน = จองไม่สำเร็จ ต้องหาครูใหม่) */
+      if (a.timedOut && ['awaiting_payment', 'counter_offered'].indexOf(t.status) > -1) t.status = 'payment_timeout';
+      else if (a.paid && ['awaiting_payment', 'counter_offered'].indexOf(t.status) > -1) t.status = 'confirmed';
+    });
+  }
+
+  /* ── ตัวช่วยของเวลาที่ครูเสนอกลับมา ─────────────────────────────
+     🔴 รูปแบบวันที่/เวลาใช้สูตรเดียวกับ booking.html และ job-board.html (ค้น hhmm / dayText) */
+  function counterTicket(j) {
+    return (j.tickets || []).filter(function (t) { return t.status === 'counter_offered' && t.counter; })[0] || null;
+  }
+  function hhmm(m) {
+    var h = Math.floor(m / 60), mm = m % 60;
+    return String(h).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+  function dayTextKey(key) {
+    var p = String(key).split('-');
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('th-TH', { weekday: 'long' }) + 'ที่ ' + d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  }
+  /* วันในอดีตที่ตรงกับรหัสวันที่ผู้เรียนขอไว้ (mon-2 → จันทร์) — ใช้กับงานที่เรียนจบไปแล้ว
+     🔴 ห้ามพิมพ์วันตายในข้อมูลจำลอง วันเปลี่ยนเมื่อไรข้อความโกหกทันที (บทเรียนซ้ำ 2 รอบ) */
+  function demoDayBack(timeKey) {
+    /* 🔴 ตารางอยู่ในฟังก์ชัน ไม่ใช่ var ข้างนอก — cloneSeed() ถูกเรียกตั้งแต่ต้นไฟล์
+       ตัวแปร var ที่ประกาศทีหลังจะยังเป็น undefined ตอนนั้น (เจอตอน smoke test 2026-08-24: ทั้งหน้าพัง) */
+    var DAY_CODE = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+    var want = DAY_CODE[String(timeKey).split('-')[0]];
+    if (want == null) return null;
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    for (var i = 7; i <= 21; i++) {
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i);
+      if (x.getDay() !== want) continue;
+      return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    }
+    return null;
+  }
+
+  /* วันที่ครูพลอยเปิดสอนช่วงค่ำจริง = อังคาร(2) พุธ(3) พฤหัส(4) — ชุดเดียวกับ WEEKLY ใน booking.html
+     ข้ามวันที่ +4 (มีคาบจองแล้ว) และ +5 (ครูแจ้งลา) ตามข้อมูลสมมติชุดเดียวกันทั้งเว็บ */
+  function demoDayAhead(minDays) {
+    var d = new Date(); d.setHours(0, 0, 0, 0);
+    for (var i = minDays; i <= minDays + 14; i++) {
+      if (i === 4 || i === 5) continue;
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i);
+      if ([2, 3, 4].indexOf(x.getDay()) < 0) continue;
+      return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    }
+    return null;
+  }
+  function whenTextOf(w) {
+    return dayTextKey(w.dateKey) + ' ' + hhmm(w.start) + '–' + hhmm(w.start + w.len);
+  }
+  function counterWhenText(c) {
+    return dayTextKey(c.dateKey) + ' ' + hhmm(c.start) + '–' + hhmm(c.start + c.len);
+  }
+  /* ทางเข้าหน้าจองแบบที่ 3: มาจากการรับ "เวลาใหม่ที่ครูเสนอ"
+     ต่างจาก from=offer ตรงที่วัน-เวลาถูกกำหนดมาแล้ว ผู้เรียนไม่ต้องเลือกอีก */
+  /* ทางเข้าหน้าจองแบบ 'เวลาถูกล็อกไว้แล้ว' — ใช้ได้ทั้ง 2 กรณี
+       via=fixed   : ครูกดรับเวลาที่ผู้เรียนขอไปตั้งแต่ต้น
+       via=counter : ครูเสนอเวลาใหม่ แล้วผู้เรียนกดรับ */
+  /* รูปแบบเรียนที่ 'ตกลงกันแล้ว' ของงานใบนี้ — งานจองตรงมีรูปแบบเดียวเสมอ (ผู้เรียนเลือกตอนจอง)
+     งานแบบโพสต์อาจเปิดไว้หลายแบบ ถ้ายังไม่ชี้ชัดให้ปล่อยว่าง แล้วให้หน้าจองถามเอง */
+  function modeOf(j) {
+    var t = holdingTicket(j) || counterTicket(j) || acceptedOffer(j);
+    if (t && t.mode) return t.mode;
+    return (j.places && j.places.length === 1) ? j.places[0] : '';
+  }
+  function lockedTimeUrl(j, tid, price, when, via) {
+    if (!when) return 'booking.html';
+    var q = [via === 'counter' ? 'from=counter' : 'from=fixed'];
+    q.push('job=' + encodeURIComponent(j.id));
+    q.push('t=' + encodeURIComponent(tid));
+    q.push('kid=' + encodeURIComponent(j.kidId));
+    if (j.subjects.length === 1) q.push('subj=' + encodeURIComponent(j.subjects[0]));
+    q.push('price=' + encodeURIComponent(price));
+    q.push('date=' + encodeURIComponent(when.dateKey));
+    q.push('start=' + encodeURIComponent(when.start));
+    q.push('len=' + encodeURIComponent(when.len));
+    if (modeOf(j)) q.push('mode=' + encodeURIComponent(modeOf(j)));
+    return 'booking.html?' + q.join('&');
+  }
+  function counterUrl(j, t) {
+    if (!t || !t.counter) return "booking.html";
+    return lockedTimeUrl(j, t.tid, t.price,
+      { dateKey: t.counter.dateKey, start: t.counter.start, len: t.counter.len }, "counter");
+  }
+
+  /* แผงเทียบเวลาเดิม -> เวลาใหม่ · ต้องเห็นคู่กันเสมอ ไม่ให้ผู้เรียนต้องจำเองว่าขอไว้ตอนไหน
+     🔴 ใช้ el()/textContent เท่านั้น — ข้อความครูเป็นของที่คนพิมพ์เอง ห้ามยัดลง innerHTML */
+  function buildCounterPanel(j) {
+    var t = counterTicket(j);
+    var box = el('div', 'j-counter');
+    if (!t) return box;
+    var who = TEACHERS[t.tid] || { name: 'ครู' };
+    box.appendChild(el('span', 'jc-head', who.name + 'ไม่ว่างเวลาที่คุณขอ แต่เสนอเวลาใหม่มาให้'));
+    var row = el('div', 'jc-row');
+    row.appendChild(el('span', 'jc-old', j.when || 'เวลาที่คุณขอไว้'));
+    row.appendChild(el('span', 'jc-arrow', '→'));
+    row.appendChild(el('span', 'jc-new', counterWhenText(t.counter)));
+    box.appendChild(row);
+    if (t.counter.msg) box.appendChild(el('p', 'jc-msg', t.counter.msg));
+    box.appendChild(el('span', 'jc-note',
+      'เวลาใหม่ถูกล็อกไว้ให้คุณแล้ว · ตอบภายใน ' + CONFIG.replyWindowText
+      + ' ไม่งั้นระบบปลดล็อกให้คนอื่นจอง · ราคายังเท่าเดิมที่ ' + baht(t.price) + '/ชม.'));
+    return box;
+  }
+
+  function bookingUrl(j, offer) {
+    if (!offer) return 'booking.html';
+    var q = ['from=offer'];
+    q.push('job=' + encodeURIComponent(j.id));
+    q.push('t=' + encodeURIComponent(offer.tid));
+    /* 🔴 ส่งรหัสผู้เรียน ไม่ใช่ชื่อเล่น — โพสต์ผูกกับผู้เรียนคนหนึ่งไปแล้ว ห้ามให้เลือกซ้ำ (กฎ 8 ข้อ 4) */
+    q.push('kid=' + encodeURIComponent(j.kidId));
+    if (j.subjects.length === 1) q.push('subj=' + encodeURIComponent(j.subjects[0]));
+    q.push('price=' + encodeURIComponent(offer.price));
+    /* ช่วงที่ครูเสนอ = ตัวจำกัดว่าเลือกวัน-เวลาได้แค่ไหน (Owner เคาะ LOG 138 ข้อ 14) */
+    if (offer.slots && offer.slots.length) q.push('time=' + encodeURIComponent(offer.slots.join(',')));
+    if (j.places.length === 1) q.push('mode=' + encodeURIComponent(j.places[0]));
+    /* 🔴 ผู้เรียนเคยเลือกวัน-เวลา-สถานที่ไปแล้วแต่ยังไม่จ่าย -> ต้องติ๊กกลับมาให้
+       ไม่ใช่ให้เลือกใหม่ทั้งหมด (Owner เจอจริง 2026-08-25)
+       ⚠️ ตั้งใจใช้ from=offer ต่อ ไม่ใช่ from=fixed — from=fixed แปลว่า "ครูล็อกเวลาไว้ให้"
+          และมียามที่ต้องมีใบจองตรงประกอบ · ของนี้คือ "ค่าที่ผู้เรียนเลือกเอง" ยังแก้ได้อยู่
+       ค่าพวกนี้เป็นแค่ค่าตั้งต้น booking.html ตรวจกับปฏิทินจริงอีกชั้นเสมอ */
+    if (offer.agreed) {
+      q.push('date=' + encodeURIComponent(offer.agreed.dateKey));
+      q.push('start=' + encodeURIComponent(offer.agreed.start));
+      q.push('len=' + encodeURIComponent(offer.agreed.len));
+      if (offer.mode && j.places.length !== 1) q.push('mode=' + encodeURIComponent(offer.mode));
+    }
+    return 'booking.html?' + q.join('&');
+  }
+  /* โพสต์ใหม่ด้วยข้อมูลชุดเดิม — ห้ามให้กรอกใหม่แม้แต่ช่องเดียว (SYSTEM ข้อ 12 ข้อ 4)
+     🔴 แบ่งของเป็น 2 ทางตามความอ่อนไหว (ผลตรวจ security 2026-08-20):
+        · URL รับได้เฉพาะค่าที่เป็น "ตัวเลือกจากลิสต์" (รหัสวิชา/รูปแบบ/ช่องเวลา/งบ) — ไม่ใช่ตัวตนของเด็ก
+        · ข้อความที่ผู้ปกครองพิมพ์เอง (รายละเอียด · ย่านที่อยู่) ไปทาง sessionStorage
+          เพราะ URL ไปค้างใน address bar · ประวัติเบราว์เซอร์ · log เซิร์ฟเวอร์ (LEGAL ข้อ 1)
+     🔴 และห้ามส่งที่อยู่เต็มไปหน้าโพสต์ไม่ว่าทางไหน — โพสต์เป็นของสาธารณะที่ครูทุกคนเห็น */
+  function postJobUrl(j) {
+    var q = ['kid=' + encodeURIComponent(j.kidId)];
+    if (j.subjects.length) q.push('subj=' + encodeURIComponent(j.subjects.join(',')));
+    if (j.budget) q.push('budget=' + encodeURIComponent(j.budget));
+    if (j.places.length) q.push('mode=' + encodeURIComponent(j.places.join(',')));
+    /* ช่องวัน×ช่วง (mon-2) = ระดับละเอียดที่หน้าโพสต์ใช้จริง · ส่งช่องไปตรง ๆ ไม่ต้องแปลง 2 ชั้น
+       ถ้าส่งแค่ "เย็น/ค่ำ" หน้าโพสต์จะไม่รู้ว่าวันไหน แล้วผู้ใช้ต้องติ๊กใหม่ทั้งตาราง */
+    if (j.times && j.times.length) q.push('times=' + encodeURIComponent(j.times.join(',')));
+    if (j.start) q.push('start=' + encodeURIComponent(j.start));
+    if (j.goal) q.push('goal=' + encodeURIComponent(j.goal));
+    if (j.sesLen) q.push('seslen=' + encodeURIComponent(j.sesLen));
+    if (j.perWeek) q.push('perweek=' + encodeURIComponent(j.perWeek));
+    if (j.places.indexOf('home') > -1 && j.zone) q.push('prov=' + encodeURIComponent(j.zone));
+    return 'post-job.html?' + q.join('&');
+  }
+  /* ข้อความที่ผู้ปกครองพิมพ์เอง — ฝากทาง sessionStorage ไม่ใช่ URL
+     ต้องเขียนตอน "กดปุ่ม" ไม่ใช่ตอนวาดการ์ด ไม่งั้นการ์ดใบหลังทับใบหน้า */
+  function stashRepost(j) {
+    try {
+      sessionStorage.setItem('bgt_repost', JSON.stringify({
+        v: 1, ts: Date.now(), kid: j.kidId,
+        detail: j.detail || '', zoneDetail: j.zoneDetail || ''
+      }));
+    } catch (e) { }
+  }
+  function searchUrl(j) {
+    var q = ['kid=' + encodeURIComponent(j.kidId)];
+    if (j.subjects.length) q.push('subj=' + encodeURIComponent(j.subjects.join(',')));
+    if (j.budget) q.push('budget=' + encodeURIComponent(j.budget));
+    if (j.places.length) q.push('mode=' + encodeURIComponent(j.places.join(',')));
+    if (j.slots.length) q.push('time=' + encodeURIComponent(j.slots.join(',')));
+    if (j.places.indexOf('home') > -1 && j.zone) q.push('prov=' + encodeURIComponent(j.zone));
+    return 'teacher-search.html?' + q.join('&');
+  }
+
+  /* ==========================================================================
+     11 · วาดทั้งหน้า
+     ========================================================================== */
+  var SECTIONS = [
+    { key: 'need',   list: 'list-need',   count: 'count-need',   nav: 'nav-n-need',
+      empty: { head: 'ยังไม่มีอะไรรอคุณตัดสินใจ', body: 'พอมีครูยื่นข้อเสนอเข้ามา งานใบนั้นจะเด้งขึ้นมาอยู่ตรงนี้ทันที', href: 'post-job.html', cta: 'โพสต์หาครู' } },
+    { key: 'run',    list: 'list-run',    count: 'count-run',    nav: 'nav-n-run',
+      empty: { head: 'ยังไม่มีงานที่กำลังเดินอยู่', body: 'โพสต์หาครู แล้วให้ครูยื่นข้อเสนอมาเทียบกัน หรือเลือกครูเองจากหน้าค้นหา', href: 'teacher-search.html', cta: 'ค้นหาครู' } },
+    { key: 'closed', list: 'list-closed', count: 'count-closed', nav: 'nav-n-closed',
+      empty: { head: 'ยังไม่มีงานที่ปิดไปแล้ว', body: 'งานที่เรียนจบ ถอนเอง หรือหมดเวลา จะถูกเก็บไว้ตรงนี้ให้ย้อนดู', href: '', cta: '' } }
+  ];
+
+  function paint() {
+    lessonCache = undefined;   /* ⭐ ก้อน D — อ่านสถานะคาบใหม่ครั้งเดียวต่อรอบวาด แล้วให้ทุกจุดใช้ค่าเดียวกัน
+                                  (ไม่งั้นแต่ละจุดอ่านเวลาคนละมิลลิวินาที → ตรงเส้น 48 ชม. การ์ดกับปุ่มไม่ตรงกัน) */
+    syncAllDirect();   /* สถานะงานจองตรง = ผลลัพธ์ของใบลูก คำนวณสดทุกครั้ง ไม่ให้หลุด sync */
+    var rows = visibleJobs();
+    SECTIONS.forEach(function (S) {
+      var box = $(S.list);
+      box.innerHTML = '';
+      var mine = rows.filter(function (j) { return bucketOf(j) === S.key; });
+      $(S.count).textContent = mine.length + ' รายการ';
+      $(S.nav).textContent = String(mine.length);
+      if (!mine.length) {
+        var e = el('div', 'empty-state');
+        e.appendChild(el('strong', null, S.empty.head));
+        e.appendChild(el('span', null, S.empty.body));
+        if (S.empty.href) {
+          var a = el('a', 'btn btn-secondary', S.empty.cta);
+          a.href = S.empty.href;
+          e.appendChild(a);
+        }
+        box.appendChild(e);
+        return;
+      }
+      mine.forEach(function (j) { box.appendChild(buildCard(j)); });
+      applyClamp(box);   /* ต้องเรียกหลังการ์ดเข้า DOM แล้ว ไม่งั้นวัดความสูงไม่ได้ */
+    });
+
+    var need = rows.filter(function (j) { return bucketOf(j) === 'need'; }).length;
+    ['quota-mobile', 'quota-side'].forEach(function (id) {
+      var b = $(id);
+      b.textContent = 'รอคุณตัดสินใจ ';
+      b.appendChild(el('span', 'q-num', String(need)));
+      b.classList.toggle('is-hot', need > 0);
+    });
+    paintLearnerChips();
+    paintLessonAlert(rows);
+  }
+
+  /* ⭐ แถบเตือน "มีคาบรอคุณยืนยัน" บนหัวหน้า (เพิ่ม 2026-08-25)
+     ทำไมต้องมี: Owner หาปุ่ม "ครูไม่มา / มีปัญหา" ไม่เจอ เพราะการ์ดอยู่ลึก 1,666 px
+     ต้องเลื่อนเกือบ 2 จอถึงจะเห็น — ของที่มีนาฬิกา 48 ชม.เดินอยู่ ห้ามซ่อนลึกขนาดนั้น */
+  function paintLessonAlert(rows) {
+    var box = $('lesson-alert');
+    if (!box) return;
+    var waiting = rows.filter(function (j) { return !!pendingLesson(j); });
+    if (!waiting.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = '';
+    box.hidden = false;
+    var n = waiting.reduce(function (sum, j) { return sum + (pendingLesson(j).total || 1); }, 0);
+    var strong = el('b', null, '⏳ มี ' + n + ' คาบรอคุณยืนยันว่าเรียนแล้วจริงไหม');
+    box.appendChild(strong);
+    box.appendChild(document.createTextNode(
+      ' — ครูแจ้งว่าสอนจบแล้ว ถ้าไม่กดอะไรจนครบ ' + CONFIRM_H + ' ชั่วโมง ระบบจะยืนยันให้เองและปล่อยเงินให้ครู '));
+    var jump = el('button', 'btn btn-primary btn-sm', 'ไปที่คาบที่รอยืนยัน');
+    jump.type = 'button';
+    jump.addEventListener('click', function () {
+      var t = document.querySelector('[data-lesson-ok]');
+      if (!t) return;
+      var card = t.closest('article') || t;
+      card.scrollIntoView({ block: 'center' });
+      t.focus();   /* พาโฟกัสไปด้วย ไม่ใช่แค่เลื่อนจอ — คนใช้คีย์บอร์ดต้องไปถึงเหมือนกัน */
+    });
+    box.appendChild(jump);
+  }
+
+  /* ==========================================================================
+     12 · ข้อความแจ้งผล + เลิกทำ (ชุดเดียวกับ job-board.html)
+     ========================================================================== */
+  var lastUndo = null;
+  function say(text, undoFn) {
+    $('live-text').textContent = text;
+    $('live-note').hidden = false;
+    lastUndo = undoFn || null;
+    $('undo-btn').hidden = !undoFn;
+  }
+  $('undo-btn').addEventListener('click', function () {
+    if (!lastUndo) return;
+    lastUndo();
+    lastUndo = null;
+    $('live-note').hidden = true;
+  });
+
+  /* ==========================================================================
+     13 · แผงยืนยันรับข้อเสนอ
+     ========================================================================== */
+  var modal = $('accept-modal'), pendingPick = null, lastFocus = null;
+
+  function openModal(j, o, from) {
+    pendingPick = { job: j, offer: o };
+    lastFocus = from || null;
+    var t = TEACHERS[o.tid] || { name: 'ครู' };
+    var others = liveOffers(j).length - 1;
+    $('am-sum').innerHTML =
+      '<b>' + esc(t.name) + ' · ' + esc(baht(o.price)) + '/ชม.</b>' +
+      esc('งาน #' + j.id + ' · ' + j.subjects.join(' + ') + ' · ' + kidNick(j.kidId)) +
+      '<br>' + esc('ช่วงที่ครูเสนอ: ' + slotsText(o.slots));
+    /* 🔴 ต้องบอกตรง ๆ ว่ากดแล้วย้อนไม่ได้ (Owner ยืนยัน 2026-08-21) — ห้ามเขียนว่า "ยังเปลี่ยนใจได้" */
+    $('am-note-text').innerHTML = others > 0
+      ? '<strong>กดยืนยันแล้วข้อเสนออีก ' + others + ' ใบปิดทันที ย้อนกลับไม่ได้</strong>ครูที่ไม่ได้งานจะได้โควตาคืนเดี๋ยวนั้น · ถ้าคุณไม่ชำระเงินในเวลา คำขอถูกยกเลิกและต้องเริ่มหาครูใหม่'
+      : '<strong>กดยืนยันแล้วย้อนกลับไม่ได้</strong>ถ้าไม่ชำระเงินในเวลา คำขอถูกยกเลิกและต้องเริ่มหาครูใหม่';
+    $('am-go').setAttribute('href', bookingUrl(j, o));
+    modal.hidden = false;
+    $('am-go').focus();
+  }
+  function closeModal() {
+    modal.hidden = true;
+    pendingPick = null;
+    if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+    lastFocus = null;
+  }
+  modal.addEventListener('click', function (e) {
+    if (e.target.getAttribute && e.target.getAttribute('data-close')) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+  /* กด "ไปเลือกวัน-เวลา" = ฝากสถานะไว้ก่อนออกจากหน้า แล้วปล่อยให้ลิงก์พาไปเอง */
+  $('am-go').addEventListener('click', function () {
+    if (!pendingPick) return;
+    writeAccepted(pendingPick.job.id, pendingPick.offer.tid, pendingPick.offer.price);
+  });
+
+  /* ==========================================================================
+     14 · ปุ่มบนการ์ด — ผูกที่ document ทีเดียว เพราะการ์ดวาดใหม่ตลอด
+     ========================================================================== */
+  function findPair(v) {
+    var p = String(v).split('|');
+    var j = JOBS.filter(function (x) { return x.id === p[0]; })[0];
+    if (!j) return null;
+    var o = (j.offers || []).filter(function (x) { return x.tid === p[1]; })[0];
+    return o ? { job: j, offer: o } : null;
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.getAttribute) return;
+
+    /* สลับลูก */
+    var kidBtn = t.closest ? t.closest('[data-kid]') : null;
+    if (kidBtn) {
+      pickedKid = kidBtn.getAttribute('data-kid');
+      paint();
+      return;
+    }
+
+    /* ปุ่ม "โพสต์ด้วยข้อมูลเดิม" — ฝากข้อความที่ผู้ปกครองพิมพ์เองไว้ก่อนออกจากหน้า
+       (ลิงก์พาไปเองตามปกติ ไม่ต้อง preventDefault) */
+    var rp = t.getAttribute('data-repost');
+    if (rp) {
+      var jr = JOBS.filter(function (x) { return x.id === rp; })[0];
+      if (jr) stashRepost(jr);
+      return;
+    }
+
+    /* ⭐ ก้อน C2 — รับเวลาที่ครูเสนอ: ฝากคำตอบไว้ก่อนออกจากหน้า แล้วปล่อยให้ลิงก์พาไปหน้าจอง */
+    var ca = t.getAttribute('data-counter-accept');
+    if (ca) {
+      var jca = JOBS.filter(function (x) { return x.id === ca; })[0];
+      var tca = jca ? counterTicket(jca) : null;
+      if (tca) writeReply(jca.id, { tid: tca.tid, action: 'counter', learner: 'accepted',
+        dateKey: tca.counter.dateKey, start: tca.counter.start, len: tca.counter.len,
+        price: tca.price, msg: tca.counter.msg, kidId: jca.kidId, mode: modeOf(jca) });
+      return;
+    }
+
+    var cd = t.getAttribute('data-counter-decline');
+    if (cd) {
+      var jcd = JOBS.filter(function (x) { return x.id === cd; })[0];
+      var tcd = jcd ? counterTicket(jcd) : null;
+      if (!tcd) return;
+      tcd.status = 'declined_by_learner';
+      writeReply(jcd.id, { tid: tcd.tid, action: 'counter', learner: 'declined' });
+      paint();
+      var alive = (jcd.tickets || []).filter(function (x) { return x.status === 'pending'; }).length;
+      say('ปฏิเสธเวลาที่ ' + ((TEACHERS[tcd.tid] || {}).name || 'ครู') + ' เสนอแล้ว · ช่วงที่ล็อกไว้ถูกปลดคืนแล้ว'
+        + (alive ? ' · ยังเหลือครูที่รอตอบอีก ' + alive + ' คน' : ' · ไม่เหลือครูที่รออยู่แล้ว หาครูใหม่ได้จากปุ่มบนการ์ด'));
+      $('live-note').focus();
+      return;
+    }
+
+    /* ⭐ ก้อน C2 — งานจองตรงที่ครูรับแล้ว: ฝากใบที่ตกลงไว้ก่อนออกจากหน้า
+       หน้าจองใช้ใบนี้สอบทานราคา/วัน-เวลา/เด็ก แทนการเชื่อ URL (ผลตรวจ security 2026-08-23) */
+    var dp = t.getAttribute('data-direct-pay');
+    if (dp) {
+      var jdp = JOBS.filter(function (x) { return x.id === dp; })[0];
+      var tdp = jdp ? holdingTicket(jdp) : null;
+      if (tdp && tdp.agreed) {
+        writeReply(jdp.id, { tid: tdp.tid, action: 'accept', learner: 'accepted',
+          dateKey: tdp.agreed.dateKey, start: tdp.agreed.start, len: tdp.agreed.len,
+          price: tdp.price, kidId: jdp.kidId, mode: modeOf(jdp) });
+      }
+      return;
+    }
+
+    var acc = t.getAttribute('data-accept');
+    if (acc) {
+      var pr = findPair(acc);
+      if (pr) openModal(pr.job, pr.offer, t);
+      return;
+    }
+
+    var dec = t.getAttribute('data-decline');
+    if (dec) {
+      var pd = findPair(dec);
+      if (!pd) return;
+      if (!declineOfferState(pd.job, pd.offer)) return;
+      var left = liveOffers(pd.job).length;
+      paint();
+      say('ปฏิเสธข้อเสนอของ ' + (TEACHERS[pd.offer.tid] || {}).name + ' แล้ว · เหลือข้อเสนอที่รออยู่ ' + left + ' ใบ', function () {
+        /* 🔴 ห้ามคืนค่าดื้อ ๆ — ระหว่างนั้นงานอาจเปลี่ยนสถานะไปแล้ว
+           คืนแล้วจะได้ใบสถานะ pending ค้างอยู่บนงานที่ตายแล้ว = ผีในระบบ (กฎแม่ข้อ 2 · ผลตรวจ logic 2026-08-21) */
+        if (pd.job.status !== 'pending' || pd.offer.status !== 'declined_by_learner') {
+          say('ย้อนกลับไม่ได้แล้ว เพราะงานใบนี้เปลี่ยนสถานะไปแล้ว');
+          return;
+        }
+        pd.offer.status = 'pending';
+        paint();
+      });
+      $('live-note').focus();
+      return;
+    }
+
+    /* 🔴 ไม่มีปุ่ม "ขอเปลี่ยนใจ" — กดรับแล้วย้อนไม่ได้ (Owner ยืนยัน 2026-08-21)
+       ใบครูคนอื่นดับไปตั้งแต่ตอนกดรับ ถ้าให้ย้อนได้ = ต้องฟื้นใบที่ดับแล้ว ผิดกฎแม่ข้อ 2 */
+  });
+
+  /* ==========================================================================
+     15 · ปุ่มจำลอง (ต้นแบบเท่านั้น)
+     ========================================================================== */
+  $('sim-offer').addEventListener('click', function () {
+    var j = JOBS.filter(function (x) { return x.kind === 'post' && x.status === 'pending'; })[0];
+    if (!j) { say('ไม่มีโพสต์ที่ยังเปิดรับข้อเสนออยู่'); return; }
+    var used = (j.offers || []).map(function (o) { return o.tid; });
+    var free = Object.keys(TEACHERS).filter(function (id) { return used.indexOf(id) < 0; })[0];
+    if (!free) { say('ครูสมมติในต้นแบบยื่นครบทุกคนแล้ว'); return; }
+    j.offers.push({ tid: free, price: j.budget, slots: j.slots.slice(0, 1),
+      msg: 'สนใจงานนี้ครับ/ค่ะ ว่างตามช่วงที่ระบุไว้ เริ่มได้ทันทีสัปดาห์นี้', sentH: 0, status: 'pending' });
+    paint();
+    say((TEACHERS[free] || {}).name + ' ยื่นข้อเสนอเข้ามาในงาน #' + j.id);
+  });
+  /* 🔴 "หมดเวลา" = ไม่มีครูตอบรับทัน — ใช้ได้เฉพาะงานที่ยังไม่มีใครยื่น/ไม่มีใครรับ
+     งานที่มีข้อเสนอค้างอยู่ ครูตอบมาแล้ว จะติดป้าย "ไม่มีครูตอบรับทัน" ไม่ได้ = โกหก (SYSTEM ข้อ 7 ข้อ 2) */
+  /* ⭐ ก้อน C2 — จำลองว่าครูกด "เสนอเวลาอื่น" ที่หน้ากระดานงาน (ของจริงมาจากฝั่งครู) */
+  $('sim-counter').addEventListener('click', function () {
+    var j = JOBS.filter(function (x) {
+      return x.kind === 'direct' && (x.tickets || []).some(function (t) { return t.status === 'pending'; });
+    })[0];
+    if (!j) { say('ไม่มีคำขอจองตรงที่ยังรอครูตอบอยู่'); return; }
+    var t = j.tickets.filter(function (x) { return x.status === 'pending'; })[0];
+    var key = demoDayAhead(3);
+    if (!key) { say('ตารางจำลองไม่มีวันที่ครูว่างพอสำหรับคาบนี้'); return; }
+    t.status = 'counter_offered';
+    t.counter = { dateKey: key, start: 1140, len: j.sesLen || 90,
+                  msg: 'ช่วงที่ขอมาติดสอนอีกบ้านครับ ขอเสนอเป็นช่วงค่ำแทน เนื้อหาเหมือนเดิมทุกอย่าง' };
+    t.mode = (j.places && j.places[0]) || 'online';
+    writeReply(j.id, { tid: t.tid, action: 'counter', dateKey: key, start: 1140,
+      len: t.counter.len, price: t.price, msg: t.counter.msg, mode: t.mode });
+    paint();
+    say(((TEACHERS[t.tid] || {}).name || 'ครู') + ' เสนอเวลาใหม่มาในงาน #' + j.id);
+  });
+
+  $('sim-expire').addEventListener('click', function () {
+    var hit = 0, skipped = 0;
+    JOBS.forEach(function (j) {
+      if (j.status !== 'pending') return;
+      if (liveOffers(j).length) { skipped++; return; }
+      (j.tickets || []).forEach(function (t) { if (t.status === 'pending') t.status = 'expired'; });
+      j.status = 'expired';   /* งานจองตรงจะถูก syncDirect() คำนวณทับให้อีกทีตอน paint() */
+      hit++;
+    });
+    lastUndo = null;
+    paint();
+    say('จำลอง: หมดเวลา ' + hit + ' งานที่ไม่มีใครตอบรับ' +
+      (skipped ? ' · ข้าม ' + skipped + ' งานที่มีข้อเสนอค้างอยู่ (ครูตอบมาแล้ว จะบอกว่าหมดเวลาไม่ได้)' : '') +
+      ' — ทุกใบต้องมีปุ่มพาไปต่อ ห้ามเป็นทางตัน');
+  });
+  $('sim-reset').addEventListener('click', function () {
+    clearAccepted();
+    /* ⭐ ก้อน C2 — ต้องล้างคำตอบของครูด้วย ไม่งั้นกด "เริ่มใหม่" แล้วสถานะเดิมถูกทาบกลับมาทันที
+       ⭐ ก้อน D — สถานะคาบกับนาฬิกาจำลองก็ต้องล้างด้วยเหตุผลเดียวกัน (บทเรียนซ้ำรอบที่ 2) */
+    try {
+      sessionStorage.removeItem(REPLY_KEY);
+      lessonStore.removeItem(LESSON_KEY);
+      lessonStore.removeItem(CLOCK_KEY);
+    } catch (e) { }
+    lessonCache = undefined;
+    JOBS = cloneSeed();
+    pickedKid = 'all';
+    lastUndo = null;      /* 🔴 ไม่ล้าง = ปุ่ม "เลิกทำ" ยังชี้ object เก่าที่หลุดจาก JOBS แล้ว = กดแล้วเงียบ = ปุ่มหลอก */
+    paint();
+    say('กลับไปสถานะตั้งต้นแล้ว');
+  });
+
+  /* ==========================================================================
+     16 · สารบัญซ้าย: ไฮไลต์หัวข้อที่กำลังอ่าน (ตัวเดียวกับหน้าอื่น)
+     ========================================================================== */
+  var navLinks = document.querySelectorAll('.sidenav a');
+  var secs = [].map.call(navLinks, function (a) { return document.querySelector(a.getAttribute('href')); });
+  if (window.IntersectionObserver) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          var id = '#' + en.target.id;
+          [].forEach.call(navLinks, function (a) { a.classList.toggle('active', a.getAttribute('href') === id); });
+        }
+      });
+    }, { rootMargin: '-40% 0px -50% 0px' });
+    secs.forEach(function (s) { if (s) spy.observe(s); });
+  }
+
+  /* ==========================================================================
+     16ก · ⭐ ก้อน D — คาบเรียนของงานนี้ (ชั้นย่อยของใบคำขอ)
+     🔴 1 ใบคำขอ = ได้หลายคาบ (สัปดาห์ละ 2 ครั้ง ฯลฯ) → "คาบ" เป็นหน่วยที่เล็กกว่าใบคำขอ
+        สถานะของคาบ (in_progress / taught / completed / disputed) ไม่ทับสถานะของใบคำขอ
+        ใบคำขอยังเป็น confirmed ตลอดที่ยังมีคาบเหลืออยู่ (SYSTEM ข้อ 8 กติกาข้อ 7)
+     ทาง A ยังไม่มี DB → ครูฝากสถานะคาบไว้ที่ sessionStorage (teacher-jobs.html) แล้วหน้านี้อ่านต่อ
+     🔴 งาน B: สถานะมาจากเซิร์ฟเวอร์ แล้วลบก้อนนี้ทิ้งทั้งหมด
+     ========================================================================== */
+  /* 🔴 สถานะคาบต้องเห็นตรงกัน "ข้ามแท็บ" — Owner เจอจริง 2026-08-25
+     เดิมใช้ sessionStorage ซึ่งแยกต่อแท็บ -> เปิด teacher-jobs กับ my-jobs คนละแท็บ
+     ฝั่งผู้เรียนไม่มีวันเห็นคาบที่ครูเพิ่งกดจบ · Owner ทำครบทุกขั้นแล้วยังไม่ขึ้น เสียเวลาไปมาก
+     ห้ามแก้กลับเป็น sessionStorage · ของอื่น (bgt_accepted_offer ฯลฯ) ยังเป็น sessionStorage ตามเดิม
+     ⚠️ localStorage อยู่ข้ามการปิดเบราว์เซอร์ด้วย -> ปุ่ม "เริ่มใหม่" ต้องล้างให้ครบเสมอ */
+  var lessonStore = {
+    getItem: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    setItem: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
+    removeItem: function (k) { try { localStorage.removeItem(k); } catch (e) { } }
+  };
+  var LESSON_KEY = 'bgt_lessons';
+  var LESSON_TTL = 2 * 60 * 60 * 1000;   /* อายุ 2 ชม. เท่าคีย์อื่นทั้งเว็บ */
+  var CONFIRM_H  = 48;                   /* ✅ Owner เคาะ 2026-08-24 (LOG 150) — ต้องตรงกับ CONFIG.confirmWindowH ใน teacher-jobs.html */
+  var LESSON_STATUS = ['confirmed', 'in_progress', 'taught', 'completed', 'disputed'];
+  var LESSON_ID_RE  = /^L-[A-Za-z0-9_-]{1,24}$/;   /* รหัสคาบต้องหน้าตาแบบนี้เท่านั้น (ผลตรวจ security 2026-08-24 F5) */
+  var ISSUE_REASONS = ['teacher_no_show', 'learner_no_show', 'not_as_agreed', 'money', 'other'];
+
+  /* 🔴 นาฬิกาเดียวกับ teacher-jobs.html (ค้น skewMs) — ห้ามใช้ Date.now() ดิบกับเวลาของคาบ
+     ผลตรวจ logic 2026-08-24 ข้อ 2: ครูเขียน taughtAt ด้วยนาฬิกาจำลอง แต่หน้านี้อ่านด้วยนาฬิกาจริง
+     → การ์ดขึ้น "เหลือ 48 ชม. 59 นาที" ใต้ป้ายที่เขียนว่า "ยืนยันภายใน 48 ชม." = พูด 2 เรื่องขัดกัน */
+  var CLOCK_KEY = 'bgt_sim_clock';
+  function skewMs() {
+    var v = 0;
+    try { v = parseInt(lessonStore.getItem(CLOCK_KEY) || '0', 10); } catch (e) { v = 0; }
+    return (isFinite(v) && v > 0 && v < 30 * 24 * 3600 * 1000) ? v : 0;
+  }
+  function lessonNow() { return Date.now() + skewMs(); }
+
+  function readLessonBox() {
+    var raw = null;
+    try { raw = lessonStore.getItem(LESSON_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !o.lessons || typeof o.lessons !== 'object') return null;
+    /* 🔴 TTL = อายุข้อมูลในเซสชันจริง → ต้องเทียบด้วยนาฬิกาจริงเสมอ ห้ามใช้ lessonNow()
+       (เจอตอนยิงทดสอบ 2026-08-24: ครูกดเดินเวลา 24 ชม. แล้วกล่องทั้งกล่องหมดอายุทันที
+        คาบที่รอยืนยันหายจากหน้าผู้เรียนทั้งที่เพิ่งเกิดขึ้นจริง ๆ ไม่กี่นาทีก่อน) */
+    if (!o.ts || (Date.now() - o.ts) > LESSON_TTL) return null;
+    return o;
+  }
+  /* ตรวจซ้ำทุกค่าที่อ่านกลับจาก storage — ค่าใน storage แก้ได้ไม่ต่างจาก URL
+     (กติกาเดียวกับ validReply ด้านบน · ผลตรวจ security 2026-08-23 + 2026-08-24)
+     🔴 ตัวตรวจนี้กับ validEntry() ใน teacher-jobs.html ต้องตรวจ "ครบทุกช่องเท่ากัน"
+        ไม่ใช่ต่างฝ่ายต่างตรวจเฉพาะช่องที่ตัวเองอ่าน (F6) — คนถัดไปเพิ่มช่องแล้วรั่วทันที */
+  function validLesson(e) {
+    if (!e || typeof e !== 'object') return null;
+    if (LESSON_STATUS.indexOf(e.status) < 0) return null;
+    var lo = lessonNow() - 30 * 24 * 3600000, hi = lessonNow() + 5 * 60000;
+    var stamps = ['taughtAt', 'startedAt', 'closedAt'];
+    for (var i = 0; i < stamps.length; i++) {
+      var v = e[stamps[i]];
+      if (v == null) continue;
+      /* เวลาต้องอยู่ในกรอบที่เป็นไปได้ — ตั้งเป็นอนาคตไกลแล้วคาบจะค้างเป็นผีถาวร (F5) */
+      if (typeof v !== 'number' || !isFinite(v) || v < lo || v > hi) return null;
+    }
+    /* สถานะกับเวลาต้องมาคู่กัน ไม่งั้นการ์ดค้างในสถานะที่ไม่มีวันจบ (ผลตรวจ logic ข้อเล็ก) */
+    if (e.status === 'taught' && !e.taughtAt) return null;
+    if (e.status === 'in_progress' && !e.startedAt) return null;
+    if (e.closedBy != null && ['learner', 'auto', 'dispute'].indexOf(e.closedBy) < 0) return null;
+    if (e.reason != null && ISSUE_REASONS.indexOf(e.reason) < 0) return null;
+    if (e.jobId != null && typeof e.jobId !== 'string') return null;
+    if (e.subject != null && (typeof e.subject !== 'string' || e.subject.length > 60)) return null;
+    if (e.when != null && (typeof e.when !== 'string' || e.when.length > 60)) return null;
+    return e;
+  }
+  function writeLesson(id, patch) {
+    if (!LESSON_ID_RE.test(id)) return false;
+    var box = readLessonBox() || { v: 1, ts: Date.now(), lessons: {} };
+    var e = box.lessons[id] || {};
+    Object.keys(patch).forEach(function (k) { e[k] = patch[k]; });
+    e.ts = Date.now();      /* ประทับเวลา "จริง" ของก้อนข้อมูล (คู่กับ TTL) — เวลาของคาบใช้ lessonNow() */
+    box.lessons[id] = e;
+    box.ts = Date.now();
+    try { lessonStore.setItem(LESSON_KEY, JSON.stringify(box)); } catch (err) { }
+    lessonCache = undefined;   /* เขียนแล้วแคชของรอบวาดเดิมใช้ไม่ได้อีก */
+    return true;
+  }
+
+  /* แคชอายุ 1 รอบวาด — pendingLesson ถูกเรียก ~7 ครั้งต่องานต่อ 1 paint()
+     ปัญหาที่แท้จริงไม่ใช่ความเร็ว แต่คือ "แต่ละครั้งอ่าน Date.now() ใหม่" → ตรงเส้น 48 ชม. พอดี
+     งานจะเข้าหมวดรอคุณตัดสินใจ แต่การ์ดไม่มีปุ่มให้กด (ผลตรวจ logic ข้อเล็ก) */
+  var lessonCache;
+  function lessonBoxCached() {
+    if (lessonCache === undefined) lessonCache = readLessonBox();
+    return lessonCache;
+  }
+
+  /* คาบทั้งหมดของงานใบนี้ ไม่ว่าสถานะไหน (ใหม่สุดก่อน) */
+  function lessonsOf(j) {
+    /* 🔴 คาบมีได้เฉพาะกับใบคำขอที่จ่ายเงินแล้วเท่านั้น — ห้ามให้ข้อมูลใน storage ปลุกใบที่ยังไม่จ่าย
+       หรือใบที่ตายแล้วให้พูดเรื่องคาบ (กฎแม่ข้อ 2 · ผลตรวจ security F2 · ยิงทดสอบจริงแล้ว 2026-08-24) */
+    if (j.status !== 'confirmed' || !winnerOf(j)) return [];
+    var box = lessonBoxCached();
+    if (!box) return [];
+    var out = [];
+    Object.keys(box.lessons).forEach(function (id) {
+      if (!LESSON_ID_RE.test(id)) return;
+      var e = validLesson(box.lessons[id]);
+      if (!e || e.jobId !== j.id) return;
+      out.push({ id: id, status: e.status, taughtAt: e.taughtAt || 0, closedBy: e.closedBy || '',
+                 subject: e.subject || '', when: e.when || '' });
+    });
+    out.sort(function (a, b) { return (b.taughtAt || 0) - (a.taughtAt || 0); });
+    return out;
+  }
+  /* คาบล่าสุดของงานนี้ — ใช้ตัดสินว่า "ป้ายบนการ์ด" ควรพูดเรื่องอะไร
+     🔴 ผู้เรียนต้องเห็นสถานะเดียวกับครู (SYSTEM ข้อ 7.3) — เดิมกดแจ้งปัญหาแล้วการ์ดกลับไป
+        เป็น "ยืนยันแล้ว" เหมือนไม่มีอะไรเกิดขึ้น (ผลตรวจ logic 2026-08-24 ข้อ 3) */
+  function lessonOf(j) {
+    var all = lessonsOf(j);
+    return all.length ? all[0] : null;
+  }
+  /* คาบที่ครูกด "จบคาบ" แล้วและยังไม่มีใครยืนยัน (เอาใบที่จะหมดเวลาก่อน)
+     🔴 ต้องผูกกับใบคำขอที่ยังมีชีวิตจริงเท่านั้น — ห้ามปลุกใบที่ตายแล้ว (กฎแม่ข้อ 2)
+        ผลตรวจ security F2 / logic ข้อ 7: เดิมจับคู่ด้วย jobId อย่างเดียว งานที่ยังไม่จ่ายเงิน
+        ก็ขึ้นปุ่มยืนยันได้ถ้ามีคนยัดข้อมูลลง storage */
+  function pendingLesson(j) {
+    var best = null, n = 0;   /* lessonsOf() กรองใบที่ยังไม่จ่าย/ตายแล้วออกให้แล้ว */
+    lessonsOf(j).forEach(function (e) {
+      if (e.status !== 'taught' || !e.taughtAt) return;
+      /* ครบ 48 ชม. แล้ว = ระบบยืนยันไปเองแล้ว ไม่ต้องถามผู้เรียนอีก (LOG 150) */
+      if ((lessonNow() - e.taughtAt) >= CONFIRM_H * 3600000) return;
+      n++;
+      if (!best || e.taughtAt < best.taughtAt) best = e;
+    });
+    if (!best) return null;
+    return { id: best.id, taughtAt: best.taughtAt, subject: best.subject, when: best.when, total: n };
+  }
+  function lessonLeftText(taughtAt) {
+    var ms = (taughtAt + CONFIRM_H * 3600000) - lessonNow();
+    if (ms <= 0) return 'หมดเวลาแล้ว';
+    var h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return h >= 1 ? ('เหลือ ' + h + ' ชม. ' + m + ' นาที') : ('เหลือ ' + m + ' นาที');
+  }
+
+  /* 🔴 ตรวจซ้ำตอนกดจริง ไม่เชื่อว่าปุ่มที่โผล่มาแปลว่ากดได้
+     (วินัยเดียวกับ teacher-jobs.html ค้น "ตรวจซ้ำตอนกดจริง" — รอบแรกผมทำแค่ฝั่งครู
+      ฝั่งผู้เรียนเขียนสถานะทันทีโดยไม่ตรวจอะไรเลย = ผลตรวจ security F1 / logic ข้อ 1) */
+  function claimLesson(id) {
+    if (!LESSON_ID_RE.test(id)) return null;
+    /* 🔴 ต้องอ่านสดตอนกด ห้ามใช้ค่าจากรอบวาดล่าสุด — หน้าอาจเปิดค้างมาหลายนาที
+       หรือมีคนแก้ storage หลังวาดไปแล้ว (ยิงทดสอบจริง 2026-08-24: ทำคาบเป็น disputed
+       แล้วยัดปุ่มปลอม กลับ flip เป็น completed ได้เพราะแคชยังจำสถานะเก่า) */
+    lessonCache = undefined;
+    var hit = null;
+    JOBS.forEach(function (j) {
+      if (hit) return;
+      var p = pendingLesson(j);
+      if (p && p.id === id) hit = { job: j, lesson: p };
+    });
+    return hit;
+  }
+
+  var pendingIssue = null, issueTrigger = null;
+  function openIssue(id, trigger) {
+    var c = claimLesson(id);
+    if (!c) { paint(); say('คาบนี้กดไม่ได้แล้ว — หมดเวลายืนยัน 48 ชั่วโมงไปแล้ว หรือมีการตอบไปก่อนหน้านี้', null); return; }
+    pendingIssue = c; issueTrigger = trigger || null;
+    var sum = $('im-sum');
+    sum.textContent = '';
+    sum.appendChild(el('b', null, (c.lesson.subject || 'คาบเรียน') + ' · ' + kidNick(c.job.kidId)));
+    sum.appendChild(el('span', null, c.lesson.when || ''));
+    $('issue-modal').hidden = false;
+    $('im-go').focus();
+  }
+  function closeIssue() {
+    $('issue-modal').hidden = true;
+    pendingIssue = null;
+    if (issueTrigger && document.body.contains(issueTrigger)) issueTrigger.focus();
+    issueTrigger = null;
+  }
+  $('issue-modal').addEventListener('click', function (ev) {
+    if (ev.target.getAttribute && ev.target.getAttribute('data-close-issue')) closeIssue();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && !$('issue-modal').hidden) closeIssue();
+  });
+  $('im-go').addEventListener('click', function () {
+    if (!pendingIssue) return;
+    var id = pendingIssue.lesson.id;
+    /* ตรวจอีกรอบตอนกดจริง — แผงอาจเปิดค้างจนเลย 48 ชม. ไปแล้ว */
+    if (!claimLesson(id)) { closeIssue(); paint(); say('คาบนี้หมดเวลายืนยันไปแล้ว ระบบยืนยันให้เองเรียบร้อย', null); return; }
+    var picked = document.querySelector('input[name="issue-reason"]:checked');
+    var reason = picked && ISSUE_REASONS.indexOf(picked.value) > -1 ? picked.value : 'other';
+    writeLesson(id, { status: 'disputed', closedAt: lessonNow(), closedBy: 'dispute', reason: reason });
+    issueTrigger = null;
+    closeIssue();
+    paint();
+    say('ส่งเรื่องให้ตรวจสอบแล้ว — เงินของครูยังไม่ถูกปล่อย ทีมงานจะติดต่อกลับทาง LINE OA', null);
+    $('live-note').focus();
+  });
+
+  /* ปุ่มยืนยัน/แจ้งปัญหาบนการ์ด — การ์ดถูกวาดใหม่ทุกครั้ง จึงดักที่ document ชั้นเดียว */
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+
+    var okId = t.getAttribute('data-lesson-ok');
+    if (okId) {
+      var c = claimLesson(okId);
+      if (!c) { paint(); say('คาบนี้กดไม่ได้แล้ว — หมดเวลายืนยัน 48 ชั่วโมงไปแล้ว หรือมีการตอบไปก่อนหน้านี้', null); return; }
+      writeLesson(okId, { status: 'completed', closedAt: lessonNow(), closedBy: 'learner' });
+      paint();
+      say('ยืนยันแล้วว่าเรียนคาบนี้จริง — ยอดของครูปลดล็อกเข้ารอบโอนแล้ว ขอบคุณค่ะ', null);
+      $('live-note').focus();
+      return;
+    }
+    var badId = t.getAttribute('data-lesson-bad');
+    if (badId) openIssue(badId, t);
+  });
+
+  /* ==========================================================================
+     17 · เริ่มทำงาน
+     ========================================================================== */
+  applyAccepted();
+  applyDirectReply();   /* ⭐ ก้อน C2 — คำตอบของครูจากหน้ากระดานงาน (รับ / ไม่รับ / เสนอเวลาอื่น) */
+  paint();
+  if (!usingStored) {
+    /* พูดความจริงว่ากำลังดูข้อมูลสมมติ ไม่ใช่บัญชีจริง (SYSTEM ข้อ 7 ข้อ 2) */
+    say('ต้นแบบ: ยังไม่ได้กรอกโปรไฟล์ในเซสชันนี้ กำลังแสดงครอบครัวตัวอย่าง 3 คน');
+  }
+
+  /* ⭐ ก้อน D — นาฬิกา 48 ชม. ต้องเดินจริงบนหน้าที่เปิดค้างไว้
+     🔴 วาดใหม่ = ปุ่มถูกสร้างใหม่ทั้งหมด ต้องคืนโฟกัสให้คนที่ใช้คีย์บอร์ด ไม่งั้นเด้งกลับหัวเว็บ
+        (ผลตรวจ perf 2026-08-24 · ปัญหาเดียวกับ setInterval ของ teacher-jobs.html) */
+  setInterval(function () {
+    if (!$('issue-modal').hidden || !$('accept-modal').hidden) return;   /* แผงเปิดอยู่ = วาดหลังแผง = งานเปล่า */
+    var a = document.activeElement;
+    var keep = a && a.getAttribute ? (a.getAttribute('data-lesson-ok') || a.getAttribute('data-lesson-bad')) : null;
+    var which = a && a.getAttribute && a.getAttribute('data-lesson-ok') ? 'data-lesson-ok' : 'data-lesson-bad';
+    var hasPending = JOBS.some(function (j) { return !!pendingLesson(j); });
+    if (!hasPending && !keep) return;   /* ไม่มีนาฬิกาไหนเดินอยู่ = ไม่ต้องวาด */
+    paint();
+    if (keep) {
+      var back = document.querySelector('[' + which + '="' + keep + '"]');
+      if (back) back.focus();
+    }
+  }, 60000);
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

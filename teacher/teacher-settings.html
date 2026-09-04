@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง · ค่าที่เห็นเป็นข้อมูลสมมติของ "ครูพลอย"
+  กดเล่นได้จริงในหน้า (เปิด/ปิดวิชา · เปิด/ปิดวัน · แก้เวลา · แก้ราคา) แต่ยังไม่ได้ต่อฐานข้อมูล
+
+  🎯 ที่มาของหน้านี้ — Owner สั่ง 2026-08-31:
+     จอจำลองใบแรกใน #for-teachers ของ index-v3 ("ตั้งของตัวเอง — วิชา ราคา และตารางว่าง")
+     คือ "หน้าที่ครูใช้หลังสมัครเสร็จ" ไม่ใช่หน้าสมัคร และไม่ใช่ teacher-profile (นั่นคือหน้าที่ผู้เรียนเห็น)
+     -> หน้านี้ทำให้ของที่โชว์ในหน้า landing มีของจริงรองรับ
+
+  โครงหน้า = ชุดเดียวกับหน้าอื่นทั้งเว็บ (tokens.css + theme-v3.css + v4-stepflow)
+  แท็บ 3 อันมาจาก .sidenav ตัวล่าง — v4-stepflow.js อ่านแล้วแปลงเป็นแท็บแถวบนให้เอง
+
+  กฎที่หน้านี้ต้องไม่ละเมิด:
+    - ห้ามโชว์ฟีเจอร์ที่ระบบยังทำไม่ได้ (กฎเหล็กข้อ 1)
+    - ราคา = ราคาที่ผู้ปกครองจ่ายจริง · ห้ามโชว์เรทดิบคู่กัน
+    - รหัสสถานที่ล็อกทั้งเว็บ: online / home / public (ห้ามเปลี่ยน value)
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โปรไฟล์ของฉัน — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 -->
+<link rel="stylesheet" href="../shared/v4-stepflow.css">
+<!-- 🔴 2026-09-01 — แถบบนชุดเดียวกับหน้าครูอื่น (.topbar) อยู่ในไฟล์นี้ -->
+<link rel="stylesheet" href="../shared/v4-rows.css">
+<!-- 🔴 2026-09-04 — ข้อมูลครูอยู่ไฟล์กลาง หน้าอื่นอ่านได้ + บันทึกแล้วอยู่จริง -->
+<script src="../shared/teacher-data.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--color-paper);color:var(--color-ink);font-family:var(--font-body);line-height:1.7}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:var(--radius-sm)}
+
+/* โครงหน้า — ชุดเดียวกับหน้าอื่น (v4 จะซ่อน .sidebar แล้วดัน .mobile-header ขึ้นมาแทน) */
+/* 🔴 2026-09-01 — เดิมเป็น flex แนวนอนเพื่อวางแถบเมนูข้าง
+   พอเอา sidebar ออกแล้วเอา .topbar มาไว้ข้างใน แถบบนเลยกลายเป็น "คอลัมน์ซ้าย" กินที่ 661px
+   -> เนื้อหาเบี้ยวไปทางขวาทั้งหน้า (Owner เห็นจากภาพ 2026-09-01)
+   แก้เป็น block ให้เหมือนหน้าครูอื่นที่ใช้ .topbar */
+.page-shell{display:block;min-height:100vh}
+.content-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.sidebar{display:none}   /* 🔴 ถอดเมนูข้างแล้ว (Owner สั่ง) — ห้ามเอากลับมาโผล่ตอนจอกว้าง */
+.logo{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;
+  font-size:1.05rem;text-decoration:none}
+.logo-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+  background:var(--color-accent);color:var(--color-accent-ink);font-weight:700}
+.back-link{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-3);
+  border-radius:var(--radius-sm);color:var(--color-ink-2);text-decoration:none;font-size:var(--text-sm)}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
+.sidenav a{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);color:var(--color-ink-2);text-decoration:none}
+
+.wrap{width:100%;max-width:780px;margin-inline:auto;padding:var(--space-10) var(--space-5) var(--space-16)}
+.eyebrow{display:inline-block;background:var(--color-accent-soft);color:var(--color-accent-deep);
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-sm);
+  padding:6px 14px;border-radius:var(--radius-pill);margin-bottom:var(--space-4)}
+h1{font-family:var(--font-display);font-size:var(--text-display-s);line-height:1.2;margin:0 0 var(--space-3)}
+.lede{color:var(--color-ink-2);margin:0 0 var(--space-8);max-width:56ch}
+
+/* การ์ดใบใหญ่ที่ครอบทุกแท็บ — ท่าเดียวกับจอจำลอง (v4-stepflow.css คุมหน้าตา .v4-card) */
+.sheet{max-width:860px;margin-inline:auto;background:var(--color-surface);
+  border-radius:var(--radius-xl,26px);box-shadow:var(--shadow-lift);padding:clamp(20px,3vw,38px)}
+.section{scroll-margin-top:var(--space-16)}
+.sec-head{margin-bottom:var(--space-6)}
+.sec-num{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;
+  padding:0 11px;border-radius:var(--radius-pill);background:var(--color-ink);color:var(--color-surface);
+  font-family:var(--font-display);font-weight:700;font-size:.8rem}
+.sec-head h2{font-family:var(--font-display);font-size:var(--text-xl);margin:var(--space-3) 0 var(--space-2)}
+.sec-head p{color:var(--color-ink-2);margin:0;font-size:var(--text-sm)}
+h4{font-family:var(--font-display);font-size:var(--text-base);margin:var(--space-6) 0 var(--space-3)}
+h4:first-of-type{margin-top:0}
+
+/* ชิป — ท่าจอจำลอง: ที่เปิดอยู่ = ถมหมึกเข้ม */
+.chip-group{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 15px;
+  border:1px solid var(--color-rule);border-radius:var(--radius-pill);background:var(--color-surface);
+  font:inherit;font-size:var(--text-sm);color:var(--color-ink-2);cursor:pointer;white-space:nowrap}
+.chip::after{content:"";position:absolute;inset:-4px 0}   /* พื้นที่แตะ >=44px โดยไม่ทำให้ชิปอ้วน */
+.chip[aria-pressed="true"]{background:var(--color-ink);border-color:var(--color-ink);
+  color:var(--color-surface);font-weight:600}
+.chip:hover{background:var(--color-paper-2)}
+.chip[aria-pressed="true"]:hover{background:var(--color-ink)}
+
+/* แถวรายการ — ท่า .mrow ของจอจำลอง */
+.row{display:flex;align-items:center;gap:var(--space-3);padding-block:var(--space-3);
+  border-top:1px solid var(--color-rule);flex-wrap:wrap}
+.row:first-of-type{border-top:0}
+.av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:700;font-size:.78rem;
+  background:var(--color-paper-2);color:var(--color-ink-2)}
+.row.is-on .av{background:var(--color-amber-deep);color:var(--color-surface)}
+.row .txt{flex:1 1 150px;min-width:0;line-height:1.4}
+.row .txt small{display:block;color:var(--color-ink-2);font-size:.8rem}
+.badge{flex:none;font-family:var(--font-display);font-weight:700;font-size:.78rem;
+  padding:5px 12px;border-radius:var(--radius-pill);background:var(--color-paper-2);color:var(--color-ink-2)}
+.row.is-on .badge{background:var(--color-amber);color:var(--color-amber-ink)}
+.times{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+select,input[type=number],input[type=text]{
+  font:inherit;min-height:44px;padding:0 var(--space-3);border-radius:var(--radius-md);
+  border:1px solid var(--color-rule-2);background:var(--color-surface);color:var(--color-ink)}
+/* 🔴 2026-09-01 — พื้นที่กดคลุม "วงกลม + ชื่อวัน" (Owner สั่ง: กดที่ตัววันได้เลย)
+   flex:1 1 200px = กินพื้นที่เดิมของ .av + .txt รวมกัน ช่องเลือกเวลายังอยู่นอกป้ายกด */
+.toggle{position:relative;display:flex;align-items:center;gap:var(--space-3);
+  flex:1 1 200px;min-width:0;min-height:44px;cursor:pointer;border-radius:var(--radius-md)}
+.toggle input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}
+/* บอกให้รู้ว่ากดได้ — ของเดิมไม่มีอะไรบอกเลยว่าตรงนี้กดได้ */
+.toggle:hover{background:var(--color-paper-2)}
+.toggle input:focus-visible ~ .av{outline:2px solid var(--color-accent-deep);outline-offset:2px}
+
+/* 🔴 ก้อน 1 — บล็อกสรุปตารางว่างในแท็บ "วิชาที่สอน" (อ่านอย่างเดียว)
+   ใช้ .row/.av/.badge ชุดเดิมทั้งหมด ไม่ทำสไตล์ชุดที่สอง
+   ต่างจากแท็บตารางว่างตรงที่แถวเตี้ยกว่าเพราะไม่มีสวิตช์กับช่องเลือกเวลา */
+.peek .row{padding-block:var(--space-2)}
+.peek-foot{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.peek-foot span{flex:1 1 auto}
+/* 🔴 ปุ่มอยู่ใน <p class="helper"> ที่ฟอนต์เล็กกว่า -> ความสูงหล่นเหลือ 40px
+   design.md ข้อ 8 บังคับพื้นที่แตะ >= 44px จึงต้องล็อกความสูงคืน (วัดจริงแล้ว 40 -> 44) */
+.peek-foot .btn{min-height:44px}
+
+/* กล่องตัวเลขสรุป — ท่า .mtile */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3);
+  margin-bottom:var(--space-6)}
+.tile{border:1px solid var(--color-rule);border-radius:var(--radius-md);padding:var(--space-4);text-align:center}
+.tile b{display:block;font-family:var(--font-display);font-weight:700;font-size:1.4rem;letter-spacing:-.02em}
+.tile span{display:block;font-size:.78rem;color:var(--color-ink-2);margin-top:2px}
+
+.price-row{display:grid;grid-template-columns:1fr 1fr 140px 44px;gap:var(--space-3);align-items:end;
+  margin-bottom:var(--space-3)}
+@media (max-width:640px){.price-row{grid-template-columns:1fr 1fr;grid-template-areas:"a b" "c d"}
+  .price-row>:nth-child(1){grid-area:a}.price-row>:nth-child(2){grid-area:b}
+  .price-row>:nth-child(3){grid-area:c}.price-row>:nth-child(4){grid-area:d;justify-self:start}}
+.btn{font:inherit;font-family:var(--font-display);font-weight:700;font-size:var(--text-sm);
+  min-height:46px;padding:0 22px;border-radius:var(--radius-pill);cursor:pointer;
+  border:1px solid var(--color-rule-2);background:var(--color-surface);color:var(--color-ink)}
+.btn-primary{background:var(--color-amber);border-color:var(--color-amber-edge);color:var(--color-amber-ink)}
+.btn-sm{min-height:40px;padding:0 14px;font-size:.82rem}
+.btn-del{min-height:44px;width:44px;padding:0;border-radius:var(--radius-md);color:var(--color-ink-2)}
+.helper{font-size:var(--text-sm);color:var(--color-ink-2);margin-top:var(--space-2)}
+
+.savebar{position:sticky;bottom:0;display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;
+  margin-top:var(--space-8);padding:var(--space-4) 0;background:var(--color-surface);
+  border-top:1px solid var(--color-rule)}
+.saved{color:var(--color-ok);font-weight:600;font-size:var(--text-sm)}
+.note{background:var(--color-paper-2);border-radius:var(--radius-md);padding:var(--space-4);
+  font-size:var(--text-sm);color:var(--color-ink-2);margin-top:var(--space-6)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+/* ── แท็บโปรไฟล์ (2026-09-01) ── */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.avatar-row{display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap}
+.avatar-pic{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;
+  background:var(--color-accent-soft);color:var(--color-accent-deep);
+  font-family:var(--font-display);font-weight:700;font-size:1.7rem}
+/* ป้ายที่ทำหน้าที่เป็นปุ่มเลือกไฟล์ — input จริงถูกซ่อนด้วย .sr-only */
+.pick-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;
+  padding:0 var(--space-4);border:1px solid var(--color-rule-2);border-radius:var(--radius-pill);
+  background:var(--color-surface);font-family:var(--font-display);font-weight:600;
+  font-size:var(--text-sm);cursor:pointer}
+.pick-btn:hover{background:var(--color-paper-2)}
+.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--space-4)}
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld > span{font-size:var(--text-sm);color:var(--color-ink-2)}
+textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radius-md);
+  border:1px solid var(--color-rule-2);background:var(--color-surface);color:var(--color-ink);
+  line-height:1.6;resize:vertical}
+.works{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--space-3)}
+.work{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 6px 0 14px;
+  border:1px solid var(--color-rule);border-radius:var(--radius-pill);
+  background:var(--color-surface);font-size:var(--text-sm)}
+.work-x{width:32px;height:32px;border:0;border-radius:50%;background:transparent;
+  color:var(--color-ink-2);font:inherit;cursor:pointer}
+.work-x:hover{background:var(--color-paper-2);color:var(--color-ink)}
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <aside class="sidebar">
+    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <a class="back-link" href="teacher-jobs.html">← ตารางสอนของฉัน</a>
+    <nav class="sidenav" aria-label="หัวข้อการตั้งค่า">
+      <a href="#set-profile">โปรไฟล์</a>
+      <a href="#set-subject">วิชาที่สอน</a>
+      <a href="#set-time">ตารางว่าง</a>
+      <a href="#set-price">ราคา</a>
+    </nav>
+  </aside>
+
+  <!-- 🔴 แถบบนฝั่งครู — ชุดเดียวกันทุกหน้า (แก้ 2026-09-01)
+       Owner จับได้ว่าเดิมแต่ละหน้ามีลิงก์ไม่เท่ากันและอยู่คนละตำแหน่ง
+       เพราะผมเขียนใหม่ทีละก้อนโดยไม่ย้อนไปแก้หน้าเก่า
+       🔴 เพิ่ม/ลบเมนู ต้องแก้ให้ครบทั้ง 4 หน้าเสมอ — ต้นฉบับลำดับอยู่ที่คอมเมนต์นี้:
+          กระดานงาน · ตารางสอนของฉัน · ผลงาน · โปรไฟล์ของฉัน
+       🔴 หน้าที่เปิดอยู่ต้องมี aria-current="page" ไม่งั้นคนหลงว่าตัวเองอยู่หน้าไหน -->
+  <header class="topbar">
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <nav class="topnav" aria-label="เมนูครู">
+      <a href="job-board.html">กระดานงาน</a>
+      <a href="teacher-jobs.html">ตารางสอนของฉัน</a>
+      <a href="teacher-earnings.html">ผลงาน</a>
+      <a href="teacher-settings.html" aria-current="page" class="is-here">โปรไฟล์ของฉัน</a>
+    </nav>
+  </header>
+
+  <main class="content-col">
+    <div class="wrap">
+      <span class="eyebrow">ตัวอย่างหน้าตั้งค่า · ข้อมูลสมมติ</span>
+      <h1>โปรไฟล์ของฉัน</h1>
+      <p class="lede">คุณเป็นคนกำหนดเองทั้งหมด — เปิดวิชาที่รับสอน ตั้งช่วงเวลาที่ว่างจริง และตั้งราคาของตัวเอง
+        ผู้เรียนจะเห็นเฉพาะสิ่งที่คุณเปิดไว้เท่านั้น</p>
+
+      <div class="sheet" id="settings">
+
+        <!-- 🔴 แท็บโปรไฟล์ (เพิ่ม 2026-09-01 · Owner สั่ง) —
+             เดิมครูกรอกชื่อ/รูป/แนะนำตัว ครั้งเดียวตอนสมัคร แล้วไม่มีทางกลับมาแก้เลย
+             ฟิลด์ทุกตัวยกมาจาก signup-teacher.html หมวด 01 และ 05 ไม่ได้คิดใหม่
+             🔴 Owner เคาะแล้วว่า "แก้ได้หมด ยังไม่ล็อก" (2026-09-01) — รวมชื่อจริง/เพศ/วันเกิด
+                ถ้าวันหลังจะล็อกเพื่อกันป้าย "ยืนยันตัวตนแล้ว" เสียความหมาย ให้ล็อกที่ 3 ช่องนี้ -->
+        <section class="section" id="set-profile">
+          <div class="sec-head">
+            <span class="sec-num">01</span>
+            <h2>โปรไฟล์ของฉัน</h2>
+            <p>ข้อมูลชุดนี้คือสิ่งที่ผู้เรียนและผู้ปกครองเห็นตอนตัดสินใจเลือกครู</p>
+          </div>
+
+          <h4>รูปโปรไฟล์</h4>
+          <div class="avatar-row">
+            <span class="avatar-pic" id="pf-avatar" aria-hidden="true">พ</span>
+            <div>
+              <label class="btn btn-sm pick-btn" for="pf-photo">เปลี่ยนรูป</label>
+              <input type="file" id="pf-photo" accept="image/*" class="sr-only">
+              <p class="helper" id="pf-photo-name">ยังไม่ได้เลือกรูปใหม่ · ใช้รูปเดิมอยู่</p>
+            </div>
+          </div>
+
+          <h4>ชื่อที่ผู้เรียนเห็น</h4>
+          <div class="field-grid">
+            <label class="fld"><span>ชื่อเล่น</span>
+              <input type="text" id="pf-nick" value="ครูพลอย" maxlength="40"></label>
+            <label class="fld"><span>ประสบการณ์สอน (ปี)</span>
+              <input type="number" id="pf-exp" value="6" min="0" max="60" inputmode="numeric"></label>
+          </div>
+          <p class="helper">ผู้เรียนเห็น “ชื่อเล่น” เป็นหลัก — ชื่อจริงใช้ตอนยืนยันตัวตนเท่านั้น</p>
+
+          <h4>ข้อมูลส่วนตัว</h4>
+          <div class="field-grid">
+            <label class="fld"><span>ชื่อจริง</span>
+              <input type="text" id="pf-first" value="สมหญิง" maxlength="60"></label>
+            <label class="fld"><span>นามสกุล</span>
+              <input type="text" id="pf-last" value="ใจดี" maxlength="60"></label>
+            <label class="fld"><span>วันเกิด</span>
+              <input type="date" id="pf-birth" value="1999-04-12" max="2012-12-31"></label>
+            <label class="fld"><span>เพศ</span>
+              <select id="pf-gender">
+                <option value="female" selected>หญิง</option>
+                <option value="male">ชาย</option>
+                <option value="none">ไม่ระบุ</option>
+              </select></label>
+          </div>
+          <!-- 🔴 อายุคำนวณจากวันเกิด ไม่ให้พิมพ์เอง —
+               ของเดิมในหน้าสมัครเก็บ "อายุ" เป็นตัวเลขที่พิมพ์ ทำให้ปีหน้าอายุค้างเท่าเดิมตลอด
+               (Owner ถามเอง 2026-09-01: "อายุเปลี่ยนตามปฏิทินจริงไหม") -->
+          <p class="helper">อายุ <b id="pf-age">—</b> · คำนวณจากวันเกิดให้อัตโนมัติ ไม่ต้องมาแก้เองทุกปี</p>
+
+          <h4>แนะนำตัว</h4>
+          <label class="sr-only" for="pf-intro">แนะนำตัวสั้น ๆ</label>
+          <textarea id="pf-intro" maxlength="500" rows="4"
+            placeholder="เล่าสไตล์การสอน วิชาที่ถนัด และประสบการณ์คร่าว ๆ">สอนคณิตศาสตร์และฟิสิกส์ให้เด็กที่ “ไม่ชอบเลข” มา 6 ปี เริ่มจากรื้อพื้นฐานที่หายไปก่อนเสมอ ไม่เร่งตามหลักสูตร</textarea>
+          <p class="helper"><span id="pf-intro-n">0</span> / 500 ตัวอักษร</p>
+
+          <h4>รูปผลงาน</h4>
+          <p class="helper">ใส่ได้สูงสุด 15 รูป — เช่น สมุดงานนักเรียน ภาพบรรยากาศตอนสอน (ห้ามมีหน้าเด็กชัดเจนโดยไม่ได้ขออนุญาต)</p>
+          <div class="works" id="pf-works"></div>
+          <label class="btn btn-sm pick-btn" for="pf-work-add">+ เพิ่มรูปผลงาน</label>
+          <input type="file" id="pf-work-add" accept="image/*" multiple class="sr-only">
+
+          <h4>เอกสารยืนยันตัวตน</h4>
+          <div class="row">
+            <span class="av" aria-hidden="true">✓</span>
+            <span class="txt">ยืนยันตัวตนแล้ว<small>ทีมงานตรวจเอกสารเมื่อ 12 ส.ค. 2569 · เก็บเฉพาะผลว่า “ผ่าน” ไม่ได้เก็บไฟล์ไว้</small></span>
+            <span class="badge">ผ่าน</span>
+          </div>
+          <label class="btn btn-sm pick-btn" for="pf-doc" style="margin-top:12px">ส่งเอกสารเพิ่ม</label>
+          <input type="file" id="pf-doc" accept="image/*,application/pdf" class="sr-only">
+          <p class="helper" id="pf-doc-name">ส่งใบประกาศหรือวุฒิเพิ่มได้ตลอด — ทีมงานตรวจแล้วจะอัปเดตสถานะให้</p>
+
+          <h4>เบอร์ติดต่อ</h4>
+          <div class="field-grid">
+            <label class="fld"><span>เบอร์โทร</span>
+              <input type="tel" id="pf-phone" value="081-234-5678" inputmode="tel" maxlength="20"></label>
+          </div>
+          <!-- 🔴 กฎเหล็กข้อ 1: ห้ามโชว์ฟีเจอร์ที่ระบบยังทำไม่ได้ -> เขียนให้ชัดว่ายังไม่ได้ต่อ OTP จริง -->
+          <p class="helper">เปลี่ยนเบอร์แล้วต้องยืนยันด้วยรหัส OTP อีกครั้ง (ต้นแบบนี้ยังไม่ได้ต่อระบบส่ง OTP จริง) · เบอร์นี้ไม่ขึ้นบนหน้าที่ผู้เรียนเห็น จนกว่าจะจองและจ่ายเงินเรียบร้อย</p>
+        </section>
+
+        <!-- ① วิชาที่สอน -->
+        <section class="section" id="set-subject">
+          <div class="sec-head">
+            <span class="sec-num">02</span>
+            <h2>วิชาที่เปิดรับ</h2>
+            <p>กดเพื่อเปิดหรือปิดวิชา · วิชาที่ปิดไว้จะไม่ขึ้นในผลค้นหาและไม่มีใครจองได้</p>
+          </div>
+
+          <h4>วิชาของฉัน</h4>
+          <div class="chip-group" id="subj-mine" role="group" aria-label="วิชาที่เปิดรับ"></div>
+          <p class="helper" id="subj-count"></p>
+
+          <h4>เพิ่มวิชา</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <label class="sr-only" for="subj-pick">เลือกวิชาที่จะเพิ่ม</label>
+            <select id="subj-pick" style="flex:1 1 220px"></select>
+            <button type="button" class="btn btn-sm" id="subj-add">+ เพิ่มวิชานี้</button>
+          </div>
+          <p class="helper">รายชื่อวิชาชุดเดียวกับหน้าสมัครและหน้าค้นหา — วิชาที่ไม่มีในลิสต์แจ้งทีมงานเพิ่มให้ได้</p>
+
+          <h4>ระดับชั้นที่รับสอน</h4>
+          <div class="chip-group" id="grade-group" role="group" aria-label="ระดับชั้นที่รับสอน"></div>
+
+          <h4>รูปแบบการสอน</h4>
+          <div class="chip-group" id="mode-group" role="group" aria-label="รูปแบบการสอน"></div>
+
+          <!-- 🔴 ก้อน 1 (2026-09-01) — จอ ① ในหน้า landing โชว์ "วิชาที่เปิดรับ" กับ
+               "ช่วงที่เปิดไว้สัปดาห์นี้" อยู่ในจอเดียวกัน (SPEC_จอในLanding ข้อ 1 จอ ①)
+               ของเดิมแยกไปอยู่แท็บ 2 คนละจอ -> Owner ทักว่า "ไม่เห็นมีเลย"
+               ที่นี่ = อ่านอย่างเดียว · แก้เวลาละเอียดยังอยู่แท็บ "ตารางว่าง" เหมือนเดิม
+               🔴 ห้ามทำเป็นข้อมูลชุดที่สอง — วาดจากตัวแปร avail ตัวเดียวกับ paintDays() -->
+          <h4>ช่วงที่เปิดไว้สัปดาห์นี้</h4>
+          <div id="week-peek" class="peek"></div>
+          <p class="helper peek-foot">
+            <span id="peek-sum"></span>
+            <button type="button" class="btn btn-sm" id="go-time">แก้เวลาละเอียด</button>
+          </p>
+        </section>
+
+        <!-- ② ตารางว่าง -->
+        <section class="section" id="set-time">
+          <div class="sec-head">
+            <span class="sec-num">03</span>
+            <h2>ช่วงที่เปิดไว้สัปดาห์นี้</h2>
+            <p>ตั้งครั้งเดียว ใช้ซ้ำทุกสัปดาห์ · ผู้เรียนจะเห็นช่วงนี้เป็นปฏิทินจองบนโปรไฟล์ของคุณ</p>
+          </div>
+
+          <div class="tiles" id="time-tiles"></div>
+          <div id="days"></div>
+          <p class="helper">เปิดอย่างน้อย 1 วัน ผู้เรียนถึงจะจองได้ · ปิดวันไหนไว้ วันนั้นจะไม่ขึ้นในปฏิทิน</p>
+        </section>
+
+        <!-- ③ ราคา -->
+        <section class="section" id="set-price">
+          <div class="sec-head">
+            <span class="sec-num">04</span>
+            <h2>ราคาต่อชั่วโมง</h2>
+            <p>ตั้งได้หลายรายการตามระดับชั้นและรูปแบบการสอน</p>
+          </div>
+
+          <div id="price-rows"></div>
+          <button type="button" class="btn btn-sm" id="price-add">+ เพิ่มรายการราคา</button>
+          <p class="helper">ตัวเลขนี้คือ <b>ราคาที่ผู้เรียนจ่ายจริง</b> — ค่าแพลตฟอร์มหักจากยอดนี้ ไม่ได้บวกเพิ่มกับผู้เรียน</p>
+
+          <div class="note">
+            <b>ยังไม่ได้ตั้งราคาไว้ทุกแบบ?</b> ไม่เป็นไร — แบบที่ไม่ได้ตั้งราคา ผู้เรียนจะยังกดจองไม่ได้
+            จนกว่าคุณจะใส่ราคาให้
+          </div>
+        </section>
+
+        <div class="savebar">
+          <button type="button" class="btn btn-primary" id="save">บันทึกการเปลี่ยนแปลง</button>
+          <span class="saved" id="saved" hidden>บันทึกแล้ว</span>
+          <span class="helper" style="margin:0">หน้าตัวอย่าง — ยังไม่ได้ต่อฐานข้อมูล ค่าที่แก้จะหายเมื่อรีเฟรช</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var el = function (tag, cls) { var n = document.createElement(tag); if (cls) n.className = cls; return n; };
+
+  /* ── ข้อมูลสมมติของครูพลอย (ตรงกับที่โชว์ในจอจำลองหน้า landing) ── */
+  /* 🔴 2026-09-04 — ค่าทั้งหมดมาจาก shared/teacher-data.js (localStorage)
+     ห้ามประกาศทับที่นี่อีก ไม่งั้นหน้าแดชบอร์ดกับหน้านี้จะเห็นคนละชุด */
+  var TD = window.BGT_TEACHER;
+  var STATE = TD.read();
+  var subjects = STATE.subjects;
+  var grades = STATE.grades;
+  /* 🔴 รหัสล็อกทั้งเว็บ: online / home / public — ป้ายไทยเปลี่ยนได้ value ห้ามเปลี่ยน */
+  var modes = STATE.modes;
+
+  var days = [
+    ['mon', 'จันทร์', 'จ'], ['tue', 'อังคาร', 'อ'], ['wed', 'พุธ', 'พ'], ['thu', 'พฤหัสบดี', 'พฤ'],
+    ['fri', 'ศุกร์', 'ศ'], ['sat', 'เสาร์', 'ส'], ['sun', 'อาทิตย์', 'อา']
+  ];
+  var avail = STATE.avail;
+  var T_MIN = 360, T_MAX = 1320, STEP = 30, MIN_LEN = 60;   /* 06:00–22:00 · ขั้นต่ำ 1 ชม. */
+
+  var prices = STATE.prices;
+
+  /* รายชื่อวิชา — ชุดเดียวกับหน้าสมัคร (ลิสต์กลาง) */
+  var SUBJECT_GROUPS = [
+    { label: 'วิชาการ (ประถม-มัธยม)', items: ['คณิตศาสตร์', 'ภาษาไทย', 'ภาษาอังกฤษ', 'วิทยาศาสตร์', 'ฟิสิกส์', 'เคมี', 'ชีววิทยา', 'สังคมศึกษา', 'ประวัติศาสตร์', 'ภูมิศาสตร์', 'คอมพิวเตอร์/เขียนโปรแกรม'] },
+    { label: 'ติวสอบ/สอบเข้า', items: ['ติวสอบเข้า ป.1', 'ติวสอบเข้า ม.1', 'ติวสอบเข้า ม.4', 'ติว TCAS/GAT/PAT', 'ติว A-Level', 'ติวสอบเข้ามหาวิทยาลัย', 'ติวโอลิมปิกวิชาการ'] },
+    { label: 'ภาษาต่างประเทศ', items: ['ภาษาจีน', 'ภาษาญี่ปุ่น', 'ภาษาเกาหลี', 'ภาษาฝรั่งเศส', 'ติว IELTS', 'ติว TOEFL', 'ติว TOEIC', 'ติว SAT'] },
+    { label: 'ดนตรี', items: ['เปียโน', 'กีตาร์', 'ไวโอลิน', 'กลองชุด', 'ร้องเพลง', 'ดนตรีไทย', 'ทฤษฎีดนตรี/แต่งเพลง'] },
+    { label: 'ศิลปะและงานฝีมือ', items: ['วาดรูป/ระบายสี', 'ศิลปะสำหรับเด็ก', 'การถ่ายภาพ', 'ตัดต่อวิดีโอ', 'ออกแบบกราฟิก'] },
+    { label: 'กีฬา', items: ['ว่ายน้ำ', 'ฟุตบอล', 'แบดมินตัน', 'เทนนิส', 'กอล์ฟ', 'เทควันโด', 'โยคะ'] },
+    { label: 'ทักษะชีวิต/อื่นๆ', items: ['ทำอาหาร/เบเกอรี่', 'การพูดในที่สาธารณะ', 'การเงินส่วนบุคคล', 'หุ่นยนต์/โค้ดดิ้งเด็ก', 'กฎหมาย'] }
+  ];
+
+  var hhmm = function (m) {
+    return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  };
+  var timeOptions = function (from, to, sel) {
+    var out = '';
+    for (var m = from; m <= to; m += STEP)
+      out += '<option value="' + m + '"' + (m === sel ? ' selected' : '') + '>' + hhmm(m) + '</option>';
+    return out;
+  };
+
+  /* ── ① วิชา ───────────────────────────────────────────── */
+  function paintSubjects() {
+    var box = $('subj-mine');
+    box.innerHTML = '';
+    subjects.forEach(function (s, i) {
+      var b = el('button', 'chip');
+      b.type = 'button';
+      b.textContent = s.name;
+      b.setAttribute('aria-pressed', String(s.on));
+      b.addEventListener('click', function () { s.on = !s.on; paintSubjects(); dirty(); });
+      box.appendChild(b);
+    });
+    var on = subjects.filter(function (s) { return s.on; }).length;
+    $('subj-count').textContent = 'เปิดรับอยู่ ' + on + ' วิชา จากทั้งหมด ' + subjects.length + ' วิชาในรายการของคุณ'
+      + (on === 0 ? ' — ตอนนี้ไม่มีใครค้นเจอคุณเลย' : '');
+  }
+
+  function fillPicker() {
+    var sel = $('subj-pick');
+    var mine = subjects.map(function (s) { return s.name; });
+    sel.innerHTML = '<option value="" selected disabled>— เลือกวิชา —</option>';
+    SUBJECT_GROUPS.forEach(function (g) {
+      var items = g.items.filter(function (n) { return mine.indexOf(n) < 0; });
+      if (!items.length) return;
+      var og = el('optgroup');
+      og.label = g.label;
+      items.forEach(function (n) {
+        var o = el('option'); o.value = n; o.textContent = n; og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+  }
+
+  $('subj-add').addEventListener('click', function () {
+    var v = $('subj-pick').value;
+    if (!v) return;
+    subjects.push({ name: v, on: true });
+    paintSubjects(); fillPicker(); dirty();
+  });
+
+  function paintChipGroup(boxId, list, onToggle) {
+    var box = $(boxId);
+    box.innerHTML = '';
+    list.forEach(function (item, i) {
+      var b = el('button', 'chip');
+      b.type = 'button';
+      b.textContent = item.label;
+      b.setAttribute('aria-pressed', String(item.on));
+      b.addEventListener('click', function () { onToggle(i); dirty(); });
+      box.appendChild(b);
+    });
+  }
+  function paintGrades() {
+    paintChipGroup('grade-group',
+      grades.map(function (g) { return { label: g[0], on: g[1] }; }),
+      function (i) { grades[i][1] = !grades[i][1]; paintGrades(); });
+  }
+  function paintModes() {
+    paintChipGroup('mode-group',
+      modes.map(function (m) { return { label: m[1], on: m[2] }; }),
+      function (i) { modes[i][2] = !modes[i][2]; paintModes(); });
+  }
+
+  /* ── ② ตารางว่าง ──────────────────────────────────────── */
+  function paintDays() {
+    var box = $('days');
+    /* วาดใหม่ทั้งกล่องแล้วคืนโฟกัสให้ปุ่มเดิม — บทเรียนเดียวกับหน้าสมัครครู */
+    var fkey = document.activeElement && document.activeElement.dataset
+      ? document.activeElement.dataset.fkey : null;
+    box.innerHTML = '';
+    days.forEach(function (d) {
+      var key = d[0], label = d[1], initial = d[2], st = avail[key];
+      var row = el('div', 'row' + (st.on ? ' is-on' : ''));
+
+      var sw = el('label', 'toggle');
+      var inp = el('input');
+      inp.type = 'checkbox'; inp.checked = st.on; inp.dataset.fkey = key + '-sw';
+      inp.setAttribute('aria-label', 'เปิดรับสอนวัน' + label);
+      inp.addEventListener('change', function () { st.on = inp.checked; paintDays(); paintTiles(); dirty(); });
+      var av = el('span', 'av'); av.textContent = initial; av.setAttribute('aria-hidden', 'true');
+      /* 🔴 2026-09-01 (Owner สั่ง) — พื้นที่กดต้องคลุม "ชื่อวัน" ด้วย ไม่ใช่แค่วงกลม 30px
+         เดิมต้องเล็งวงกลมอย่างเดียว = กดยากมากบนมือถือ/แท็บเล็ต
+         วิธี: เอา .txt เข้าไปอยู่ใน <label class="toggle"> ด้วย
+               -> checkbox ที่ absolute inset:0 อยู่ข้างในจะคลุมทั้งวงกลม+ชื่อวันเอง (ใสมองไม่เห็น)
+               -> ไม่ต้องเขียน JS ดักคลิก · คีย์บอร์ดกับ screen reader ยังทำงานเหมือนเดิม
+         🔴 ห้ามลากให้คลุม .times (ช่องเลือกเวลา) — ไม่งั้นกดเลือกเวลาแล้วจะกลายเป็นสลับเปิด/ปิด */
+      var txt = el('span', 'txt');
+      txt.appendChild(document.createTextNode(label));
+      var small = el('small');
+      small.textContent = st.on ? hhmm(st.a) + ' – ' + hhmm(st.b) : 'ยังไม่ได้เปิดวันนี้';
+      txt.appendChild(small);
+
+      sw.appendChild(inp); sw.appendChild(av); sw.appendChild(txt);
+      row.appendChild(sw);
+
+      if (st.on) {
+        var times = el('span', 'times');
+        var s1 = el('select'); s1.dataset.fkey = key + '-a';
+        s1.setAttribute('aria-label', 'วัน' + label + ' เริ่ม');
+        s1.innerHTML = timeOptions(T_MIN, T_MAX - MIN_LEN, st.a);
+        var dash = el('span'); dash.textContent = '–';
+        var s2 = el('select'); s2.dataset.fkey = key + '-b';
+        s2.setAttribute('aria-label', 'วัน' + label + ' เลิก');
+        s2.innerHTML = timeOptions(T_MIN + MIN_LEN, T_MAX, st.b);
+        /* ดันอีกฝั่งเสมอ = ทุกช่วงยาว >= 1 ชม. ตลอด จึงไม่มีสถานะ "กรอกผิด" ให้ต้องขึ้นแดง */
+        s1.addEventListener('change', function () {
+          st.a = +s1.value; if (st.b < st.a + MIN_LEN) st.b = st.a + MIN_LEN;
+          paintDays(); paintTiles(); dirty();
+        });
+        s2.addEventListener('change', function () {
+          st.b = +s2.value; if (st.b < st.a + MIN_LEN) st.a = st.b - MIN_LEN;
+          paintDays(); paintTiles(); dirty();
+        });
+        times.appendChild(s1); times.appendChild(dash); times.appendChild(s2);
+        row.appendChild(times);
+      }
+
+      var badge = el('span', 'badge');
+      badge.textContent = st.on ? 'เปิดรับ' : 'ปิดไว้';
+      row.appendChild(badge);
+      box.appendChild(row);
+    });
+    if (fkey) {
+      var back = box.querySelector('[data-fkey="' + fkey + '"]');
+      if (back) back.focus();
+    }
+    paintPeek();   /* 🔴 ก้อน 1 — ต่อท้ายเสมอ ไม่งั้นแท็บ 1 ค้างค่าเก่า */
+  }
+
+  /* 🔴 ก้อน 1 — สรุปตารางว่างที่โผล่ในแท็บ "วิชาที่สอน" (จอ ① ของ landing)
+     อ่านจาก avail ตัวเดียวกับ paintDays() เป๊ะ ๆ ห้ามคัดลอกข้อมูลไปเก็บซ้ำ
+     เรียกท้าย paintDays() ทุกครั้ง -> แก้เวลาที่แท็บ 2 แล้วแท็บ 1 ตามทันที */
+  function paintPeek() {
+    var box = $('week-peek');
+    if (!box) return;
+    box.innerHTML = '';
+    days.forEach(function (d) {
+      var label = d[1], initial = d[2], st = avail[d[0]];
+      var row = el('div', 'row' + (st.on ? ' is-on' : ''));
+      var av = el('span', 'av'); av.textContent = initial; av.setAttribute('aria-hidden', 'true');
+      var txt = el('span', 'txt');
+      txt.appendChild(document.createTextNode(label));
+      var small = el('small');
+      small.textContent = st.on ? hhmm(st.a) + ' – ' + hhmm(st.b) : 'ยังไม่ได้เปิดวันนี้';
+      txt.appendChild(small);
+      var badge = el('span', 'badge');
+      badge.textContent = st.on ? 'เปิดรับ' : 'ปิดไว้';
+      row.appendChild(av); row.appendChild(txt); row.appendChild(badge);
+      box.appendChild(row);
+    });
+    var open = days.filter(function (d) { return avail[d[0]].on; });
+    var hours = open.reduce(function (sum, d) {
+      var st = avail[d[0]]; return sum + (st.b - st.a) / 60;
+    }, 0);
+    $('peek-sum').textContent = open.length
+      ? 'เปิดไว้ ' + open.length + ' วัน รวม ' + (Math.round(hours * 10) / 10) + ' ชั่วโมงต่อสัปดาห์'
+      : 'ยังไม่ได้เปิดวันไหนเลย — ผู้เรียนจะยังจองไม่ได้';
+  }
+
+  function paintTiles() {
+    var open = days.filter(function (d) { return avail[d[0]].on; });
+    var hours = open.reduce(function (sum, d) {
+      var st = avail[d[0]]; return sum + (st.b - st.a) / 60;
+    }, 0);
+    $('time-tiles').innerHTML = '';
+    [[open.length, 'วันที่เปิดรับ'], [Math.round(hours * 10) / 10, 'ชั่วโมงต่อสัปดาห์'],
+     [7 - open.length, 'วันที่ปิดไว้']].forEach(function (t) {
+      var box = el('div', 'tile');
+      var b = el('b'); b.textContent = t[0];
+      var s = el('span'); s.textContent = t[1];
+      box.appendChild(b); box.appendChild(s);
+      $('time-tiles').appendChild(box);
+    });
+  }
+
+  /* ── ③ ราคา ───────────────────────────────────────────── */
+  function paintPrices() {
+    var box = $('price-rows');
+    box.innerHTML = '';
+    prices.forEach(function (p, i) {
+      var row = el('div', 'price-row');
+
+      var lv = el('select'); lv.setAttribute('aria-label', 'ระดับชั้น');
+      grades.forEach(function (g) {
+        var o = el('option'); o.value = g[0]; o.textContent = g[0];
+        if (g[0] === p.level) o.selected = true;
+        lv.appendChild(o);
+      });
+      lv.addEventListener('change', function () { p.level = lv.value; dirty(); });
+
+      var md = el('select'); md.setAttribute('aria-label', 'รูปแบบการสอน');
+      modes.forEach(function (m) {
+        var o = el('option'); o.value = m[1]; o.textContent = m[1];
+        if (m[1] === p.mode) o.selected = true;
+        md.appendChild(o);
+      });
+      md.addEventListener('change', function () { p.mode = md.value; dirty(); });
+
+      var amt = el('input'); amt.type = 'number'; amt.min = '0'; amt.value = p.amount;
+      amt.setAttribute('aria-label', 'ราคาต่อชั่วโมง (บาท)');
+      amt.addEventListener('input', function () { p.amount = amt.value; dirty(); });
+
+      var del = el('button', 'btn btn-del');
+      del.type = 'button'; del.textContent = '×';
+      del.setAttribute('aria-label', 'ลบรายการราคาที่ ' + (i + 1));
+      del.addEventListener('click', function () { prices.splice(i, 1); paintPrices(); dirty(); });
+
+      row.appendChild(lv); row.appendChild(md); row.appendChild(amt); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+  $('price-add').addEventListener('click', function () {
+    prices.push({ level: grades[3][0], mode: modes[0][1], amount: '' });
+    paintPrices(); dirty();
+  });
+
+  /* ── บันทึก (2026-09-04) — เขียนลง shared/teacher-data.js จริง ไม่หายตอนรีเฟรช ──
+     🔴 ยังไม่ใช่บัญชีบนเซิร์ฟเวอร์ (งาน B) แต่เก็บข้ามการรีเฟรชได้จริงแล้ว
+        และหน้าแดชบอร์ดอ่านค่าชุดเดียวกันนี้ */
+  var savedEl = $('saved');
+  function dirty() { savedEl.hidden = true; }
+  $('save').addEventListener('click', function () {
+    STATE.subjects = subjects;
+    STATE.grades   = grades;
+    STATE.modes    = modes;
+    STATE.avail    = avail;
+    STATE.prices   = prices;
+    STATE.profile.nick     = $('pf-nick').value.trim() || STATE.profile.nick;
+    STATE.profile.first    = $('pf-first').value.trim();
+    STATE.profile.last     = $('pf-last').value.trim();
+    STATE.profile.birth    = $('pf-birth').value;
+    STATE.profile.gender   = $('pf-gender').value;
+    STATE.profile.expYears = Number($('pf-exp').value) || 0;
+    STATE.profile.intro    = $('pf-intro').value;
+    STATE.profile.phone    = $('pf-phone').value.trim();
+    STATE.profile.works    = works;
+    var ok = TD.write(STATE);
+    savedEl.hidden = false;
+    savedEl.textContent = ok
+      ? 'บันทึกแล้ว — ค่าอยู่ครบแม้รีเฟรช และหน้า “ผลงาน” จะเห็นค่าใหม่ทันที'
+      : 'บันทึกไม่สำเร็จ (เบราว์เซอร์ปิดพื้นที่เก็บข้อมูลอยู่)';
+  });
+
+  /* 🔴 ก้อน 1 — ปุ่มข้ามไปแท็บ "ตารางว่าง"
+     ใช้ scrollIntoView เพราะ v4-stepflow.js ดัก scrollIntoView ไว้แล้ว (ค้น revealFor)
+     -> มันจะสลับแท็บให้เอง ไม่ต้องมี API ของตัวเอง และถอดชั้น v4 ออกเมื่อไหร่ปุ่มนี้ก็ยังทำงาน */
+  var goTime = $('go-time');
+  if (goTime) {
+    goTime.addEventListener('click', function () {
+      var sec = $('set-time');
+      if (!sec) return;
+      sec.scrollIntoView({ block: 'start' });
+      var h = sec.querySelector('h2');
+      if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+    });
+  }
+
+  /* ── ① โปรไฟล์ (เพิ่ม 2026-09-01) ─────────────────────────────────────
+     🔴 อายุคำนวณจากวันเกิดเสมอ ห้ามเปิดให้พิมพ์เอง
+        ของเดิมในหน้าสมัครเก็บ "อายุ" เป็นตัวเลข -> ปีหน้าอายุค้างเท่าเดิมตลอด
+     🔴 ไฟล์รูปยังไม่ได้อัปโหลดจริง (ต้นแบบ ทาง A) — โชว์ชื่อไฟล์กับพรีวิวในเครื่องเท่านั้น */
+  var works = STATE.profile.works.slice();
+  var MAX_WORKS = 15;
+
+  function calcAge(iso) {
+    if (!iso) return null;
+    var b = new Date(iso + 'T00:00:00');
+    if (isNaN(b.getTime())) return null;
+    var t = new Date();
+    var a = t.getFullYear() - b.getFullYear();
+    var m = t.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--;   /* ยังไม่ถึงวันเกิดปีนี้ */
+    return a >= 0 && a < 120 ? a : null;
+  }
+  function paintAge() {
+    var a = calcAge($('pf-birth').value);
+    $('pf-age').textContent = a == null ? '—' : a + ' ปี';
+  }
+
+  function paintWorks() {
+    var box = $('pf-works');
+    box.textContent = '';
+    if (!works.length) {
+      box.appendChild(el('p', 'helper', 'ยังไม่มีรูปผลงาน — ผู้เรียนจะเห็นแค่รูปโปรไฟล์อย่างเดียว'));
+    }
+    works.forEach(function (name, i) {
+      var card = el('span', 'work');
+      card.appendChild(el('span', 'work-name', name));
+      var x = el('button', 'work-x', '✕');
+      x.type = 'button';
+      x.setAttribute('aria-label', 'ลบรูปผลงาน ' + name);
+      x.addEventListener('click', function () { works.splice(i, 1); paintWorks(); dirty(); });
+      card.appendChild(x);
+      box.appendChild(card);
+    });
+    var left = MAX_WORKS - works.length;
+    $('pf-work-add').disabled = left <= 0;
+    var lbl = document.querySelector('label[for="pf-work-add"]');
+    if (lbl) lbl.textContent = left > 0 ? '+ เพิ่มรูปผลงาน (เหลืออีก ' + left + ')' : 'ครบ 15 รูปแล้ว';
+  }
+
+  $('pf-birth').addEventListener('change', function () { paintAge(); dirty(); });
+  $('pf-intro').addEventListener('input', function () {
+    $('pf-intro-n').textContent = String($('pf-intro').value.length);
+    dirty();
+  });
+  ['pf-nick', 'pf-exp', 'pf-first', 'pf-last', 'pf-gender', 'pf-phone'].forEach(function (id) {
+    $(id).addEventListener('input', dirty);
+    $(id).addEventListener('change', dirty);
+  });
+  /* ชื่อเล่นเปลี่ยน -> ตัวอักษรในวงกลมเปลี่ยนตาม (ผู้เรียนเห็นวงกลมนี้ในผลค้นหา) */
+  $('pf-nick').addEventListener('input', function () {
+    var v = $('pf-nick').value.replace(/^ครู/, '').trim();
+    $('pf-avatar').textContent = v ? v.charAt(0) : '?';
+  });
+  $('pf-photo').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    $('pf-photo-name').textContent = f
+      ? 'เลือกไว้: ' + f.name + ' (ต้นแบบนี้ยังไม่ได้อัปโหลดขึ้นระบบจริง)'
+      : 'ยังไม่ได้เลือกรูปใหม่ · ใช้รูปเดิมอยู่';
+    if (f) dirty();
+  });
+  $('pf-doc').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (f) { $('pf-doc-name').textContent = 'ส่งแล้ว: ' + f.name + ' — รอทีมงานตรวจ (ต้นแบบ ยังไม่ได้ส่งขึ้นระบบจริง)'; dirty(); }
+  });
+  $('pf-work-add').addEventListener('change', function () {
+    var fs2 = this.files ? [].slice.call(this.files) : [];
+    fs2.forEach(function (f) { if (works.length < MAX_WORKS) works.push(f.name); });
+    this.value = '';
+    paintWorks();
+    dirty();
+  });
+
+  /* 🔴 2026-09-04 — เติมค่าลงช่องจาก STATE ก่อนวาด
+     ค่าใน HTML เป็นแค่ค่าสำรองตอนเปิดครั้งแรก ถ้าไม่เติมตรงนี้ กดบันทึกแล้วรีเฟรชจะกลับไปค่าเก่า */
+  (function hydrateProfile() {
+    var p = STATE.profile;
+    $('pf-nick').value   = p.nick || '';
+    $('pf-exp').value    = p.expYears != null ? p.expYears : '';
+    $('pf-first').value  = p.first || '';
+    $('pf-last').value   = p.last || '';
+    $('pf-birth').value  = p.birth || '';
+    $('pf-gender').value = p.gender || 'female';
+    $('pf-intro').value  = p.intro || '';
+    $('pf-phone').value  = p.phone || '';
+    var v = (p.nick || '').replace(/^ครู/, '').trim();
+    $('pf-avatar').textContent = v ? v.charAt(0) : '?';
+  })();
+
+  paintAge();
+  paintWorks();
+  $('pf-intro-n').textContent = String($('pf-intro').value.length);
+
+  paintSubjects(); fillPicker(); paintGrades(); paintModes();
+  paintDays(); paintTiles(); paintPrices();
+})();
+</script>
+<script src="../shared/v4-stepflow.js"></script>
+</body>
+</html>

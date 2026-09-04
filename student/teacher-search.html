@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE (ทาง A) — ยังไม่มี backend จริง · ครู 12 คนในหน้านี้เป็น "ข้อมูลสมมติ" ทั้งหมด
+  ตัวกรอง / การเรียงลำดับ / การนับผลลัพธ์ = ทำงานจริงด้วย JS ในหน้า (กดเล่นได้) แต่ไม่ได้ต่อฐานข้อมูล
+  กฎที่หน้านี้ต้องไม่ละเมิด (HANDOFF ขั้น 4 + SCOPE ข้อ B):
+    ต้องมี  — ค้นด้วย Tag (วิชา × ระดับชั้น × ออนไลน์/onsite) · onsite เรียงจังหวัดเดียวกันก่อนเป็นค่าเริ่มต้น
+             · กรอง "เฉพาะครูที่ยืนยันตัวตนแล้ว" · ครูมีตราขึ้นก่อนในผลค้นหา
+             · การ์ดแสดง รูป ชื่อเล่น วิชา ราคา ดาว ตรายืนยัน จังหวัด
+    ห้ามแสดง — เบอร์โทร · ID LINE · ที่อยู่ · ชื่อ-นามสกุลจริง
+    ห้ามมี   — ตัวกรองเพศ (Owner ตัดถาวร 2026-08-11) · ตัวเลือก "บ้านครู"
+  ราคา: ตัวเลขเดียว = ราคาที่ผู้ปกครองจ่ายจริง ห้ามแสดงเรทดิบของครูคู่กัน
+-->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+  <!-- 🔴 กัน URL (ที่อาจมีเงื่อนไขของผู้เรียน) หลุดไปกับ Referer ตอนโหลดฟอนต์/ลิงก์ออกนอกเว็บ · ผลตรวจ security 2026-08-20 -->
+  <meta name="referrer" content="same-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ค้นหาครู — BGT Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
+<link rel="stylesheet" href="../shared/theme-v3.css">
+<style>
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
+ * genre: modern-minimal · macrostructure: Catalogue · design-system: design.md · designed-as-app
+ * nav: N3 side-rail · footer: Ft2 inline · enrichment: none (typography only)
+ * theme: custom (ระบบเดียวกับทั้งเว็บ — tokens.css) · diversification: inverted (design.md-managed project)
+ *
+ * ทำไมหน้านี้ต่างจากหน้าโปรไฟล์/หน้าสมัคร ทั้งที่ใช้ token ชุดเดียวกัน:
+ *   - หน้าสมัคร   = Narrative Workflow (ขั้นมีเลข เล่าเป็นลำดับเวลา)
+ *   - หน้าโปรไฟล์ = Split Studio (ข้อมูลซ้าย ↔ หลักฐานขวา)
+ *   - หน้านี้     = Catalogue (ตารางการ์ดขนาดเท่ากัน = สารบัญของ inventory)
+ *       -> หัวหน้าเป็น "ป้ายบอกจำนวน" ไม่ใช่ display ตัวใหญ่ · ไม่มี CTA รวมของหน้า
+ *          ปุ่มบนการ์ดพาไปหน้ารายละเอียด ไม่ใช่ปุ่มจองในหน้านี้
+ *
+ * เปลือกที่เหมือนกันทุกหน้าตาม design.md ข้อ 9: โลโก้ · sidebar/mobile header · ปุ่ม · footer 1 บรรทัด · การใช้ accent
+ * สิ่งที่ต่างได้ตามข้อ 10: เนื้อใน sidebar — หน้านี้ sidebar = แผงตัวกรอง (ไม่ใช่สารบัญหัวข้อ)
+ *
+ * ที่มาของโครงตัวกรอง (research 2026-08-12 · ไม่ได้ออกแบบจากหัว):
+ *   - Baymard: desktop = ตัวกรองในแถบข้างซ้าย · มือถือ = ต้องเป็น "ชั้นของตัวเอง" (เต็มจอ/bottom sheet)
+ *     ห้ามยัด sidebar ลงจอเล็ก · ต้องมีแถบ "ตัวกรองที่เลือกอยู่" แยกจากตัวแผง + ปุ่ม × รายตัว + ล้างทั้งหมด
+ *     · ต้องเลือกได้หลายข้อในกลุ่มเดียว · ต้องมีตัวเลือกเรียง ราคา/ดาว/นิยม/ใหม่ ครบ 4 แบบ
+ *   - Preply: ตัวกรองแกนหลักคือ วิชา × ราคา × เวลาที่ว่าง (โครงเดียวกับ SCOPE ข้อ B ของเรา)
+ */
+*{box-sizing:border-box;margin:0;padding:0}
+/* [hidden] ของเบราว์เซอร์อยู่ชั้น UA -> คลาสที่เขียน display:flex ทับมันได้เสมอ
+   ประกาศทับที่ชั้นของเราเอง ไม่งั้นการ์ดที่ซ่อนไว้จะยังกินพื้นที่ (บทเรียนจาก signup-parent/student) */
+[hidden]{display:none !important}
+html{overflow-x:clip;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  font-family:var(--font-sans);
+  color:var(--color-ink);
+  line-height:1.65;
+  font-size:16px;
+  overflow-x:clip;
+  background:var(--color-paper);
+}
+h1,h2,h3,.logo,.btn,.chip,.price-amt,.stat-num,.eyebrow{font-family:var(--font-display)}
+h1,h2,h3{font-style:normal;font-weight:700;color:var(--color-ink);letter-spacing:-0.015em;overflow-wrap:anywhere;min-width:0}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1200px;margin:0 auto;padding:0 var(--space-5)}
+/* .wrap ที่เป็นลูกตรงของ .content-col (flex column) + margin:0 auto = auto margin ทับ stretch
+   -> กล่องจะหดตามเนื้อหา ไม่ยืดเต็มคอลัมน์ (กับดักที่เจอตอนทำ teacher-profile.html) */
+.content-col > .wrap{width:100%}
+
+/* ---- layout shell (เหมือนหน้าสมัคร/หน้าโปรไฟล์ทุกประการ) ---- */
+.page-shell{display:flex;flex-direction:column;min-height:100vh}
+.content-col{flex:1;min-width:0;display:flex;flex-direction:column}
+@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+
+.logo{
+  font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;
+  display:flex;align-items:center;gap:10px;
+}
+.logo-mark{
+  flex:0 0 auto;width:32px;height:32px;border-radius:8px;
+  background:var(--color-accent);
+  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+}
+.back-link{
+  min-height:44px;box-sizing:border-box;
+  font-size:var(--text-sm);font-weight:600;line-height:1;color:var(--color-ink-2);text-decoration:none;
+  display:inline-flex;align-items:center;
+  padding:0 var(--space-3);border-radius:var(--radius-sm);
+}
+.back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
+.back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
+
+.mobile-header{
+  position:sticky;top:0;z-index:var(--z-sticky);
+  background:var(--color-paper);
+  border-bottom:1px solid var(--color-rule);
+  padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.mobile-header .logo{height:40px}
+
+/* ---- sidebar = แผงตัวกรอง ----
+   จอเล็ก: แผงเดียวกันนี้กลายเป็น "ชั้นเต็มจอ" (Baymard: ห้ามยัด sidebar ลงมือถือ)
+   ใช้ DOM ก้อนเดียวสองหน้าที่ -> ไม่มี id ซ้ำ ไม่มีสถานะสองชุดให้หลุดกัน */
+.sidebar{
+  position:fixed;inset:0;z-index:var(--z-modal);
+  background:var(--color-paper);
+  display:none;flex-direction:column;
+  overflow-y:auto;overscroll-behavior:contain;
+}
+/* เปิด/ปิดด้วย display ตรง ๆ ไม่ใส่ transition:
+   ถ้าเบราว์เซอร์หยุดวาดเฟรม (throttle/แท็บพื้นหลัง) แอนิเมชันจะค้างที่เฟรมแรก = แผงไม่โผล่เลย
+   -> ตัดลูกเล่นทิ้งตาม design.md ข้อ 7 ("ตัดก่อนเพิ่มเสมอ") แล้วได้ความแน่นอนกลับมา */
+.sidebar.is-open{display:flex}
+@media (min-width:900px){
+  .mobile-header{display:none}
+  .sidebar{
+    display:flex;
+    width:264px;flex:0 0 264px;
+    /* 🔴 ลำดับสำคัญมาก: ต้องล้าง inset:0 ของโหมดมือถือ "ก่อน" แล้วค่อยตั้ง top:0
+       ถ้าเขียน inset:auto ไว้ท้าย top:0 มันจะล้าง top ทิ้ง -> computed top:auto
+       -> sticky ไม่ทำงานเลย แถบข้างเลื่อนตามหน้าไปจนดูเหมือน "ขาดครึ่ง" (บั๊กจริงที่ Owner เจอ 2026-08-12) */
+    inset:auto;
+    position:sticky;top:0;height:100vh;
+    padding:var(--space-8) var(--space-6);
+    border-right:1px solid var(--color-rule);
+  }
+  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .sheet-only{display:none !important}
+}
+
+/* หัวและท้ายของชั้นเต็มจอ (มีเฉพาะจอเล็ก) */
+.sheet-bar{
+  position:sticky;top:0;z-index:var(--z-raised);
+  background:var(--color-paper);border-bottom:1px solid var(--color-rule);
+  padding:var(--space-3) var(--space-5);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+}
+.sheet-bar h2{font-size:var(--text-lg)}
+.icon-btn{
+  width:44px;height:44px;flex:0 0 auto;border:none;background:none;cursor:pointer;
+  border-radius:var(--radius-sm);color:var(--color-ink);
+  font-size:var(--text-lg);line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.icon-btn:hover{background:var(--color-paper-2)}
+.icon-btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.sheet-foot{
+  position:sticky;bottom:0;margin-top:auto;
+  background:var(--color-paper);border-top:1px solid var(--color-rule);
+  padding:var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom));
+}
+.sheet-foot .btn{width:100%}
+
+/* ---- แผงตัวกรอง ---- */
+.filters{padding:var(--space-6) var(--space-5) var(--space-8)}
+@media (min-width:900px){.filters{padding:var(--space-10) 0 var(--space-6)}}
+.f-group{border:none;padding:0;margin:0 0 var(--space-6)}
+.f-group + .f-group{border-top:1px solid var(--color-rule);padding-top:var(--space-5)}
+.f-legend{
+  display:block;width:100%;
+  font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;
+  color:var(--color-ink-2);margin-bottom:var(--space-2);
+}
+.f-opt{
+  display:flex;align-items:center;gap:10px;
+  min-height:44px;padding:0 8px;border-radius:var(--radius-sm);
+  font-size:var(--text-sm);line-height:1.4;cursor:pointer;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+@media (hover:hover){.f-opt:hover{background:var(--color-paper-2)}}
+.f-opt input{
+  width:18px;height:18px;flex:0 0 auto;margin:0;cursor:pointer;
+  accent-color:var(--color-accent);
+}
+.f-opt input:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.f-opt span{min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+.f-count{flex:0 0 auto;font-size:var(--text-xs);color:var(--color-ink-2);font-variant-numeric:tabular-nums}
+.f-sub{
+  display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-ink-2);
+  padding:var(--space-3) 8px 2px;letter-spacing:.02em;
+}
+.f-sub:first-of-type{padding-top:0}
+.f-note{display:block;font-size:var(--text-xs);color:var(--color-ink-2);padding:var(--space-3) 8px 0;line-height:1.5}
+.f-opt input:disabled + span,.f-opt input:disabled ~ .f-count{opacity:.45}
+.f-opt:has(input:disabled){cursor:not-allowed}
+
+/* ตัวกรอง "เฉพาะครูที่ยืนยันตัวตนแล้ว" — เน้นไว้บนสุด เพราะเป็นตัวกรองที่แพลตฟอร์มเราตั้งใจขาย */
+.f-verified{
+  background:var(--color-ok-soft);border:1px solid var(--color-ok);
+  border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);
+  margin-bottom:var(--space-5);
+}
+.f-verified .f-opt{min-height:44px}
+.f-verified .f-opt:hover{background:transparent}
+.f-verified b{font-weight:600;color:var(--color-ok)}
+.f-verified .f-why{display:block;font-size:var(--text-xs);color:var(--color-ink-2);padding:0 8px var(--space-2);line-height:1.5}
+
+select,.txt{
+  width:100%;height:var(--control-h);
+  border:1px solid var(--color-rule-2);border-radius:var(--radius-md);
+  background:var(--color-surface);color:var(--color-ink);
+  font-family:var(--font-sans);font-size:var(--text-base);
+  padding:0 var(--space-3);
+}
+select{cursor:pointer}
+select:focus-visible,.txt:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px;border-color:var(--color-accent-deep)}
+.txt::placeholder{color:var(--color-muted)}
+
+/* ---- แถบค้นหาหัวหน้า ---- */
+.search-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
+.search-inner{padding:var(--space-10) 0 var(--space-8)}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:var(--text-sm);font-weight:700;letter-spacing:.02em;
+  color:var(--color-accent-deep);background:var(--color-accent-soft);
+  padding:6px 14px;border-radius:var(--radius-sm);
+  margin-bottom:var(--space-5);
+}
+/* Catalogue: หัวหน้าเป็นป้ายบอกของในคลัง ไม่ใช่ display ตัวใหญ่ */
+.cat-head{font-size:var(--text-2xl);line-height:1.2}
+.lede{margin-top:var(--space-3);color:var(--color-ink-2);max-width:60ch}
+.searchbar{display:flex;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-6);max-width:680px}
+.searchbar .txt{flex:1 1 240px;width:auto}
+.searchbar .btn{flex:0 0 auto}
+.quick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:var(--space-5)}
+.quick-label{font-size:var(--text-sm);color:var(--color-ink-2);margin-inline-end:4px}
+.chip{
+  position:relative;
+  min-height:36px;display:inline-flex;align-items:center;
+  padding:0 14px;border-radius:var(--radius-pill);cursor:pointer;
+  border:1px solid var(--color-rule-2);background:var(--color-surface);
+  color:var(--color-ink);font-size:var(--text-sm);font-weight:700;
+  transition:background-color var(--dur-short) var(--ease-out);
+}
+@media (hover:hover){.chip:hover{background:var(--color-paper-2)}}
+.chip:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+/* ชิปสูง 36px แต่ design.md ข้อ 8 บังคับพื้นที่แตะจริง ≥44px
+   -> ขยายเฉพาะ "พื้นที่กด" ด้วย ::after ไม่ต้องทำให้ชิปอ้วนขึ้น (ขยายแนวตั้งอย่างเดียว ไม่ทับชิปข้างๆ) */
+.chip::after{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:44px}
+.chip[aria-pressed=true]{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
+
+/* ---- แถบเครื่องมือ + ตัวกรองที่เลือกอยู่ ---- */
+.results-wrap{container-type:inline-size;padding:var(--space-6) var(--space-5) var(--space-16)}
+.toolbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5);
+  padding-bottom:var(--space-4);border-bottom:1px solid var(--color-rule);
+}
+.count-line{font-size:var(--text-base);min-width:0}
+.count-line b{font-family:var(--font-display);font-size:var(--text-lg)}
+.sort-wrap{display:flex;align-items:center;gap:var(--space-3);margin-left:auto}
+.sort-wrap label{font-size:var(--text-sm);color:var(--color-ink-2);white-space:nowrap}
+.sort-wrap select{width:auto;min-width:190px}
+@media (max-width:560px){
+  .sort-wrap{margin-left:0;width:100%}
+  .sort-wrap select{flex:1 1 auto;min-width:0}
+}
+.filter-open{position:relative}
+/* [hidden] ต้องชนะ display:inline-flex ไม่งั้นตอนไม่มีตัวกรอง ปุ่มจะขึ้นเลข "0" ค้างไว้ */
+.filter-open .fcount[hidden]{display:none}
+.filter-open .fcount{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;padding:0 6px;border-radius:var(--radius-pill);
+  background:var(--color-accent);color:var(--color-accent-ink);font-size:var(--text-xs);
+}
+/* แถบ "ตัวกรองที่เลือกอยู่" — แยกจากตัวแผงตามที่ Baymard กำหนด */
+.applied{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:var(--space-4)}
+.applied:empty{display:none}
+.a-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--color-accent-soft);color:var(--color-ink);
+  font-size:var(--text-sm);font-weight:600;
+  padding:6px 6px 6px 12px;border-radius:var(--radius-pill);
+}
+.a-chip button{
+  position:relative;
+  width:26px;height:26px;flex:0 0 auto;border:none;cursor:pointer;border-radius:50%;
+  background:transparent;color:var(--color-ink);font-size:14px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.a-chip button:hover{background:var(--color-surface)}
+.a-chip button:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px}
+/* ปุ่ม × เห็นเป็นวงกลม 26px แต่พื้นที่กดจริง 36×44 (ไม่ขยายจนไปทับชิปใบข้างๆ ที่ห่างกัน 8px) */
+.a-chip button::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:36px;height:44px}
+.clear-all{
+  min-height:44px;display:inline-flex;align-items:center;padding:0 10px;
+  border:none;background:none;cursor:pointer;border-radius:var(--radius-sm);
+  font-family:var(--font-sans);font-size:var(--text-sm);font-weight:600;color:var(--color-accent-deep);
+  text-decoration:underline;text-underline-offset:3px;
+}
+.clear-all:hover{background:var(--color-paper-2)}
+.clear-all:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.prefill{
+  display:flex;gap:var(--space-3);align-items:flex-start;
+  margin-top:var(--space-4);padding:var(--space-3) var(--space-4);
+  background:var(--color-ok-soft);border:1px solid var(--color-ok);border-radius:var(--radius-md);
+  font-size:var(--text-sm);line-height:1.55;
+}
+.prefill-ic{
+  width:22px;height:22px;flex:0 0 auto;border-radius:50%;
+  background:var(--color-ok);color:var(--color-surface);
+  display:flex;align-items:center;justify-content:center;font-size:12px;margin-top:1px;
+}
+.prefill b{color:var(--color-ok)}
+.prefill span#prefillWhat{color:var(--color-ink-2)}
+/* ---- แถบเลือกผู้เรียน (ก้อน C1ข) — โผล่เฉพาะบัญชีที่มีผู้เรียน ≥2 คน ---- */
+.learner-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:var(--space-4)}
+.learner-bar .lb-label{font-size:var(--text-sm);color:var(--color-ink-2);margin-inline-end:4px}
+.learner-bar .lb-chips{display:flex;flex-wrap:wrap;gap:8px}
+.learner-bar .chip small{font-weight:400;color:var(--color-ink-2);margin-inline-start:6px}
+.sort-note{
+  margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-ink-2);
+  background:var(--color-paper-2);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);
+}
+
+/* ---- ตารางการ์ดครู (Catalogue: การ์ดขนาดเท่ากันทุกใบ) ----
+   ใช้ container query เพราะจอ 900-1280px โดน sidebar 264px กินไปแล้ว
+   ถ้าวัดจากความกว้างจอจะได้การ์ด 2 คอลัมน์ที่แคบจนราคาตกบรรทัด */
+.card-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-5);margin-top:var(--space-6)}
+@container (min-width:640px){.card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (min-width:1060px){.card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.t-card{
+  position:relative;min-width:0;
+  display:flex;flex-direction:column;gap:var(--space-4);
+  background:var(--color-surface);border:1px solid var(--color-rule);
+  border-radius:var(--radius-lg);padding:var(--space-6);
+  box-shadow:var(--shadow-raise);
+  transition:transform var(--dur-short) var(--ease-out),box-shadow var(--dur-short) var(--ease-out);
+}
+@media (hover:hover){.t-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}}
+.t-card:focus-within{box-shadow:var(--shadow-lift)}
+.t-top{display:flex;gap:var(--space-4);align-items:flex-start;min-width:0}
+/* Owner สั่ง 2026-08-12: กรอบรูปใหญ่ขึ้นอีก — 64 -> 104px (เท่ากับหน้าโปรไฟล์ครู)
+   จอแคบ (คอลัมน์ผลลัพธ์ ≤380px) หด 88px ไม่งั้นตรา "ยืนยันตัวตนแล้ว" ซึ่ง nowrap จะดันการ์ดล้นขอบ */
+.t-avatar{
+  flex:0 0 auto;width:104px;height:104px;border-radius:var(--radius-md);overflow:hidden;
+  background:var(--color-accent-soft);border:1px solid var(--color-rule);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-2xl);color:var(--color-accent-deep);
+}
+.t-avatar img{width:100%;height:100%;object-fit:cover}
+@container (max-width:380px){
+  .t-avatar{width:88px;height:88px;font-size:var(--text-xl)}
+}
+.t-id{min-width:0;flex:1 1 auto}
+.t-name{font-size:var(--text-lg);line-height:1.3}
+/* ลิงก์ยืดคลุมทั้งการ์ด: กดตรงไหนของการ์ดก็เข้าโปรไฟล์ แต่ยังมี target ที่อ่านออกให้ screen reader */
+.t-name a{text-decoration:none}
+.t-name a::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
+.t-name a:focus-visible{outline:none}
+.t-name a:focus-visible::after{outline:2px solid var(--color-focus);outline-offset:2px}
+.t-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.badge-verified{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;
+  color:var(--color-ok);background:var(--color-ok-soft);
+  border:1px solid var(--color-ok);
+  padding:3px 10px;border-radius:var(--radius-pill);white-space:nowrap;
+}
+.badge-verified .tick{
+  width:15px;height:15px;border-radius:50%;background:var(--color-ok);color:var(--color-surface);
+  display:flex;align-items:center;justify-content:center;font-size:10px;flex:0 0 auto;
+}
+.stars{display:inline-flex;align-items:center;gap:1px;color:var(--color-accent);font-size:var(--text-base);line-height:1}
+.stars .off{color:var(--color-rule)}
+.rating-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rating-num{font-family:var(--font-display);font-weight:700}
+.rating-count{color:var(--color-ink-2);font-size:var(--text-sm)}
+.t-meta{display:flex;flex-wrap:wrap;gap:4px var(--space-3);font-size:var(--text-sm);color:var(--color-ink-2);margin-top:6px}
+.t-meta span{display:inline-flex;align-items:center;gap:6px}
+.t-meta .ic{color:var(--color-accent-deep)}
+.tag-group{display:flex;flex-wrap:wrap;gap:6px}
+/* แท็ก 2 ชนิด = สีที่ 3 (น้ำเงินหม่น) ตระกูลเดียว 2 น้ำหนัก — ไม่ต้องเพิ่มสีที่ 4
+     วิชา      = ทึบเข้ม  (ข้อมูลสำคัญสุดของการ์ด สายตาอ่านก่อน)
+     ระดับชั้น = อ่อนสว่าง (ข้อมูลประกอบ แต่ยัง "มีสี" ชัด ไม่อ่านว่าปิดอยู่)
+   Owner สั่ง 2026-08-12: แท็กอย่าใช้ส้ม — ส้มถูกดึงกลับไปเป็นของปุ่ม/ดาว/ป้ายเน้นอย่างเดียว
+
+   ประวัติการแก้ (จดกันวนกลับไปทำผิดซ้ำ):
+     1) ระดับชั้นเป็น "ขอบบางพื้นโปร่ง" -> Owner: "ไม่มีสีอะ มันทำให้ดูแล้วสอนรึเปล่า"
+        (ชิปพื้นโปร่ง/ขอบบาง ในภาษา UI = "ยังไม่ถูกเลือก / ปิดอยู่" ห้ามใช้กับข้อเท็จจริง)
+     2) เปลี่ยนเป็นพื้นนวลอุ่น + เติมคำว่า "สอนระดับ" นำหน้า -> Owner: "ไม่เป็นระเบียบเลย เอาออก
+        แต่ใส่สีให้ชัดขึ้นก็พอ" -> ถอนคำนำหน้าออกทั้ง 12 การ์ด
+     3) ✅ ปัจจุบัน: ไม่มีคำนำหน้า แยกด้วยน้ำหนักสีล้วน */
+.tag{
+  display:inline-flex;align-items:center;
+  background:var(--color-subject);color:var(--color-surface);
+  font-size:var(--text-sm);font-weight:600;padding:5px 10px;border-radius:var(--radius-sm);
+}
+.tag--plain{background:var(--color-level-soft);color:var(--color-level);font-weight:600}
+.t-foot{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;
+  margin-top:auto;padding-top:var(--space-4);border-top:1px solid var(--color-rule);
+}
+.price-amt{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);white-space:nowrap}
+.price-amt small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
+.price-from{font-size:var(--text-sm);color:var(--color-ink-2)}
+.t-cta{font-family:var(--font-display);font-weight:700;font-size:var(--text-sm);color:var(--color-accent-deep);white-space:nowrap}
+
+/* ---- ไม่พบผลลัพธ์ ---- */
+.empty{
+  margin-top:var(--space-8);text-align:center;
+  background:var(--color-surface);border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+  padding:var(--space-12) var(--space-6);
+}
+.empty h2{font-size:var(--text-xl)}
+.empty p{color:var(--color-ink-2);margin:var(--space-3) auto var(--space-6);max-width:44ch}
+.empty[hidden]{display:none}
+
+/* ---- ปุ่ม (เหมือนทุกหน้า · 8 สถานะ) ---- */
+.btn{
+  height:var(--control-h);padding:0 24px;border-radius:var(--radius-md);border:1px solid transparent;
+  font-family:var(--font-display);font-weight:700;font-size:var(--text-base);cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:transform var(--dur-short) var(--ease-out),background-color var(--dur-short) var(--ease-out);
+}
+.btn:active,.btn.is-active{transform:translateY(1px)}
+.btn:focus-visible,.btn.is-focus{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink)}
+.btn-primary:hover,.btn-primary.is-hover{background:oklch(48% 0.155 44)}
+.btn-secondary{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-secondary:hover,.btn-secondary.is-hover{background:var(--color-paper-2)}
+.btn[disabled],.btn.is-disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn[data-state=loading]{opacity:.75;cursor:progress}
+.btn[data-state=error]{background:var(--color-error);color:var(--color-accent-ink)}
+.btn[data-state=success]{background:var(--color-ok);color:var(--color-accent-ink)}
+
+/* ---- footer Ft2 ---- */
+.site-footer{
+  margin-top:auto;border-top:1px solid var(--color-rule);
+  padding:var(--space-6) 0 var(--space-8);
+  font-size:var(--text-sm);color:var(--color-ink-2);
+}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-6)}
+.site-footer .foot-brand{font-family:var(--font-display);font-weight:700;color:var(--color-ink)}
+.site-footer nav{display:flex;flex-wrap:wrap;gap:var(--space-5);margin-left:auto}
+.site-footer a{text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px}
+.site-footer a:hover{color:var(--color-ink);border-bottom-color:var(--color-accent)}
+.site-footer a:focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:2px}
+@media (max-width:560px){.site-footer nav{margin-left:0;width:100%}}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+body.sheet-open{overflow:hidden}
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+
+<div class="page-shell">
+
+  <!-- ตัวกรอง: จอ ≥900px = แถบข้างติดหนึบ · จอเล็ก = ชั้นเต็มจอที่เปิดจากปุ่ม "ตัวกรอง" -->
+  <aside class="sidebar" id="filterPanel" aria-label="ตัวกรองผลค้นหา">
+
+    <div class="sheet-bar sheet-only">
+      <h2>ตัวกรอง</h2>
+      <button class="icon-btn" type="button" id="sheetClose" aria-label="ปิดตัวกรอง">✕</button>
+    </div>
+
+    <div class="filters">
+      <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+      <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
+
+      <div class="f-verified">
+        <label class="f-opt">
+          <input type="checkbox" id="fVerified">
+          <span><b>เฉพาะครูที่ยืนยันตัวตนแล้ว</b></span>
+          <span class="f-count" data-count-for="verified"></span>
+        </label>
+        <span class="f-why">ครูที่ส่งเอกสารยืนยันตัวตนกับผู้ให้บริการภายนอกแล้ว · BGT ไม่เก็บไฟล์บัตรไว้เอง</span>
+      </div>
+
+      <!-- 🔴 ชื่อวิชา = สตริงชุดเดียวกับ SUBJECT_GROUPS ใน signup-teacher/parent/student (ห้ามตั้งชื่อเองใหม่)
+           หัวข้อกลุ่ม 6 กลุ่มก็มาจากลิสต์เดียวกัน — ตัวอย่างนี้แสดงเฉพาะวิชาที่ครู 12 คนนี้สอนจริง -->
+      <fieldset class="f-group" data-group="subj">
+        <legend class="f-legend">วิชา</legend>
+        <span class="f-sub">วิชาการ (ประถม-มัธยม)</span>
+        <label class="f-opt"><input type="checkbox" value="คณิตศาสตร์"><span>คณิตศาสตร์</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ฟิสิกส์"><span>ฟิสิกส์</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="เคมี"><span>เคมี</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ชีววิทยา"><span>ชีววิทยา</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ภาษาไทย"><span>ภาษาไทย</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ภาษาอังกฤษ"><span>ภาษาอังกฤษ</span><span class="f-count"></span></label>
+        <!-- ⭐ 2026-08-21: ครูพลอยสอนวิทยาศาสตร์ด้วย · ชื่อตรงลิสต์กลาง ไม่มีวงเล็บระดับชั้นแล้ว (Owner เคาะ) -->
+        <label class="f-opt"><input type="checkbox" value="วิทยาศาสตร์"><span>วิทยาศาสตร์</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="สังคมศึกษา"><span>สังคมศึกษา</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="คอมพิวเตอร์/เขียนโปรแกรม"><span>คอมพิวเตอร์ / เขียนโปรแกรม</span><span class="f-count"></span></label>
+        <span class="f-sub">ติวสอบ / สอบเข้า</span>
+        <label class="f-opt"><input type="checkbox" value="ติว TCAS/GAT/PAT"><span>ติว TCAS / GAT / PAT</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ติวสอบเข้ามหาวิทยาลัย"><span>ติวสอบเข้ามหาวิทยาลัย</span><span class="f-count"></span></label>
+        <span class="f-sub">ภาษาต่างประเทศ</span>
+        <label class="f-opt"><input type="checkbox" value="ภาษาจีน"><span>ภาษาจีน</span><span class="f-count"></span></label>
+        <span class="f-sub">ดนตรี</span>
+        <label class="f-opt"><input type="checkbox" value="เปียโน"><span>เปียโน</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ทฤษฎีดนตรี/แต่งเพลง"><span>ทฤษฎีดนตรี / แต่งเพลง</span><span class="f-count"></span></label>
+        <span class="f-sub">ศิลปะและงานฝีมือ</span>
+        <label class="f-opt"><input type="checkbox" value="วาดรูป/ระบายสี"><span>วาดรูป / ระบายสี</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="ศิลปะสำหรับเด็ก"><span>ศิลปะสำหรับเด็ก</span><span class="f-count"></span></label>
+        <span class="f-note">ลิสต์จริงมี 6 หมวด (รวมกีฬา) ~70 วิชา — ตอนต่อฐานข้อมูลจะดึงมาจากลิสต์กลางชุดเดียวกับหน้าสมัคร</span>
+      </fieldset>
+
+      <!-- 🔴 ค่าของระดับชั้น = โค้ดชุดเดียวกับ name="grade_level" ใน signup-teacher.html:489-495
+           (kindergarten / primary_low / primary_high / middle / high / university / adult)
+           ผู้เรียนกรอกเป็น "รายชั้น" (ป.4 / ม.2) -> ต้องมีตารางแปลงเป็นช่วงชั้นก่อนยิงค้นหา ดู mapGrade() ท้ายไฟล์ -->
+      <fieldset class="f-group" data-group="level">
+        <legend class="f-legend">ระดับชั้นที่ครูรับสอน</legend>
+        <label class="f-opt"><input type="checkbox" value="kindergarten"><span>อนุบาล</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="primary_low"><span>ประถมต้น</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="primary_high"><span>ประถมปลาย</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="middle"><span>มัธยมต้น</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="high"><span>มัธยมปลาย / ปวช.</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="university"><span>มหาวิทยาลัย</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="adult"><span>ผู้ใหญ่ทั่วไป</span><span class="f-count"></span></label>
+      </fieldset>
+
+      <fieldset class="f-group" data-group="mode">
+        <legend class="f-legend">รูปแบบการเรียน</legend>
+        <label class="f-opt"><input type="checkbox" value="online"><span>ออนไลน์</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="home"><span>ที่บ้าน</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="public"><span>สถานที่อื่นๆ</span><span class="f-count"></span></label>
+      </fieldset>
+
+      <fieldset class="f-group">
+        <legend class="f-legend">จังหวัดของคุณ</legend>
+        <!-- 🔴 ลิสต์จังหวัดต้องเป็นชุดเดียวกับหน้าสมัคร (ต้นฉบับ: signup-parent.html ค้น id="zone")
+             เดิมมีแค่ 7 จังหวัด → คนที่กรอก "ภูเก็ต" ไว้ตอนสมัคร ค่าหล่นเงียบ ช่องค้างที่กรุงเทพ (ผลตรวจ logic 2026-08-20 ข้อ 4) -->
+        <select id="fProv" aria-label="จังหวัดของคุณ"><option value="กรุงเทพมหานคร" selected>กรุงเทพมหานคร</option><option value="กระบี่">กระบี่</option><option value="กาญจนบุรี">กาญจนบุรี</option><option value="กาฬสินธุ์">กาฬสินธุ์</option><option value="กำแพงเพชร">กำแพงเพชร</option><option value="ขอนแก่น">ขอนแก่น</option><option value="จันทบุรี">จันทบุรี</option><option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option><option value="ชลบุรี">ชลบุรี</option><option value="ชัยนาท">ชัยนาท</option><option value="ชัยภูมิ">ชัยภูมิ</option><option value="ชุมพร">ชุมพร</option><option value="เชียงราย">เชียงราย</option><option value="เชียงใหม่">เชียงใหม่</option><option value="ตรัง">ตรัง</option><option value="ตราด">ตราด</option><option value="ตาก">ตาก</option><option value="นครนายก">นครนายก</option><option value="นครปฐม">นครปฐม</option><option value="นครพนม">นครพนม</option><option value="นครราชสีมา">นครราชสีมา</option><option value="นครศรีธรรมราช">นครศรีธรรมราช</option><option value="นครสวรรค์">นครสวรรค์</option><option value="นนทบุรี">นนทบุรี</option><option value="นราธิวาส">นราธิวาส</option><option value="น่าน">น่าน</option><option value="บึงกาฬ">บึงกาฬ</option><option value="บุรีรัมย์">บุรีรัมย์</option><option value="ปทุมธานี">ปทุมธานี</option><option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option><option value="ปราจีนบุรี">ปราจีนบุรี</option><option value="ปัตตานี">ปัตตานี</option><option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option><option value="พะเยา">พะเยา</option><option value="พังงา">พังงา</option><option value="พัทลุง">พัทลุง</option><option value="พิจิตร">พิจิตร</option><option value="พิษณุโลก">พิษณุโลก</option><option value="เพชรบุรี">เพชรบุรี</option><option value="เพชรบูรณ์">เพชรบูรณ์</option><option value="แพร่">แพร่</option><option value="ภูเก็ต">ภูเก็ต</option><option value="มหาสารคาม">มหาสารคาม</option><option value="มุกดาหาร">มุกดาหาร</option><option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option><option value="ยโสธร">ยโสธร</option><option value="ยะลา">ยะลา</option><option value="ร้อยเอ็ด">ร้อยเอ็ด</option><option value="ระนอง">ระนอง</option><option value="ระยอง">ระยอง</option><option value="ราชบุรี">ราชบุรี</option><option value="ลพบุรี">ลพบุรี</option><option value="ลำปาง">ลำปาง</option><option value="ลำพูน">ลำพูน</option><option value="เลย">เลย</option><option value="ศรีสะเกษ">ศรีสะเกษ</option><option value="สกลนคร">สกลนคร</option><option value="สงขลา">สงขลา</option><option value="สตูล">สตูล</option><option value="สมุทรปราการ">สมุทรปราการ</option><option value="สมุทรสงคราม">สมุทรสงคราม</option><option value="สมุทรสาคร">สมุทรสาคร</option><option value="สระแก้ว">สระแก้ว</option><option value="สระบุรี">สระบุรี</option><option value="สิงห์บุรี">สิงห์บุรี</option><option value="สุโขทัย">สุโขทัย</option><option value="สุพรรณบุรี">สุพรรณบุรี</option><option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option><option value="สุรินทร์">สุรินทร์</option><option value="หนองคาย">หนองคาย</option><option value="หนองบัวลำภู">หนองบัวลำภู</option><option value="อ่างทอง">อ่างทอง</option><option value="อำนาจเจริญ">อำนาจเจริญ</option><option value="อุดรธานี">อุดรธานี</option><option value="อุตรดิตถ์">อุตรดิตถ์</option><option value="อุทัยธานี">อุทัยธานี</option><option value="อุบลราชธานี">อุบลราชธานี</option></select>
+        <label class="f-opt" style="margin-top:8px">
+          <input type="checkbox" id="fProvOnly">
+          <span>แสดงเฉพาะครูที่อยู่ในจังหวัดนี้</span>
+          <span class="f-count" data-count-for="provOnly"></span>
+        </label>
+        <span class="f-why" style="display:block;font-size:var(--text-xs);color:var(--color-ink-2);padding:0 8px;line-height:1.5">
+          ปกติเราไม่ตัดครูจังหวัดอื่นทิ้ง แค่เอาครูจังหวัดเดียวกับคุณขึ้นก่อน — เพราะครูออนไลน์สอนข้ามจังหวัดได้
+        </span>
+      </fieldset>
+
+      <!-- 🔴 ค่าในช่องติ๊ก = รหัสอังกฤษ (morning/afternoon/evening/night) ชุดเดียวกับ data-time ของการ์ดครู
+           ต้นฉบับลิสต์: signup-parent.html ค้น SLOT_CODES · ข้อความในวงเล็บเป็นป้ายให้คนอ่านเท่านั้น -->
+      <fieldset class="f-group" data-group="time">
+        <legend class="f-legend">ช่วงเวลาที่สะดวก</legend>
+        <!-- 🔴 ชั่วโมงต้องตรงกับ BUCKETS ในโค้ด (signup-teacher.html) เป๊ะ — เดิมเขียน 08:00 แต่โค้ดจริงคือ 06:00 (แก้ 2026-08-15) -->
+        <label class="f-opt"><input type="checkbox" value="morning"><span>เช้า (06:00–12:00)</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="afternoon"><span>บ่าย (12:00–16:00)</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="evening"><span>เย็น (16:00–19:00)</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="night"><span>ค่ำ (19:00–22:00)</span><span class="f-count"></span></label>
+      </fieldset>
+
+      <!-- 🔗 ช่องนี้คือปลายทางของ "งบต่อชั่วโมง" ที่ผู้ปกครอง/นักเรียนกรอกไว้ตอนสมัคร
+           (signup-parent.html #budget · signup-student.html #budget — helper ในหน้านั้นเขียนไว้แล้วว่า "ใช้กรองครูที่อยู่ในงบ")
+           เข้าหน้านี้ด้วย ?budget=400 -> ระบบติ๊กทุกช่วงราคาที่ไม่เกินงบให้เอง -->
+      <fieldset class="f-group" data-group="price">
+        <legend class="f-legend">ราคาต่อชั่วโมง</legend>
+        <label class="f-opt"><input type="checkbox" value="0-300"><span>ไม่เกิน ฿300</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="301-400"><span>฿301–400</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="401-500"><span>฿401–500</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="checkbox" value="501-99999"><span>มากกว่า ฿500</span><span class="f-count"></span></label>
+      </fieldset>
+
+      <fieldset class="f-group" data-group="rating">
+        <legend class="f-legend">คะแนนรีวิว</legend>
+        <label class="f-opt"><input type="radio" name="rating" value="0" checked><span>ทั้งหมด</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="radio" name="rating" value="4.5"><span>4.5 ดาวขึ้นไป</span><span class="f-count"></span></label>
+        <label class="f-opt"><input type="radio" name="rating" value="4"><span>4.0 ดาวขึ้นไป</span><span class="f-count"></span></label>
+      </fieldset>
+    </div>
+
+    <div class="sheet-foot sheet-only">
+      <button class="btn btn-primary" type="button" id="sheetApply">ดูผลลัพธ์ (<span id="sheetCount">12</span> คน)</button>
+    </div>
+  </aside>
+
+  <header class="mobile-header">
+    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <button class="btn btn-secondary filter-open sheet-only" type="button" id="sheetOpenTop" aria-expanded="false" aria-controls="filterPanel">
+      ตัวกรอง <span class="fcount" id="fcountTop" hidden>0</span>
+    </button>
+  </header>
+
+  <main class="content-col">
+
+    <div class="search-band">
+      <div class="wrap">
+        <div class="search-inner">
+          <span class="eyebrow">ตัวอย่างผลค้นหา · ข้อมูลสมมติทั้งหมด</span>
+          <h1 class="cat-head">ครู 12 คน · ทุกวิชา ทุกแขนง · อัปเดตวันนี้</h1>
+          <p class="lede">เลือกวิชา ระดับชั้น และรูปแบบการเรียนทางซ้าย แล้วกดเข้าไปดูโปรไฟล์ครูก่อนตัดสินใจจอง</p>
+
+          <form class="searchbar" role="search" id="searchForm">
+            <label class="sr-only" for="q">ค้นหาชื่อครูหรือวิชา</label>
+            <input class="txt" id="q" type="search" placeholder="พิมพ์วิชา เช่น คณิตศาสตร์ · เปียโน · ภาษาจีน" autocomplete="off">
+            <button class="btn btn-primary" type="submit">ค้นหา</button>
+          </form>
+
+          <div class="quick">
+            <span class="quick-label">ยอดนิยม:</span>
+            <button class="chip" type="button" data-quick="คณิตศาสตร์" aria-pressed="false">คณิตศาสตร์</button>
+            <button class="chip" type="button" data-quick="ภาษาอังกฤษ" aria-pressed="false">ภาษาอังกฤษ</button>
+            <button class="chip" type="button" data-quick="ฟิสิกส์" aria-pressed="false">ฟิสิกส์</button>
+            <button class="chip" type="button" data-quick="เปียโน" aria-pressed="false">เปียโน</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap results-wrap">
+
+      <div class="toolbar">
+        <button class="btn btn-secondary filter-open sheet-only" type="button" id="sheetOpen" aria-expanded="false" aria-controls="filterPanel">
+          ตัวกรอง <span class="fcount" id="fcountBar" hidden>0</span>
+        </button>
+        <p class="count-line" aria-live="polite"><b id="countNum">12</b> คน ตรงกับที่คุณเลือก</p>
+        <div class="sort-wrap">
+          <label for="sort">เรียงตาม</label>
+          <select id="sort">
+            <option value="rec" selected>แนะนำ</option>
+            <option value="price-asc">ราคาต่ำ → สูง</option>
+            <option value="price-desc">ราคาสูง → ต่ำ</option>
+            <option value="rating">ดาวสูงสุด</option>
+            <option value="reviews">รีวิวมากสุด</option>
+            <option value="new">ครูใหม่ล่าสุด</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- แถบเลือกผู้เรียน (ก้อน C1ข 2026-08-20): ผู้ปกครองที่มีลูกหลายคน สลับได้ตลอด
+           ไม่ทำเป็นหน้าคั่นบังคับ (Owner เคาะ · LOG_คำสั่งแก้_Owner.md รายการ 122)
+           ข้อมูลมาจาก sessionStorage['bgt_learners'] ที่ signup-parent.html เขียนตอนส่งใบสมัคร -->
+      <div class="learner-bar" id="learnerBar" hidden>
+        <span class="lb-label">หาครูให้:</span>
+        <div class="lb-chips" id="learnerChips" role="group" aria-label="เลือกผู้เรียนที่จะหาครูให้"></div>
+      </div>
+
+      <!-- แถบนี้โผล่เมื่อเข้ามาหน้านี้พร้อมเงื่อนไข (จากหน้าแรก หรือจากโปรไฟล์ที่กรอกไว้ตอนสมัคร) -->
+      <div class="prefill" id="prefill" hidden>
+        <span class="prefill-ic" aria-hidden="true">✓</span>
+        <p><b>กรองให้แล้วจากข้อมูลที่คุณกรอกไว้</b> <span id="prefillWhat"></span> — ปรับตัวกรองทางซ้ายได้ตลอด</p>
+      </div>
+
+      <div class="applied" id="applied"></div>
+
+      <p class="sort-note" id="sortNote">
+        <b>ค่าเริ่มต้น “แนะนำ”:</b> ครูที่ยืนยันตัวตนแล้วขึ้นก่อน → ครูในจังหวัดเดียวกับคุณขึ้นก่อน (สำหรับเรียนที่บ้าน/สถานที่อื่นๆ) → คะแนนรีวิวสูงกว่าขึ้นก่อน
+      </p>
+
+      <div class="card-grid" id="grid">
+
+        <article class="t-card" data-t="ploy" data-name="ครูพลอย" data-subj="คณิตศาสตร์,ฟิสิกส์,วิทยาศาสตร์" data-level="middle,high" data-mode="online,home" data-prov="กรุงเทพมหานคร" data-price="380" data-rating="4.9" data-reviews="128" data-verified="1" data-time="evening,night" data-added="6">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">พ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูพลอย</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.9 จาก 5</span>
+            <span class="rating-num">4.9</span><span class="rating-count">(128 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">คณิตศาสตร์</span><span class="tag">ฟิสิกส์</span>
+            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿380 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="boss" data-name="ครูบอส" data-subj="ฟิสิกส์,ติว TCAS/GAT/PAT" data-level="high,university" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="520" data-rating="4.8" data-reviews="86" data-verified="1" data-time="night" data-added="4">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">บ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูบอส</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.8 จาก 5</span>
+            <span class="rating-num">4.8</span><span class="rating-count">(86 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">ฟิสิกส์</span><span class="tag">ติว TCAS/GAT/PAT</span>
+            <span class="tag tag--plain">มัธยมปลาย/ปวช.</span><span class="tag tag--plain">มหาวิทยาลัย</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿520 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="nan" data-name="ครูแนน" data-subj="ภาษาอังกฤษ" data-level="primary_low,primary_high,middle" data-mode="online,home,public" data-prov="นนทบุรี" data-price="350" data-rating="4.7" data-reviews="203" data-verified="1" data-time="afternoon,evening" data-added="2">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">น</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูแนน</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>นนทบุรี</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน · สถานที่อื่นๆ</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.7 จาก 5</span>
+            <span class="rating-num">4.7</span><span class="rating-count">(203 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">ภาษาอังกฤษ</span>
+            <span class="tag tag--plain">ประถมต้น</span><span class="tag tag--plain">ประถมปลาย</span><span class="tag tag--plain">มัธยมต้น</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿350 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="kit" data-name="ครูกิต" data-subj="เคมี" data-level="high" data-mode="home,public" data-prov="ปทุมธานี" data-price="450" data-rating="4.6" data-reviews="41" data-verified="0" data-time="evening" data-added="5">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">ก</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูกิต</a></h2>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>ปทุมธานี</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน · สถานที่อื่นๆ</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.6 จาก 5</span>
+            <span class="rating-num">4.6</span><span class="rating-count">(41 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">เคมี</span>
+            <span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿450 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="aom" data-name="ครูอ้อม" data-subj="ภาษาไทย" data-level="kindergarten,primary_low" data-mode="home" data-prov="กรุงเทพมหานคร" data-price="300" data-rating="5.0" data-reviews="17" data-verified="1" data-time="morning,afternoon" data-added="8">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">อ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูอ้อม</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">5.0 จาก 5</span>
+            <span class="rating-num">5.0</span><span class="rating-count">(17 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">ภาษาไทย</span>
+            <span class="tag tag--plain">อนุบาล</span><span class="tag tag--plain">ประถมต้น</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿300 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="mint" data-name="ครูมิ้นท์" data-subj="เปียโน,ทฤษฎีดนตรี/แต่งเพลง" data-level="primary_low,primary_high,adult" data-mode="home,public" data-prov="กรุงเทพมหานคร" data-price="600" data-rating="4.9" data-reviews="54" data-verified="1" data-time="morning,afternoon,evening" data-added="7">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">ม</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูมิ้นท์</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน · สถานที่อื่นๆ</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.9 จาก 5</span>
+            <span class="rating-num">4.9</span><span class="rating-count">(54 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">เปียโน</span><span class="tag">ทฤษฎีดนตรี/แต่งเพลง</span>
+            <span class="tag tag--plain">ประถมต้น</span><span class="tag tag--plain">ประถมปลาย</span><span class="tag tag--plain">ผู้ใหญ่ทั่วไป</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿600 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="oat" data-name="ครูโอ๊ต" data-subj="คณิตศาสตร์" data-level="primary_high,middle" data-mode="online,home" data-prov="เชียงใหม่" data-price="280" data-rating="4.5" data-reviews="33" data-verified="0" data-time="evening,night" data-added="3">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">อ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูโอ๊ต</a></h2>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>เชียงใหม่</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.5 จาก 5</span>
+            <span class="rating-num">4.5</span><span class="rating-count">(33 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">คณิตศาสตร์</span>
+            <span class="tag tag--plain">ประถมปลาย</span><span class="tag tag--plain">มัธยมต้น</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿280 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="gigi" data-name="ครูจีจี้" data-subj="ภาษาจีน" data-level="middle,high,adult" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="420" data-rating="4.8" data-reviews="95" data-verified="1" data-time="night" data-added="9">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">จ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูจีจี้</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.8 จาก 5</span>
+            <span class="rating-num">4.8</span><span class="rating-count">(95 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">ภาษาจีน</span>
+            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span><span class="tag tag--plain">ผู้ใหญ่ทั่วไป</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿420 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="tan" data-name="ครูแทน" data-subj="ชีววิทยา,ติวสอบเข้ามหาวิทยาลัย" data-level="high" data-mode="online,home" data-prov="ชลบุรี" data-price="480" data-rating="4.7" data-reviews="62" data-verified="1" data-time="afternoon,evening" data-added="1">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">ท</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูแทน</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>ชลบุรี</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.7 จาก 5</span>
+            <span class="rating-num">4.7</span><span class="rating-count">(62 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">ชีววิทยา</span><span class="tag">ติวสอบเข้ามหาวิทยาลัย</span>
+            <span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿480 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="fahart" data-name="ครูฟ้า" data-subj="วาดรูป/ระบายสี,ศิลปะสำหรับเด็ก" data-level="kindergarten,primary_low,primary_high" data-mode="home,public" data-prov="สมุทรปราการ" data-price="320" data-rating="4.6" data-reviews="28" data-verified="0" data-time="morning,afternoon" data-added="11">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">ฟ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูฟ้า</a></h2>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>สมุทรปราการ</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน · สถานที่อื่นๆ</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.6 จาก 5</span>
+            <span class="rating-num">4.6</span><span class="rating-count">(28 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">วาดรูป/ระบายสี</span><span class="tag">ศิลปะสำหรับเด็ก</span>
+            <span class="tag tag--plain">อนุบาล</span><span class="tag tag--plain">ประถมต้น</span><span class="tag tag--plain">ประถมปลาย</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿320 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="earth" data-name="ครูเอิร์ธ" data-subj="คอมพิวเตอร์/เขียนโปรแกรม" data-level="middle,high,adult" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="550" data-rating="5.0" data-reviews="12" data-verified="1" data-time="night" data-added="12">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">อ</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูเอิร์ธ</a></h2>
+              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">5.0 จาก 5</span>
+            <span class="rating-num">5.0</span><span class="rating-count">(12 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">คอมพิวเตอร์/เขียนโปรแกรม</span>
+            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span><span class="tag tag--plain">ผู้ใหญ่ทั่วไป</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿550 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+        <article class="t-card" data-t="neung" data-name="ครูหนึ่ง" data-subj="สังคมศึกษา" data-level="middle,high" data-mode="online,home" data-prov="ขอนแก่น" data-price="300" data-rating="4.4" data-reviews="58" data-verified="0" data-time="evening" data-added="10">
+          <div class="t-top">
+            <div class="t-avatar" aria-hidden="true">ห</div>
+            <div class="t-id">
+              <h2 class="t-name"><a href="teacher-profile.html">ครูหนึ่ง</a></h2>
+              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>ขอนแก่น</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
+            </div>
+          </div>
+          <div class="rating-line">
+            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.4 จาก 5</span>
+            <span class="rating-num">4.4</span><span class="rating-count">(58 รีวิว)</span>
+          </div>
+          <div class="tag-group">
+            <span class="tag">สังคมศึกษา</span>
+            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
+          </div>
+          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿300 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        </article>
+
+      </div>
+
+      <div class="empty" id="empty" hidden>
+        <h2>ยังไม่มีครูที่ตรงกับตัวกรองนี้</h2>
+        <!-- ข้อความเปลี่ยนตามตัวกรองที่ผู้ใช้ติ๊กจริง — เขียนไว้ใน emptyHint()
+             (เดิมเป็นข้อความคงที่ แนะนำ "เปิดรับออนไลน์" แม้ผู้ใช้ติ๊กออนไลน์ไปแล้ว) -->
+        <p id="emptyMsg">ลองเอาตัวกรองบางอันออกดู</p>
+        <button class="btn btn-secondary" type="button" id="emptyClear">ล้างตัวกรองทั้งหมด</button>
+      </div>
+
+    </div>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span class="foot-brand">BGT Tutor</span>
+        <span>แพลตฟอร์มจับคู่ครูสอนพิเศษกับผู้ปกครอง</span>
+        <nav aria-label="ลิงก์ทางกฎหมาย">
+          <a href="#">ข้อตกลงการใช้งาน</a>
+          <a href="#">นโยบายความเป็นส่วนตัว</a>
+          <a href="#">ติดต่อเรา</a>
+        </nav>
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+/* ตัวกรอง/เรียงลำดับของ prototype — ทำงานกับการ์ด 12 ใบในหน้านี้เท่านั้น
+   ตอนขึ้นงาน B ตรรกะชุดนี้จะย้ายไปฝั่ง server (query DB) แต่ "กติกา" ต้องเหมือนกัน:
+     แนะนำ = ยืนยันตัวตน > จังหวัดเดียวกัน (เฉพาะครูที่สอน onsite) > ดาว */
+(function () {
+  'use strict';
+
+  var cards   = [].slice.call(document.querySelectorAll('.t-card'));
+  var grid    = document.getElementById('grid');
+  var empty   = document.getElementById('empty');
+  var emptyMsg = document.getElementById('emptyMsg');
+
+  /* กล่อง "ไม่เจอครู" ต้องแนะนำสิ่งที่ผู้ใช้ "ยังไม่ได้ทำ" เท่านั้น
+     (Owner ทัก 2026-08-25: เดิมเขียนตายว่า "ลองเปิดรับออนไลน์เพิ่ม"
+      แล้วขึ้นเหมือนเดิมแม้ผู้ใช้ติ๊กออนไลน์ไปแล้ว = แนะนำสิ่งที่เขาทำไปแล้ว)
+     เรียงจากตัวกรองที่ "ตัดคนออกเยอะสุด" ลงไป แนะนำทีละอย่าง ไม่ยัดหลายข้อพร้อมกัน */
+  function emptyHint(s) {
+    var online = s.mode.indexOf('online') !== -1;
+    if (!online && (s.provOnly || s.prov)) return 'ลองติ๊ก “ออนไลน์” เพิ่มดู — ครูออนไลน์สอนข้ามจังหวัดได้ ไม่ติดว่าอยู่จังหวัดไหน';
+    if (!online && s.mode.length)          return 'ลองติ๊ก “ออนไลน์” เพิ่มดู — จะเจอครูได้มากกว่าเรียนที่บ้านอย่างเดียว';
+    if (s.provOnly)                        return 'ลองเอา “เฉพาะจังหวัดนี้” ออกดู — ตอนนี้ตัดครูออนไลน์ที่อยู่จังหวัดอื่นออกไปด้วย';
+    if (s.subj.length > 1)                 return 'ลองเลือกวิชาให้น้อยลง — ตอนนี้ต้องเป็นครูที่สอนครบทุกวิชาที่ติ๊กไว้';
+    if (s.time.length)                     return 'ลองเอาช่วงเวลาบางช่วงออกดู — ครูหลายคนว่างคนละช่วงกับที่เลือกไว้';
+    if (s.price.length || s.maxPrice)      return 'ลองขยายงบต่อชั่วโมงขึ้นอีกหน่อย — ครูในระดับราคานี้ยังไม่มีที่ตรงเงื่อนไขอื่น';
+    if (s.rating)                          return 'ลองลดคะแนนรีวิวขั้นต่ำลง — ครูใหม่ที่ยังรีวิวไม่เยอะอาจตรงกับที่ต้องการ';
+    if (s.verified)                        return 'ลองเอา “ยืนยันตัวตนแล้ว” ออกดู — ครูบางคนกำลังรอตรวจเอกสารอยู่';
+    if (s.level.length)                    return 'ลองเอาระดับชั้นออกดู — ครูบางคนรับสอนข้ามระดับชั้นได้';
+    if (s.q)                               return 'ลองลบคำค้น “' + s.q + '” ออกดู แล้วใช้ตัวกรองแทน';
+    return 'ยังไม่มีครูที่ตรงกับเงื่อนไขนี้ ลองเปลี่ยนวิชาหรือระดับชั้นดู';
+  }
+  var applied = document.getElementById('applied');
+  var countNum   = document.getElementById('countNum');
+  var sheetCount = document.getElementById('sheetCount');
+  var sortSel = document.getElementById('sort');
+  var provSel = document.getElementById('fProv');
+  var provOnly = document.getElementById('fProvOnly');
+  var verifiedBox = document.getElementById('fVerified');
+  var qInput = document.getElementById('q');
+  var panel  = document.getElementById('filterPanel');
+
+  var GROUP_LABEL = {subj:'วิชา', level:'ระดับชั้น', mode:'รูปแบบ', time:'ช่วงเวลา', price:'ราคา', rating:'ดาว'};
+  /* ป้ายบนชิป = อ่านจากข้อความข้างช่องติ๊กโดยตรง ไม่เก็บตารางคำแปลซ้ำ
+     (ระดับชั้นเก็บเป็นโค้ด kindergarten/middle/... แต่ต้องโชว์ว่า "อนุบาล/มัธยมต้น") */
+  function labelOf(input) {
+    var s = input.parentNode.querySelector('span:not(.f-count)');
+    return s ? s.textContent.trim() : input.value;
+  }
+
+  var groups = {};
+  [].forEach.call(document.querySelectorAll('.f-group[data-group]'), function (fs) {
+    groups[fs.getAttribute('data-group')] = [].slice.call(fs.querySelectorAll('input'));
+  });
+
+  function listOf(card, key) { return (card.getAttribute('data-' + key) || '').split(','); }
+  function checkedValues(g) {
+    return (groups[g] || []).filter(function (i) { return i.checked && i.value !== '0'; })
+                            .map(function (i) { return i.value; });
+  }
+  function hits(list, picked) {
+    if (!picked.length) return true;
+    for (var i = 0; i < picked.length; i++) if (list.indexOf(picked[i]) > -1) return true;
+    return false;
+  }
+  function inPrice(price, picked) {
+    if (!picked.length) return true;
+    for (var i = 0; i < picked.length; i++) {
+      var p = picked[i].split('-');
+      if (price >= +p[0] && price <= +p[1]) return true;
+    }
+    return false;
+  }
+
+  /* 💰 เพดานงบที่รับมาจาก URL (?budget=600) — เก็บเป็น "ตัวเลขจริง" ไม่แปลงเป็นช่วงราคา
+     🔴 ของเดิม (แก้ 2026-08-14): แปลงงบเป็นการติ๊กช่วงราคา แล้วติ๊กช่วง "มากกว่า ฿500" ซึ่งไม่มีเพดานไปด้วย
+        -> กรอกงบ 600 แต่ครู ฿900 ยังโผล่ · Owner สั่งแก้: "คนลงงบ 600 ก็ต้องได้คำตอบที่ไม่เกิน 600"
+        -> เลิกแปลง ใช้เลขกรองตรง ๆ (หน้านี้กรองราคาด้วยตัวเลขอยู่แล้วใน inPrice) */
+  var maxBudget = 0;
+
+  function readState() {
+    return {
+      maxPrice: maxBudget,
+      subj: checkedValues('subj'),
+      level: checkedValues('level'),
+      mode: checkedValues('mode'),
+      time: checkedValues('time'),
+      price: checkedValues('price'),
+      rating: +(document.querySelector('input[name=rating]:checked') || {value: 0}).value,
+      verified: verifiedBox.checked,
+      provOnly: provOnly.checked,
+      prov: provSel.value,
+      q: (qInput.value || '').trim()
+    };
+  }
+
+  /* skip = ชื่อกลุ่มที่ "ไม่นับ" — ใช้ตอนคำนวณตัวเลขข้างตัวเลือกของกลุ่มนั้นเอง
+     (มาตรฐาน: จำนวนที่โชว์ข้างตัวเลือก = ผลลัพธ์เมื่อกรองด้วยกลุ่มอื่นครบแล้ว) */
+  function match(card, s, skip) {
+    if (skip !== 'subj'  && !hits(listOf(card, 'subj'),  s.subj))  return false;
+    if (skip !== 'level' && !hits(listOf(card, 'level'), s.level)) return false;
+    if (skip !== 'mode'  && !hits(listOf(card, 'mode'),  s.mode))  return false;
+    if (skip !== 'time'  && !hits(listOf(card, 'time'),  s.time))  return false;
+    if (skip !== 'price' && !inPrice(+card.getAttribute('data-price'), s.price)) return false;
+    /* เพดานงบใช้เสมอ ไม่ยกเว้นตอนนับเลขข้างช่วงราคา — ตัวเลขที่โชว์จะได้ตรงกับที่กดแล้วเห็นจริง */
+    if (s.maxPrice && +card.getAttribute('data-price') > s.maxPrice) return false;
+    if (skip !== 'rating' && s.rating && +card.getAttribute('data-rating') < s.rating) return false;
+    if (skip !== 'verified' && s.verified && card.getAttribute('data-verified') !== '1') return false;
+    if (skip !== 'provOnly' && s.provOnly && card.getAttribute('data-prov') !== s.prov) return false;
+    if (s.q) {
+      var hay = card.getAttribute('data-name') + ' ' + card.getAttribute('data-subj');
+      if (hay.indexOf(s.q) === -1) return false;
+    }
+    return true;
+  }
+
+  function isOnsite(card) { return listOf(card, 'mode').indexOf('online') === -1 || listOf(card, 'mode').length > 1; }
+
+  function sortCards(list, mode, prov) {
+    var by = {
+      'price-asc':  function (a, b) { return +a.getAttribute('data-price') - +b.getAttribute('data-price'); },
+      'price-desc': function (a, b) { return +b.getAttribute('data-price') - +a.getAttribute('data-price'); },
+      'rating':     function (a, b) { return +b.getAttribute('data-rating') - +a.getAttribute('data-rating'); },
+      'reviews':    function (a, b) { return +b.getAttribute('data-reviews') - +a.getAttribute('data-reviews'); },
+      'new':        function (a, b) { return +b.getAttribute('data-added') - +a.getAttribute('data-added'); },
+      'rec':        function (a, b) {
+        var v = +b.getAttribute('data-verified') - +a.getAttribute('data-verified');
+        if (v) return v;                                   /* 1. ยืนยันตัวตนแล้วขึ้นก่อน */
+        var pa = (isOnsite(a) && a.getAttribute('data-prov') === prov) ? 1 : 0;
+        var pb = (isOnsite(b) && b.getAttribute('data-prov') === prov) ? 1 : 0;
+        if (pb - pa) return pb - pa;                        /* 2. onsite จังหวัดเดียวกันขึ้นก่อน */
+        return +b.getAttribute('data-rating') - +a.getAttribute('data-rating');   /* 3. ดาว */
+      }
+    };
+    return list.slice().sort(by[mode] || by.rec);
+  }
+
+  function chip(label, onRemove) {
+    var el = document.createElement('span');
+    el.className = 'a-chip';
+    el.appendChild(document.createTextNode(label));
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', 'เอาตัวกรอง ' + label + ' ออก');
+    b.textContent = '✕';
+    b.addEventListener('click', onRemove);
+    el.appendChild(b);
+    return el;
+  }
+
+  function buildChips(s) {
+    applied.textContent = '';
+    var n = 0;
+
+    ['subj', 'level', 'mode', 'time', 'price'].forEach(function (g) {
+      (groups[g] || []).forEach(function (input) {
+        if (!input.checked) return;
+        n++;
+        applied.appendChild(chip(GROUP_LABEL[g] + ': ' + labelOf(input), function () { input.checked = false; render(); }));
+      });
+    });
+
+    if (s.maxPrice) {
+      n++;
+      applied.appendChild(chip('งบไม่เกิน ฿' + s.maxPrice, function () { maxBudget = 0; render(); }));
+    }
+
+    var r = document.querySelector('input[name=rating]:checked');
+    if (r && r.value !== '0') {
+      n++;
+      applied.appendChild(chip('ดาว: ' + r.value + ' ขึ้นไป', function () {
+        groups.rating[0].checked = true; render();
+      }));
+    }
+    if (s.verified) {
+      n++;
+      applied.appendChild(chip('ยืนยันตัวตนแล้ว', function () { verifiedBox.checked = false; render(); }));
+    }
+    if (s.provOnly) {
+      n++;
+      applied.appendChild(chip('เฉพาะ ' + s.prov, function () { provOnly.checked = false; render(); }));
+    }
+    if (s.q) {
+      n++;
+      applied.appendChild(chip('คำค้น: ' + s.q, function () { qInput.value = ''; render(); }));
+    }
+
+    if (n) {
+      var clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'clear-all';
+      clear.textContent = 'ล้างตัวกรองทั้งหมด';
+      clear.addEventListener('click', clearAllByUser);
+      applied.appendChild(clear);
+    }
+    return n;
+  }
+
+  function updateOptionCounts(s) {
+    Object.keys(groups).forEach(function (g) {
+      groups[g].forEach(function (input) {
+        var box = input.parentNode.querySelector('.f-count');
+        if (!box) return;
+        var n;
+        if (g === 'rating') {
+          var min = +input.value;
+          n = cards.filter(function (c) { return match(c, s, 'rating') && +c.getAttribute('data-rating') >= min; }).length;
+        } else if (g === 'price') {
+          n = cards.filter(function (c) { return match(c, s, 'price') && inPrice(+c.getAttribute('data-price'), [input.value]); }).length;
+        } else {
+          n = cards.filter(function (c) { return match(c, s, g) && listOf(c, g).indexOf(input.value) > -1; }).length;
+        }
+        box.textContent = n;
+        /* ตัวเลือกที่กดแล้วได้ 0 = ปิดไว้ ไม่ให้กดจนเจอหน้าว่าง (แต่ถ้ากดค้างอยู่ ห้ามปิด) */
+        input.disabled = (n === 0 && !input.checked);
+      });
+    });
+
+    var vBox = document.querySelector('[data-count-for=verified]');
+    if (vBox) vBox.textContent = cards.filter(function (c) {
+      return match(c, s, 'verified') && c.getAttribute('data-verified') === '1';
+    }).length;
+
+    var pBox = document.querySelector('[data-count-for=provOnly]');
+    if (pBox) pBox.textContent = cards.filter(function (c) {
+      return match(c, s, 'provOnly') && c.getAttribute('data-prov') === s.prov;
+    }).length;
+  }
+
+  /* 🔗 ก้อน C1ข — ลิงก์การ์ดต้องพาเงื่อนไขไปด้วย ของเดิมเป็น teacher-profile.html เปล่า ๆ
+     วิชาที่ส่งไป = วิชาที่ "ผู้ใช้เลือกไว้ ∩ ครูคนนี้สอนจริง" เท่านั้น
+     🔴 ห้ามเดาวิชาให้เอง (เช่นหยิบวิชาแรกของครู) — ผู้ใช้ไม่ได้เลือกไว้ = ปล่อยว่าง แล้วไปเลือกในหน้าจอง */
+  function updateCardLinks(s) {
+    var kidParam = '';
+    try { kidParam = new URLSearchParams(location.search).get('kid') || ''; } catch (e) {}
+    if (!/^[A-Za-z0-9_]{1,12}$/.test(kidParam)) kidParam = '';   /* รับเฉพาะรูปแบบรหัส ไม่ส่งค่าดิบต่อ */
+    cards.forEach(function (c) {
+      var a = c.querySelector('.t-name a');
+      if (!a) return;
+      var mine = listOf(c, 'subj');
+      var fit = s.subj.filter(function (v) { return mine.indexOf(v) > -1; });
+      /* เรียงตามลำดับที่ผู้เรียนกรอกไว้ก่อน (ลิสต์ตัวกรองบนหน้าเรียงคนละแบบ — ลูกที่กรอก "ฟิสิกส์" ไว้ก่อน
+         ไม่ควรได้ "คณิตศาสตร์" ติดไปเพราะมันอยู่บนสุดของตัวกรอง · ผลตรวจ logic 2026-08-20 ข้อ 15) */
+      if (subjOrder.length) fit.sort(function (a, b) {
+        var ia = subjOrder.indexOf(a), ib = subjOrder.indexOf(b);
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      });
+      var pick = fit[0] || '';
+      if (!pick && s.q && mine.indexOf(s.q) > -1) pick = s.q;   /* วิชาที่ไม่มีช่องติ๊ก มาทางช่องค้นหา */
+      var p = new URLSearchParams();
+      var slug = c.getAttribute('data-t');
+      if (slug) p.set('t', slug);
+      if (pick) p.set('subj', pick);
+      if (kidParam) p.set('kid', kidParam);
+      var qs = p.toString();
+      a.href = 'teacher-profile.html' + (qs ? '?' + qs : '');
+    });
+  }
+
+  function render() {
+    var s = readState();
+    updateCardLinks(s);
+    var visible = cards.filter(function (c) { return match(c, s, null); });
+
+    cards.forEach(function (c) { c.hidden = visible.indexOf(c) === -1; });
+
+    /* 🔴 ย้าย node ที่อยู่ใน DOM = ทิ้ง layout ทั้งใบแล้วคำนวณใหม่ (การ์ดไทย 1 ใบมีลูกหลายสิบตัว)
+       วัดจริง 2026-08-20 (สาย perf): ติ๊กตัวกรอง 20 ครั้ง ลำดับเปลี่ยนจริง 0 ครั้ง แต่ย้ายการ์ด 11/12 ใบทุกครั้ง
+       → เทียบลำดับก่อน ตรงกันแล้วข้ามทั้งลูป (ที่ 200 ใบ ตัดงานทิ้ง ~97 ms ต่อคลิก) */
+    var want = sortCards(visible, sortSel.value, s.prov);
+    var now = [].filter.call(grid.children, function (c) { return !c.hidden; });
+    var same = now.length === want.length;
+    if (same) for (var i = 0; i < want.length; i++) if (now[i] !== want[i]) { same = false; break; }
+    if (!same) want.forEach(function (c) { grid.appendChild(c); });
+
+    countNum.textContent = visible.length;
+    sheetCount.textContent = visible.length;
+    empty.hidden = visible.length !== 0;
+    if (!empty.hidden) emptyMsg.textContent = emptyHint(s);
+
+    var n = buildChips(s);
+    [['fcountTop', document.getElementById('fcountTop')], ['fcountBar', document.getElementById('fcountBar')]]
+      .forEach(function (pair) {
+        var el = pair[1];
+        if (!el) return;
+        el.textContent = n;
+        el.hidden = n === 0;
+      });
+
+    updateOptionCounts(s);
+
+    /* ชิปยอดนิยมด้านบน = ทางลัดของตัวกรองวิชา ต้องสะท้อนสถานะจริงเสมอ */
+    [].forEach.call(document.querySelectorAll('[data-quick]'), function (btn) {
+      var v = btn.getAttribute('data-quick');
+      var input = groups.subj.filter(function (i) { return i.value === v; })[0];
+      btn.setAttribute('aria-pressed', input && input.checked ? 'true' : 'false');
+    });
+  }
+
+  /* แถบเลือกผู้เรียนต้องคลายไฮไลต์ตอนกด ล้างตัวกรอง ด้วย — ไม่งั้นชื่อลูกยังเข้มอยู่ทั้งที่ตัวกรองว่างแล้ว
+     (initLearnerBar เป็นคนใส่ตัวจริงให้ · ถ้าไม่มีแถบก็ไม่ทำอะไร) */
+  var resetLearnerChips = function () {};
+
+  function clearAll(skipRender) {
+    Object.keys(groups).forEach(function (g) {
+      groups[g].forEach(function (i) {
+        i.disabled = false;
+        if (i.type === 'radio') i.checked = (i.value === '0');
+        else i.checked = false;
+      });
+    });
+    verifiedBox.checked = false;
+    provOnly.checked = false;
+    maxBudget = 0;
+    resetLearnerChips();                                      /* ล้างทั้งหมด ต้องล้างเพดานงบจาก URL ด้วย */
+    qInput.value = '';
+    document.getElementById('prefill').hidden = true;   /* ล้างแล้วแถบ "กรองให้จากโปรไฟล์" ต้องหายด้วย */
+    if (!skipRender) render();     /* ตอนสลับผู้เรียนจะ render ทีเดียวตอนท้าย ไม่ต้องวาด 2 รอบ */
+  }
+
+  /* ---------------------------------------------------------------------
+     🔗 รับเงื่อนไขจากหน้าอื่นผ่าน URL — นี่คือจุดที่ "ของที่กรอกไว้ตอนสมัคร" กับ
+        "ปุ่มค้นหาบนหน้าแรก" มาบรรจบกับหน้านี้ (ตอนต่อ DB แล้วก็ยังใช้ทางเดียวกัน)
+
+     teacher-search.html?subj=คณิตศาสตร์&level=middle&budget=400&prov=นนทบุรี&mode=online&time=เย็น
+       subj   = ชื่อวิชา (สตริงเดียวกับลิสต์กลาง · ใส่หลายวิชาคั่นด้วย ,)
+       level  = โค้ดช่วงชั้นของครู (kindergarten/primary_low/primary_high/middle/high/university/adult)
+       budget = งบต่อชั่วโมงของผู้เรียน -> ติ๊กช่วงราคาที่ "ไม่เกินงบ" ให้อัตโนมัติ
+       prov   = จังหวัดของผู้เรียน · mode = รูปแบบเรียน · time = ช่วงเวลาที่สะดวก · q = คำค้น
+
+     ⚠️ ผู้เรียนกรอกระดับชั้นเป็น "รายชั้น" (ป.4 / ม.2) แต่ครูกรอกเป็น "ช่วงชั้น"
+        -> ต้องแปลงก่อนเสมอ ใช้ gradeToLevel() ข้างล่าง (ตอนงาน B ย้ายไปทำฝั่ง server ด้วยตารางเดียวกัน) */
+  function gradeToLevel(g) {
+    if (!g) return '';
+    if (g === 'อนุบาล') return 'kindergarten';
+    if (/^ป\.[123]$/.test(g)) return 'primary_low';
+    if (/^ป\.[456]$/.test(g)) return 'primary_high';
+    if (/^ม\.[123]$/.test(g)) return 'middle';
+    if (/^ม\.[456]$/.test(g) || g === 'ปวช./ปวส.') return 'high';
+    /* กศน. เพิ่ม 2026-08-15 พร้อมกับตัด "อื่น ๆ" ออกจากหน้าสมัคร
+       เหตุผล: "อื่น ๆ" แปลงไม่ได้ → คืนค่าว่าง → ผู้เรียนหายจากผลค้นหาทั้งหมด (บั๊กจริง)
+       🔴 ลิสต์ต้นฉบับ 18 ตัวอยู่ที่ signup-parent.html · ทุกตัวต้องแปลงได้ ห้ามมีตัวที่ตกมาถึง return '' */
+    if (g === 'กศน. (ม.ต้น)') return 'middle';
+    if (g === 'กศน. (ม.ปลาย)') return 'high';
+    if (g === 'มหาวิทยาลัย') return 'university';
+    if (g === 'วัยทำงาน') return 'adult';
+    return '';
+  }
+  window.gradeToLevel = gradeToLevel;   /* หน้าอื่น/สคริปต์ทดสอบเรียกใช้ได้ */
+
+  /* 🔗 ค่ากรอง 1 ชุด (จาก URL หรือจากผู้เรียนที่กดเลือกในแถบ) -> ติ๊กช่องให้ + เขียนแถบ "กรองให้แล้ว"
+     แยกออกมาจาก applyUrlParams ตอนก้อน C1ข เพราะแถบเลือกผู้เรียนต้องใช้ตรรกะเดียวกันเป๊ะ
+     ค่าที่รับ: {subj, mode, time, level, grade, budget, prov, verified, q} — สตริงคั่นด้วย , ได้ทุกตัว */
+  function applyCriteria(c) {
+    var said = [];
+
+    /* คืนค่า = รายการที่ "ขอมาแต่หน้านี้ไม่มีช่องให้ติ๊ก" (ตัวกรองวิชามี 15 ตัว ลิสต์กลางมี ~70) */
+    function tickGroup(g, raw, label) {
+      if (!raw) return [];
+      var want = String(raw).split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+      var hit = [], got = [];
+      (groups[g] || []).forEach(function (i) {
+        if (want.indexOf(i.value) > -1) { i.checked = true; hit.push(labelOf(i)); got.push(i.value); }
+      });
+      if (hit.length) said.push(label + ' ' + hit.join(', '));
+      return want.filter(function (v) { return got.indexOf(v) === -1; });
+    }
+
+    var missSubj = tickGroup('subj', c.subj, 'วิชา');
+    tickGroup('mode', c.mode, 'รูปแบบ');
+    tickGroup('time', c.time, 'ช่วงเวลา');
+
+    /* level รับได้ 2 แบบ: โค้ดช่วงชั้น (level=middle) หรือรายชั้นของผู้เรียน (grade=ม.2) */
+    var lv = c.level || '';
+    if (c.grade) { var mapped = gradeToLevel(String(c.grade).trim()); if (mapped) lv = lv ? lv + ',' + mapped : mapped; }
+    tickGroup('level', lv, 'ระดับชั้น');
+
+    var budget = parseInt(c.budget, 10);
+    if (budget > 0) {
+      maxBudget = budget;
+      said.push('งบไม่เกิน ฿' + budget);
+    }
+
+    if (c.prov) {
+      var found = [].slice.call(provSel.options).some(function (o) { return o.value === c.prov; });
+      if (found) { provSel.value = c.prov; said.push('จังหวัด ' + c.prov); }
+      else said.push('จังหวัด ' + String(c.prov).slice(0, 20) + ' ยังไม่มีในตัวเลือก');
+    }
+    if (c.verified) { verifiedBox.checked = true; said.push('เฉพาะครูที่ยืนยันตัวตนแล้ว'); }
+
+    /* 🔴 วิชาที่กรอกไว้ตอนสมัครแต่ยังไม่มีช่องติ๊กในหน้านี้ (เช่น ว่ายน้ำ)
+       ถ้าปล่อยเฉย ๆ ผู้ใช้จะเห็นครูทุกคนราวกับไม่เคยกรอกวิชาไว้ = วิชาหายกลางทาง (ปัญหาที่ก้อน C1ข ตั้งใจอุด)
+       -> ไม่มีวิชาไหนติ๊กได้เลย: ยิงวิชาแรกลงช่องค้นหาแทน · ติ๊กได้บ้าง: บอกให้เห็นว่าตัวไหนตกไป */
+    var qText = c.q || '';
+    if (!qText && missSubj.length && !checkedValues('subj').length) qText = missSubj[0];
+    if (qText) {
+      qInput.value = qText;
+      /* 🔴 แถบเขียวนี้หน้าตาเหมือนข้อความของระบบ — ถ้าปล่อยให้สะท้อนข้อความยาว ๆ จาก URL ได้
+         จะกลายเป็นช่องหลอกผู้ใช้ ("โอนมัดจำก่อนจอง") · บทเรียนเดียวกับ post-job.html ค้น from= */
+      said.push('คำค้น "' + qText.slice(0, 30) + (qText.length > 30 ? '…' : '') + '"');
+    }
+    var dropped = missSubj.filter(function (v) { return v !== qText; });
+    if (dropped.length) said.push('(ยังไม่มีตัวกรองสำหรับ ' + dropped.join(', ') + ' — พิมพ์ในช่องค้นหาด้านบนได้)');
+
+    var box = document.getElementById('prefill');
+    document.getElementById('prefillWhat').textContent = said.length ? '(' + said.join(' · ') + ')' : '';
+    box.hidden = !said.length;      /* ไม่มีอะไรกรองให้ = ซ่อน ห้ามปล่อยข้อความของคนก่อนค้าง */
+  }
+
+  function applyUrlParams() {
+    var p;
+    try { p = new URLSearchParams(location.search); } catch (e) { return; }
+    applyCriteria({
+      subj:     p.get('subj'),
+      mode:     p.get('mode'),
+      time:     p.get('time'),
+      level:    p.get('level') || '',
+      grade:    p.get('grade'),
+      budget:   p.get('budget'),
+      prov:     p.get('prov'),
+      verified: p.get('verified') === '1',
+      q:        p.get('q')
+    });
+  }
+
+  /* ---- แถบเลือกผู้เรียน (ก้อน C1ข) ----------------------------------------
+     ที่มาของข้อมูล = sessionStorage['bgt_learners'] ที่หน้าสมัครเขียนไว้
+       {"v":1,"prov":"กรุงเทพมหานคร","learners":[{id,nick,grade,subj[],time[],mode[],budget}]}
+     🔴 เก็บแค่ชื่อเล่น+ระดับชั้น+เงื่อนไขค้นหา ไม่มีชื่อจริง/เบอร์/ที่อยู่ (กติกาถาวรข้อ 5)
+     ตอนต่อฐานข้อมูลจริง (งาน B) เปลี่ยนมาอ่านจากบัญชีที่ล็อกอินแทน ตรรกะข้างล่างใช้ต่อได้ทั้งดุ้น */
+  function forgetLearners() {
+    try { sessionStorage.removeItem('bgt_learners'); } catch (e) {}
+  }
+
+  /* ผู้ใช้กด "ล้างตัวกรองทั้งหมด" = ตั้งใจเลิกใช้ข้อมูลที่กรอกไว้ → ลืมทิ้งไปเลย ไม่เก็บค้างในเครื่อง
+     (clearAll เฉย ๆ ใช้ตอนสลับผู้เรียนด้วย ห้ามลบตรงนั้น ไม่งั้นสลับกลับไม่ได้) */
+  function clearAllByUser() {
+    forgetLearners();
+    var bar = document.getElementById('learnerBar');
+    if (bar) bar.hidden = true;
+    clearAll();
+  }
+
+  function readLearners() {
+    var raw = null;
+    try { raw = sessionStorage.getItem('bgt_learners'); } catch (e) { return null; }   /* โหมดส่วนตัวบางเบราว์เซอร์โยน error */
+    if (!raw) return null;
+    var o = null;
+    try { o = JSON.parse(raw); } catch (e) { return null; }
+    if (!o || o.v !== 1 || !o.learners || !o.learners.length) return null;
+
+    /* 🔴 อายุข้อมูล 2 ชม. — เครื่องที่ใช้ร่วมกัน (ห้องสมุด/ร้านเน็ต) แท็บค้างไว้
+       คนถัดไปต้องไม่เห็นชื่อลูกของคนก่อน (ผลตรวจ security 2026-08-20) */
+    if (!o.ts || (Date.now() - o.ts) > 2 * 60 * 60 * 1000) { forgetLearners(); return null; }
+
+    /* กันข้อมูลผิดชนิด (คนแก้ storage เอง/ของค้างจากเวอร์ชันเก่า) ไม่ให้ทั้งฟังก์ชันตายแล้วแถบหายเงียบ ๆ */
+    o.learners = o.learners.filter(function (L) {
+      return L && typeof L.id === 'string' && Array.isArray(L.subj) && Array.isArray(L.time) && Array.isArray(L.mode);
+    });
+    return o.learners.length ? o : null;
+  }
+
+  /* 🔴 ส่งแค่รหัสผู้เรียนลง URL — ห้ามเขียนระดับชั้น/งบ/จังหวัด/วิชาของเด็กกลับลงไป
+     (ผลตรวจ security 2026-08-20 · `history.replaceState` = ข้อมูลไปนอนใน "ประวัติเบราว์เซอร์ถาวร"
+      ซึ่งอยู่นานกว่า sessionStorage และตอนต่อ backend จะไปโผล่ใน access log ของเซิร์ฟเวอร์ด้วย)
+     เงื่อนไขค้นหาที่เหลืออยู่ใน sessionStorage อยู่แล้ว หน้านี้ดึงเองได้ (applyStoredLearner) */
+  function queryFor(L) {
+    return 'kid=' + encodeURIComponent(L.id);
+  }
+
+  function criteriaOf(L, prov) {
+    return {
+      subj:   (L.subj || []).join(','),
+      mode:   (L.mode || []).join(','),
+      time:   (L.time || []).join(','),
+      grade:  L.grade,
+      budget: L.budget,
+      prov:   prov
+    };
+  }
+
+  /* ติ๊กตัวกรองจากผู้เรียนที่บันทึกไว้ — 🔴 ต้องทำงานตั้งแต่ผู้เรียน "คนเดียว"
+     (แถบสลับชื่อโผล่เฉพาะ ≥2 คน แต่การกรองต้องมาให้ครบทุกบัญชี ไม่งั้นบัญชีลูกคนเดียวจะเห็นครูทั้งหมดเหมือนไม่เคยกรอกอะไร) */
+  var subjOrder = [];      /* ลำดับวิชาที่ผู้เรียนกรอกไว้ — ใช้เลือกว่าจะส่งวิชาไหนไปกับลิงก์การ์ด */
+
+  function applyStoredLearner() {
+    var data = readLearners();
+    if (!data) return null;
+    var active = '';
+    try { active = new URLSearchParams(location.search).get('kid') || ''; } catch (e) {}
+    var hasFilterEarly = groups.subj.concat(groups.level, groups.mode, groups.time)
+                                .some(function (i) { return i.checked; }) || maxBudget > 0;
+    /* 🔴 เข้ามาด้วยเงื่อนไขของ "โพสต์" หรือของลูกอีกคน (จาก post-job/booking) แต่ไม่มี kid
+       → ห้ามเดาว่าเป็นลูกคนแรก ไม่งั้นจอบอกว่า "หาครูให้ น้องภูมิ" ทั้งที่กรองด้วยเงื่อนไขคนอื่น
+       (ผลตรวจ logic 2026-08-20 ข้อ 2) */
+    if (!active && hasFilterEarly) return { data: data, active: '' };
+    var picked = data.learners.filter(function (x) { return x.id === active; })[0] || data.learners[0];
+    if (!picked) return null;
+    /* ถ้ามีเงื่อนไขติดมากับ URL อยู่แล้ว (เช่นมาจากหน้าแรก หรือเบราว์เซอร์ปิด storage) ให้ของใน URL ชนะ ไม่ทับซ้อน */
+    var hasFilter = groups.subj.concat(groups.level, groups.mode, groups.time)
+                            .some(function (i) { return i.checked; }) || maxBudget > 0;
+    subjOrder = (picked.subj || []).slice();
+    if (!hasFilter) {
+      applyCriteria(criteriaOf(picked, data.prov));
+      try { history.replaceState(null, '', location.pathname + '?' + queryFor(picked)); } catch (e) {}
+    }
+    return { data: data, active: picked.id };
+  }
+
+  function initLearnerBar(stored) {
+    var bar = document.getElementById('learnerBar');
+    var wrap = document.getElementById('learnerChips');
+    if (!bar || !wrap || !stored) return;
+    var data = stored.data, active = stored.active;
+    if (!data || data.learners.length < 2) return;   /* ผู้เรียนคนเดียว = ไม่ต้องมีแถบให้รก (แต่ตัวกรองติ๊กให้แล้วที่ applyStoredLearner) */
+
+    data.learners.forEach(function (L) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.setAttribute('aria-pressed', L.id === active ? 'true' : 'false');
+      b.textContent = L.nick || 'ผู้เรียน';                    /* textContent = กันชื่อที่พิมพ์เองกลายเป็น HTML */
+      if (L.grade) {
+        var sm = document.createElement('small');
+        sm.textContent = L.grade;
+        b.appendChild(sm);
+      }
+      b.addEventListener('click', function () {
+        clearAll(true);                                        /* ล้างของคนก่อนหน้า ไม่งั้นวิชา 2 คนปนกัน (render ทีเดียวท้ายสุด) */
+        subjOrder = (L.subj || []).slice();
+        applyCriteria(criteriaOf(L, data.prov));
+        [].forEach.call(wrap.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
+        b.setAttribute('aria-pressed', 'true');
+        /* เขียน query ใหม่ "ทั้งชุด" — ถ้าเปลี่ยนแค่ kid ลิงก์ที่ก๊อปไป/กดรีเฟรช จะได้เงื่อนไขของคนก่อนหน้าติดไปด้วย */
+        try {
+          history.replaceState(null, '', location.pathname + '?' + queryFor(L));
+        } catch (e) {}
+        render();
+      });
+      wrap.appendChild(b);
+    });
+    resetLearnerChips = function () {
+      [].forEach.call(wrap.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
+    };
+    bar.hidden = false;
+  }
+
+  panel.addEventListener('change', render);
+  sortSel.addEventListener('change', render);
+  document.getElementById('emptyClear').addEventListener('click', clearAllByUser);
+
+  document.getElementById('searchForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    render();
+  });
+  qInput.addEventListener('search', render);   /* กดกากบาทในช่อง search */
+
+  [].forEach.call(document.querySelectorAll('[data-quick]'), function (btn) {
+    btn.addEventListener('click', function () {
+      var v = btn.getAttribute('data-quick');
+      var input = groups.subj.filter(function (i) { return i.value === v; })[0];
+      if (!input) return;
+      input.checked = !input.checked;
+      render();
+    });
+  });
+
+  /* ---- ชั้นตัวกรองเต็มจอ (เฉพาะจอเล็ก) ---- */
+  var openers = [document.getElementById('sheetOpen'), document.getElementById('sheetOpenTop')];
+  function openSheet() {
+    panel.classList.add('is-open');
+    document.body.classList.add('sheet-open');
+    openers.forEach(function (b) { if (b) b.setAttribute('aria-expanded', 'true'); });
+    var close = document.getElementById('sheetClose');
+    if (close) close.focus();
+  }
+  function closeSheet(returnFocusTo) {
+    panel.classList.remove('is-open');
+    document.body.classList.remove('sheet-open');
+    openers.forEach(function (b) { if (b) b.setAttribute('aria-expanded', 'false'); });
+    if (returnFocusTo && returnFocusTo.offsetParent !== null) returnFocusTo.focus();
+  }
+  openers.forEach(function (b) { if (b) b.addEventListener('click', function () { openSheet(); }); });
+  document.getElementById('sheetClose').addEventListener('click', function () { closeSheet(openers[0]); });
+  document.getElementById('sheetApply').addEventListener('click', function () { closeSheet(openers[0]); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && panel.classList.contains('is-open')) closeSheet(openers[0]);
+  });
+
+  applyUrlParams();
+  /* 🔴 ห้ามให้ของในเครื่องที่เพี้ยนลาก render() ล้มไปด้วย — ผลค้นหาต้องขึ้นเสมอ (ผลตรวจ logic 2026-08-20 ข้อ 7) */
+  try { initLearnerBar(applyStoredLearner()); } catch (e) {}   /* ก้อน C1ข — ติ๊กจากข้อมูลที่กรอกไว้ + แถบสลับผู้เรียน */
+  render();
+})();
+</script>
+
+</body>
+</html>
