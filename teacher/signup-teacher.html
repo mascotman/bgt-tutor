@@ -1132,20 +1132,66 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   /* 🔴 3 โหมด ไม่ใช่ 2 — Owner เคาะ 2026-08-15: ไปบ้าน กับ ไปคาเฟ่/ห้องสมุด ต้นทุนเดินทางไม่เท่ากัน
      รหัสตรงกับ location_type ด้านบนและตัวกรองใน teacher-search.html */
   const modeOptions = [['online','ออนไลน์'],['home','ที่บ้าน'],['public','สถานที่อื่นๆ']];
+  /* 🔴 ตัวเลือกในแถวราคา ล็อกตามที่ครูติ๊กไว้แล้ว: ระดับชั้นจากข้อ 02 · รูปแบบสอนจากข้อ 03
+     (Owner สั่ง 2026-09-04) กันครูตั้งราคาระดับชั้น/รูปแบบที่ตัวเองไม่ได้รับสอน
+     ข้อมูลราคาจะได้ตรงกับที่ผู้ปกครองเห็นในโปรไฟล์เสมอ */
+  const gradeGroupEl = document.getElementById('grade-levels');
+  const priceHelper  = document.querySelector('.helper[data-for="price-rows"]');
+  function pickedGrades(){ return [...gradeGroupEl.querySelectorAll('input:checked')].map(i=>i.value); }
+  function pickedModes(){ return [...locGroup.querySelectorAll('input:checked')].map(i=>i.value); }
+  function gradeChoices(){
+    const picked = pickedGrades();
+    const list = gradeOptions.filter(g=>g[0]!=='all' && picked.indexOf(g[0])>=0);
+    if(picked.length > 1) list.push(['all','ทุกระดับที่รับสอน']);
+    return list;
+  }
+  function modeChoices(){
+    const picked = pickedModes();
+    return modeOptions.filter(m=>picked.indexOf(m[0])>=0);
+  }
+  /* เติมตัวเลือกใหม่ แต่ถ้าค่าที่ครูเลือกไว้ยังอยู่ในลิสต์ ต้องคงไว้ (ห้ามรีเซ็ตของที่กรอกแล้ว) */
+  function fillSelect(sel, choices, placeholder){
+    const keep = sel.value;
+    sel.innerHTML = '<option value="" disabled selected>'+placeholder+'</option>'
+      + choices.map(c=>'<option value="'+c[0]+'">'+c[1]+'</option>').join('');
+    sel.disabled = choices.length === 0;
+    if(keep && choices.some(c=>c[0]===keep)) sel.value = keep;
+    else if(choices.length === 1) sel.value = choices[0][0];
+  }
+  function refreshPriceRow(row){
+    const g = row.querySelector('select[name="price_level"]');
+    const m = row.querySelector('select[name="price_mode"]');
+    fillSelect(g, gradeChoices(), pickedGrades().length ? 'ระดับชั้น' : 'เลือกระดับชั้นในข้อ 02 ก่อน');
+    fillSelect(m, modeChoices(),  pickedModes().length  ? 'รูปแบบสอน' : 'เลือกสถานที่สอนในข้อ 03 ก่อน');
+  }
+  function refreshPriceOptions(){
+    [...priceRows.children].forEach(refreshPriceRow);
+    if(priceHelper && !priceHelper.classList.contains('err')){
+      const miss = [];
+      if(!pickedGrades().length) miss.push('ระดับชั้นที่รับสอน (ข้อ 02)');
+      if(!pickedModes().length)  miss.push('สถานที่สอน (ข้อ 03)');
+      priceHelper.textContent = miss.length
+        ? 'เลือก' + miss.join(' และ ') + ' ก่อน แล้วตัวเลือกตรงนี้จะขึ้นให้เอง'
+        : defaults['price-rows'];
+    }
+  }
   function addPriceRow(){
     const row=document.createElement('div'); row.className='price-row';
     const gradeSel=document.createElement('select'); gradeSel.setAttribute('aria-label','ระดับชั้น'); gradeSel.name='price_level';
-    gradeSel.innerHTML = '<option value="" disabled selected>ระดับชั้น</option>' + gradeOptions.map(g=>'<option value="'+g[0]+'">'+g[1]+'</option>').join('');
     const modeSel=document.createElement('select'); modeSel.setAttribute('aria-label','รูปแบบสอน'); modeSel.name='price_mode';
-    modeSel.innerHTML = modeOptions.map(m=>'<option value="'+m[0]+'">'+m[1]+'</option>').join('');
     const priceInput=document.createElement('input'); priceInput.type='number'; priceInput.min='0'; priceInput.placeholder='บาท/ชม.'; priceInput.setAttribute('aria-label','ราคาต่อชั่วโมง'); priceInput.name='price_amount';
     const removeBtn=document.createElement('button'); removeBtn.type='button'; removeBtn.className='price-remove'; removeBtn.setAttribute('aria-label','ลบรายการนี้'); removeBtn.textContent='×';
     removeBtn.addEventListener('click', ()=>{ row.remove(); });
     row.append(gradeSel,modeSel,priceInput,removeBtn);
+    refreshPriceRow(row);
     priceRows.appendChild(row);
   }
   document.getElementById('add-price-row').addEventListener('click', addPriceRow);
+  gradeGroupEl.addEventListener('change', refreshPriceOptions);
+  locGroup.addEventListener('change', refreshPriceOptions);
   addPriceRow();
+  refreshPriceOptions();
+
 
   /* ---------- file upload previews ---------- */
   function readAsDataURL(file, cb){ const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(file); }
