@@ -339,7 +339,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
     <nav class="sidenav" aria-label="หัวข้อในแบบฟอร์ม">
       <a href="#sec1"><span class="sidenav-num">1</span>ผู้ปกครองและที่อยู่</a>
       <a href="#sec2"><span class="sidenav-num">2</span>ผู้เรียนและสิ่งที่อยากเรียน</a>
-      <a href="#sec3"><span class="sidenav-num">3</span>ยืนยันเบอร์</a>
+      <a href="#sec3"><span class="sidenav-num">3</span>ยืนยันอีเมล</a>
       <a href="#sec4"><span class="sidenav-num">4</span>ข้อตกลง</a>
     </nav>
   </aside>
@@ -425,35 +425,42 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
         <section class="section" id="sec3">
           <div class="sec-head">
             <span class="sec-num">ขั้นที่ 3</span>
-            <h2>ยืนยันเบอร์ผู้ปกครอง</h2>
-            <p>เราส่งรหัสไปที่เบอร์ของผู้ปกครอง ไม่ใช่เบอร์ของเด็ก</p>
+            <h2>ยืนยันอีเมลผู้ปกครอง</h2>
+            <p>เราส่งรหัสไปที่อีเมลของผู้ปกครอง ไม่ใช่ของเด็ก</p>
           </div>
           <div class="otp-row">
             <div class="field">
-              <label for="p-phone">เบอร์มือถือผู้ปกครอง <span class="req">*</span></label>
-              <input type="tel" id="p-phone" name="parent_phone" required placeholder="0812345678" inputmode="numeric" autocomplete="tel">
-              <div class="helper" data-for="p-phone"></div>
+              <label for="p-email">อีเมลผู้ปกครอง <span class="req">*</span></label>
+              <input type="email" id="p-email" name="parent_email" required placeholder="parent@example.com" autocomplete="email">
+              <div class="helper" data-for="p-email"></div>
             </div>
-            <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัส</button>
+            <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัสไปที่อีเมล</button>
           </div>
           <div class="otp-row" id="otp-box" hidden style="margin-top:var(--space-4)">
             <div class="field">
-              <label for="otp">รหัส 6 หลักที่ได้รับ</label>
-              <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000">
-              <div class="helper" data-for="otp">ตัวอย่างเท่านั้น — พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
+              <label for="otp">รหัส 6 หลักที่ส่งไปทางอีเมล</label>
+              <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+              <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
             </div>
             <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยัน</button>
           </div>
-          <div id="otp-ok" hidden><span class="otp-status">ยืนยันเบอร์เรียบร้อย</span></div>
+          <div id="otp-ok" hidden><span class="otp-status">ยืนยันอีเมลเรียบร้อย</span></div>
+
+          <!-- ข้อความอธิบาย OTP (Owner สั่ง 2026-09-04: คนไทยหลายคนไม่เคยเจอ OTP ทางอีเมล เจอแต่ทาง SMS) -->
+          <div class="badge-note" style="margin-top:var(--space-5)">
+            <span class="badge-icon" aria-hidden="true">?</span>
+            <span><strong>ทำไมต้องมีรหัส 6 หลัก?</strong> เราส่งรหัสไปที่อีเมลของคุณ เพื่อพิสูจน์ว่าอีเมลนี้เป็นของคุณจริง — กันคนอื่นเอาอีเมลคุณไปสมัคร และเพราะเราใช้อีเมลนี้ส่งใบยืนยันการจองกับใบเสร็จให้คุณ<br>
+            รหัสใช้ได้ครั้งเดียว หมดอายุใน 10 นาที <strong style="display:inline">ไม่ใช่รหัสผ่าน ไม่ต้องจำ</strong></span>
+          </div>
 
           <div class="badge-note">
             <span class="badge-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span>
             <span>
-              <strong>ทำไมต้องเป็นเบอร์ผู้ปกครอง</strong>
+              <strong>ทำไมต้องเป็นอีเมลผู้ปกครอง</strong>
               กฎหมายคุ้มครองข้อมูลส่วนบุคคลของไทยกำหนดว่า ผู้เรียนที่อายุยังไม่ถึง 20 ปี ต้องมีผู้ปกครองรับรู้และร่วมตัดสินใจด้วย
-              การยืนยันที่เบอร์ผู้ปกครองคือวิธีที่เรายืนยันเรื่องนี้ โดย<strong style="display:inline">ไม่ต้องขอสำเนาบัตรประชาชนหรือเอกสารใด ๆ ของเด็ก</strong>
+              การยืนยันที่อีเมลผู้ปกครองคือวิธีที่เรายืนยันเรื่องนี้ โดย<strong style="display:inline">ไม่ต้องขอสำเนาบัตรประชาชนหรือเอกสารใด ๆ ของเด็ก</strong>
               และเราจะไม่แสดงชื่อจริง เบอร์ หรือที่อยู่ของเด็กให้ครูเห็น จนกว่าจะยืนยันการจองแล้ว
             </span>
           </div>
@@ -473,7 +480,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
           <div class="helper" data-for="agree1"></div>
           <div class="agree" style="margin-top:var(--space-4)">
             <input type="checkbox" id="agree2">
-            <label for="agree2">ยินดีรับข่าวสาร โปรโมชัน และครูแนะนำใหม่ ๆ ทาง SMS หรือ LINE (ไม่บังคับ ยกเลิกได้ทุกเมื่อ)</label>
+            <label for="agree2">ยินดีรับข่าวสาร โปรโมชัน และครูแนะนำใหม่ ๆ ทางอีเมล หรือ LINE (ไม่บังคับ ยกเลิกได้ทุกเมื่อ)</label>
           </div>
           <div class="submit-row">
             <button type="submit" class="btn btn-primary">ส่งใบสมัคร</button>
@@ -514,7 +521,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 /* ============================================================
    การ์ดผู้เรียน — ตัวตน + สิ่งที่อยากเรียน + เวลา/รูปแบบ/งบ  (C0 · 2026-08-19)
    🔴 โครงที่ Owner เคาะ (SYSTEM ข้อ 13 · LOG 122):
-      ระดับบัญชี  = ผู้ปกครอง · ที่อยู่/จังหวัด · OTP · ข้อตกลง
+      ระดับบัญชี  = ผู้ปกครอง · ที่อยู่/จังหวัด · OTP ทางอีเมล · ข้อตกลง
       ระดับผู้เรียน = ชื่อเล่น อายุ ระดับชั้น หลักสูตร เพศ + วิชา เป้าหมาย เวลา รูปแบบ งบ ครั้งละกี่ชั่วโมง สัปดาห์ละกี่ครั้ง
       เหตุผล: หน้าค้นหากรอง "วิชา x ระดับชั้น" พร้อมกัน — วิชากองรวมทั้งบ้าน = จับคู่ข้ามคน
    ⚠️ id ของทุกช่องใช้ uid ที่นับขึ้นเรื่อย ๆ ไม่ reuse (ลบการ์ดกลางแล้ว id ไม่ชนกัน)
@@ -906,24 +913,32 @@ window.slotsToBuckets = slotsToBuckets;
   });
 })();
 
-/* ===== OTP จำลอง ===== */
+/* ===== OTP ทางอีเมล (จำลอง) =====
+   🔴 ต้นแบบ: ยังไม่มี backend ส่งอีเมลจริง — ห้ามเขียนบนจอว่า "ส่งอีเมลแล้ว" (กฎเหล็กข้อ 1) */
 (() => {
-  const phone = document.getElementById('p-phone');
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const mail = document.getElementById('p-email');
   const send = document.getElementById('send-otp');
   const box = document.getElementById('otp-box');
   const verify = document.getElementById('verify-otp');
   const ok = document.getElementById('otp-ok');
   send.addEventListener('click', () => {
-    if (!/^0\d{8,9}$/.test(phone.value.trim())) {
-      setErr(phone, 'กรอกเบอร์มือถือ 10 หลัก ขึ้นต้นด้วย 0'); return;
+    if (!EMAIL_RE.test(mail.value.trim())) {
+      setErr(mail, 'กรอกอีเมลให้ถูกต้อง เช่น parent@example.com'); return;
     }
-    clearErr(phone); box.hidden = false; document.getElementById('otp').focus();
+    clearErr(mail); box.hidden = false; document.getElementById('otp').focus();
   });
   verify.addEventListener('click', () => {
     const v = document.getElementById('otp').value.trim();
     if (!/^\d{6}$/.test(v)) { setErr(document.getElementById('otp'), 'กรอกรหัส 6 หลัก'); return; }
     clearErr(document.getElementById('otp'));
     box.hidden = true; ok.hidden = false; document.body.dataset.otpVerified = '1';
+  });
+  /* แก้อีเมลหลังยืนยันแล้ว = ต้องยืนยันใหม่ ไม่งั้นสมัครด้วยอีเมลที่ไม่เคยยืนยันได้ */
+  mail.addEventListener('input', () => {
+    if (!document.body.dataset.otpVerified) return;
+    delete document.body.dataset.otpVerified;
+    ok.hidden = true; box.hidden = true; document.getElementById('otp').value = '';
   });
 })();
 
@@ -1027,10 +1042,10 @@ document.getElementById('parent-form').addEventListener('submit', e => {
 
   /* ยังไม่ยืนยัน OTP — ต้องเขียนข้อความให้เห็นด้วย ไม่ใช่แค่เพิ่มตัวนับ (ผลตรวจ logic B1)
      และห้ามนับซ้ำถ้าเบอร์ว่างอยู่แล้ว (ผลตรวจ logic B2 — เบอร์ว่าง 1 จุด เคยขึ้นว่า 2 จุด) */
-  const phoneEl = document.getElementById('p-phone');
-  if (!document.body.dataset.otpVerified && !problems.includes(phoneEl)) {
-    setErr(phoneEl, phoneEl.value.trim() ? 'กด "ส่งรหัส" แล้วยืนยันรหัส 6 หลักก่อน' : 'ช่องนี้ต้องกรอก แล้วกดยืนยันรหัส');
-    problems.push(phoneEl);
+  const mailEl = document.getElementById('p-email');
+  if (!document.body.dataset.otpVerified && !problems.includes(mailEl)) {
+    setErr(mailEl, mailEl.value.trim() ? 'กด "ส่งรหัสไปที่อีเมล" แล้วยืนยันรหัส 6 หลักก่อน' : 'ช่องนี้ต้องกรอก แล้วกดยืนยันรหัส');
+    problems.push(mailEl);
   }
 
   if (problems.length) {

@@ -435,7 +435,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <a href="#sec-time"><span class="sidenav-num">03</span>เวลา/สถานที่สอน</a>
       <a href="#sec-price"><span class="sidenav-num">04</span>ราคา</a>
       <a href="#sec-media"><span class="sidenav-num">05</span>รูป/เอกสาร</a>
-      <a href="#sec-verify"><span class="sidenav-num">06</span>เบอร์/ยืนยันตัวตน</a>
+      <a href="#sec-verify"><span class="sidenav-num">06</span>อีเมล/ยืนยันการสมัคร</a>
       <a href="#sec-agree"><span class="sidenav-num">07</span>ข้อตกลง</a>
     </nav>
   </aside>
@@ -659,29 +659,43 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       </div>
     </section>
 
-    <!-- 7. เบอร์ + ยืนยันตัวตน -->
+    <!-- 7. อีเมล + ยืนยันการสมัคร
+         🔴 Owner เคาะ 2026-09-04: ครูสมัครด้วย "อีเมล + OTP ทางอีเมล"
+            ส่วน "เบอร์ + OTP เบอร์" ย้ายออกจากหน้าสมัครไปที่ teacher-settings.html (หัวข้อยืนยันตัวตน) -->
     <section class="section" id="sec-verify">
       <div class="sec-head">
         <span class="sec-num">06</span>
-        <h2>เบอร์ติดต่อและยืนยันตัวตน</h2>
-        <p>เบอร์และไลน์จะไม่แสดงในโปรไฟล์สาธารณะ ใช้เฉพาะทีมงานและติดต่อหลังจองสำเร็จ</p>
+        <h2>อีเมลและยืนยันการสมัคร</h2>
+        <p>เราใช้อีเมลนี้ส่งคำขอจองจากผู้เรียน ใบยืนยันคาบเรียน และสรุปยอดเงิน — อีเมลไม่แสดงในโปรไฟล์สาธารณะ</p>
       </div>
 
       <div class="otp-row">
         <div class="field">
-          <label for="phone">เบอร์โทรศัพท์ <span class="req">*</span></label>
-          <input type="tel" id="phone" name="phone" required placeholder="08X-XXX-XXXX" autocomplete="tel">
-          <div class="helper" data-for="phone"></div>
+          <label for="email">อีเมล <span class="req">*</span></label>
+          <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email">
+          <div class="helper" data-for="email"></div>
         </div>
-        <button type="button" class="btn btn-secondary" id="send-otp" disabled>ส่งรหัส OTP</button>
+        <button type="button" class="btn btn-secondary" id="send-otp" disabled>ส่งรหัสไปที่อีเมล</button>
       </div>
 
-      <div class="field" id="otp-field" style="display:none;margin-top:14px;max-width:220px">
-        <label for="otp">กรอกรหัส OTP (6 หลัก)</label>
-        <input type="text" id="otp" inputmode="numeric" maxlength="6" placeholder="000000">
-        <div class="helper" data-for="otp"></div>
+      <div class="field" id="otp-field" style="display:none;margin-top:14px;max-width:340px">
+        <label for="otp">กรอกรหัส 6 หลักที่ส่งไปทางอีเมล</label>
+        <input type="text" id="otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+        <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์ตัวเลข 6 ตัวใดก็ได้</div>
         <button type="button" class="btn btn-secondary" id="verify-otp" style="margin-top:10px">ยืนยันรหัส</button>
-        <span class="otp-status" id="otp-status" style="display:none"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> ยืนยันเบอร์แล้ว</span>
+        <span class="otp-status" id="otp-status" style="display:none"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> ยืนยันอีเมลแล้ว</span>
+      </div>
+
+      <!-- ข้อความอธิบาย OTP (Owner สั่ง 2026-09-04: คนไทยหลายคนไม่เคยเจอ OTP ทางอีเมล เจอแต่ทาง SMS) -->
+      <div class="badge-note" style="margin-top:16px">
+        <span class="badge-icon" aria-hidden="true">?</span>
+        <span><strong>ทำไมต้องมีรหัส 6 หลัก?</strong> เราส่งรหัสไปที่อีเมลของคุณ เพื่อพิสูจน์ว่าอีเมลนี้เป็นของคุณจริง — กันคนอื่นเอาอีเมลคุณไปสมัคร และเพราะเราใช้อีเมลนี้ส่งใบยืนยันการจองกับใบเสร็จให้คุณ<br>
+        รหัสใช้ได้ครั้งเดียว หมดอายุใน 10 นาที <strong>ไม่ใช่รหัสผ่าน ไม่ต้องจำ</strong></span>
+      </div>
+
+      <div class="badge-note" style="margin-top:12px">
+        <span class="badge-icon" aria-hidden="true">i</span>
+        <span><strong>เบอร์มือถือกรอกทีหลังได้</strong> — หลังสมัครเสร็จ ไปที่ <strong>ตั้งค่า → ยืนยันตัวตน</strong> เพื่อยืนยันเบอร์ ระบบจะใช้เบอร์เฉพาะตอนจองสำเร็จแล้วเท่านั้น</span>
       </div>
 
       <!-- ⛔ ไม่มีช่อง "LINE ID" แล้ว (Owner สั่งตัด 2026-08-20 · LOG รายการ 127)
@@ -1228,22 +1242,39 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   bindMultiUpload('portfolio-input','portfolio-thumbs', 15);
   bindMultiUpload('idcheck-input','idcheck-thumbs', null);
 
-  /* ---------- OTP mock ---------- */
-  const phoneInput=document.getElementById('phone'), sendOtpBtn=document.getElementById('send-otp');
-  phoneInput.addEventListener('input', ()=>{
-    sendOtpBtn.disabled = phoneInput.value.replace(/\D/g,'').length < 9;
+  /* ---------- OTP ทางอีเมล (จำลอง) ----------
+     🔴 ต้นแบบ: ยังไม่มี backend ส่งอีเมลจริง — ห้ามเขียนบนจอว่า "ส่งอีเมลแล้ว" (กฎเหล็กข้อ 1)
+     ธงยืนยัน: document.body.dataset.emailVerified */
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const emailInput=document.getElementById('email'), sendOtpBtn=document.getElementById('send-otp');
+  emailInput.addEventListener('input', ()=>{
+    sendOtpBtn.disabled = !EMAIL_RE.test(emailInput.value.trim());
+    /* แก้อีเมลหลังยืนยันแล้ว = ต้องยืนยันใหม่ ไม่งั้นสมัครด้วยอีเมลที่ไม่เคยยืนยันได้ */
+    if(document.body.dataset.emailVerified){
+      delete document.body.dataset.emailVerified;
+      document.getElementById('otp-status').style.display='none';
+      document.getElementById('otp-field').style.display='none';
+      document.getElementById('otp').value='';
+      sendOtpBtn.textContent='ส่งรหัสไปที่อีเมล';
+    }
   });
   sendOtpBtn.addEventListener('click', ()=>{
+    if(!EMAIL_RE.test(emailInput.value.trim())){ setError(emailInput,'กรอกอีเมลให้ถูกต้อง เช่น you@example.com'); return; }
+    clearError(emailInput,'');
     document.getElementById('otp-field').style.display='block';
     sendOtpBtn.textContent='ส่งรหัสอีกครั้ง';
+    document.getElementById('otp').focus();
   });
   document.getElementById('verify-otp').addEventListener('click', ()=>{
     const otp=document.getElementById('otp');
     if(otp.value.replace(/\D/g,'').length===6){
       document.getElementById('otp-status').style.display='inline-flex';
-      clearError(otp,'');
+      document.body.dataset.emailVerified='1';
+      clearError(otp,'ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์ตัวเลข 6 ตัวใดก็ได้');
     } else {
-      setError(otp,'กรอกรหัส 6 หลัก (โหมดตัวอย่าง — ใส่ตัวเลข 6 ตัวใดก็ได้)');
+      delete document.body.dataset.emailVerified;
+      document.getElementById('otp-status').style.display='none';
+      setError(otp,'กรอกรหัส 6 หลัก (ต้นแบบ — ใส่ตัวเลข 6 ตัวใดก็ได้)');
     }
   });
 
@@ -1293,6 +1324,14 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 
     if(!document.getElementById('avatar-preview').querySelector('img')){
       setError(document.getElementById('avatar-input'), 'กรุณาเลือกรูปโปรไฟล์'); ok=false;
+    }
+
+    /* Owner เคาะ 2026-09-04: ต้องยืนยันอีเมลก่อนถึงส่งใบสมัครได้ */
+    if(!document.body.dataset.emailVerified){
+      const otpShown = document.getElementById('otp-field').style.display !== 'none';
+      setError(otpShown ? document.getElementById('otp') : document.getElementById('email'),
+               'ยืนยันอีเมลด้วยรหัส 6 หลักก่อนส่งใบสมัคร');
+      ok=false;
     }
 
     const agree = document.getElementById('agree');

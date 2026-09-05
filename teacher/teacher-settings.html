@@ -97,6 +97,8 @@ h4:first-of-type{margin-top:0}
 .chip[aria-pressed="true"]:hover{background:var(--color-ink)}
 
 /* แถวรายการ — ท่า .mrow ของจอจำลอง */
+/* 🔴 ต้องมาก่อน .row: แถบที่สั่ง hidden ต้องหายจริง (`.row{display:flex}` ทับ hidden ของเบราว์เซอร์) */
+[hidden]{display:none !important}
 .row{display:flex;align-items:center;gap:var(--space-3);padding-block:var(--space-3);
   border-top:1px solid var(--color-rule);flex-wrap:wrap}
 .row:first-of-type{border-top:0}
@@ -297,11 +299,31 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
           <input type="file" id="pf-doc" accept="image/*,application/pdf" class="sr-only">
           <p class="helper" id="pf-doc-name">ส่งใบประกาศหรือวุฒิเพิ่มได้ตลอด — ทีมงานตรวจแล้วจะอัปเดตสถานะให้</p>
 
-          <h4>เบอร์ติดต่อ</h4>
+          <!-- 🔴 Owner เคาะ 2026-09-04: ตอนสมัครยืนยันแค่ "อีเมล" — เบอร์มายืนยันทีหลังตรงนี้ -->
+          <h4 id="pf-phone-head">เบอร์ติดต่อและการยืนยันเบอร์</h4>
           <div class="field-grid">
             <label class="fld"><span>เบอร์โทร</span>
               <input type="tel" id="pf-phone" value="081-234-5678" inputmode="tel" maxlength="20"></label>
           </div>
+
+          <div class="row" id="pf-phone-state" style="margin-top:12px">
+            <span class="av" aria-hidden="true">✓</span>
+            <span class="txt" id="pf-phone-state-txt">ยืนยันเบอร์แล้ว<small>ระบบส่งเบอร์นี้ให้ผู้เรียนเฉพาะตอนจองและจ่ายเงินเรียบร้อยแล้วเท่านั้น</small></span>
+            <span class="badge" id="pf-phone-badge">ยืนยันแล้ว</span>
+          </div>
+
+          <div id="pf-otp-wrap" hidden style="margin-top:12px">
+            <button type="button" class="btn btn-sm" id="pf-otp-send">ส่งรหัส OTP ไปที่เบอร์นี้</button>
+            <div id="pf-otp-box" hidden style="margin-top:12px">
+              <div class="field-grid">
+                <label class="fld"><span>รหัส 6 หลักที่ได้รับ</span>
+                  <input type="text" id="pf-otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"></label>
+              </div>
+              <button type="button" class="btn btn-sm" id="pf-otp-verify" style="margin-top:8px">ยืนยันรหัส</button>
+              <p class="helper" id="pf-otp-msg">ต้นแบบ — ยังไม่ได้ส่ง SMS จริง พิมพ์ตัวเลข 6 ตัวใดก็ได้</p>
+            </div>
+          </div>
+
           <!-- 🔴 กฎเหล็กข้อ 1: ห้ามโชว์ฟีเจอร์ที่ระบบยังทำไม่ได้ -> เขียนให้ชัดว่ายังไม่ได้ต่อ OTP จริง -->
           <p class="helper">เปลี่ยนเบอร์แล้วต้องยืนยันด้วยรหัส OTP อีกครั้ง (ต้นแบบนี้ยังไม่ได้ต่อระบบส่ง OTP จริง) · เบอร์นี้ไม่ขึ้นบนหน้าที่ผู้เรียนเห็น จนกว่าจะจองและจ่ายเงินเรียบร้อย</p>
         </section>
@@ -667,6 +689,7 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
     STATE.profile.expYears = Number($('pf-exp').value) || 0;
     STATE.profile.intro    = $('pf-intro').value;
     STATE.profile.phone    = $('pf-phone').value.trim();
+    STATE.profile.phoneVerified = !!phoneVerified;
     STATE.profile.works    = works;
     var ok = TD.write(STATE);
     savedEl.hidden = false;
@@ -781,6 +804,44 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
     var v = (p.nick || '').replace(/^ครู/, '').trim();
     $('pf-avatar').textContent = v ? v.charAt(0) : '?';
   })();
+
+  /* ── ยืนยันเบอร์ด้วย OTP (ย้ายมาจากหน้าสมัคร · Owner เคาะ 2026-09-04) ──
+     🔴 ต้นแบบ: ยังไม่ได้ต่อระบบส่ง SMS จริง — ห้ามเขียนบนจอว่า "ส่งรหัสแล้ว" ลอย ๆ (กฎเหล็กข้อ 1) */
+  var phoneVerified = STATE.profile.phoneVerified !== false;
+  var phoneAtLoad   = ($('pf-phone').value || '').trim();
+
+  function paintPhoneState() {
+    var cur = ($('pf-phone').value || '').trim();
+    var okNow = phoneVerified && cur === phoneAtLoad && cur !== '';
+    $('pf-phone-state').hidden = !okNow;
+    $('pf-otp-wrap').hidden = okNow;
+    if (!okNow) {
+      $('pf-otp-send').disabled = cur.replace(/\D/g, '').length < 9;
+      $('pf-otp-send').textContent = cur === phoneAtLoad
+        ? 'ส่งรหัส OTP ไปที่เบอร์นี้'
+        : 'ส่งรหัส OTP ไปที่เบอร์ใหม่';
+    }
+  }
+  $('pf-otp-send').addEventListener('click', function () {
+    $('pf-otp-box').hidden = false;
+    $('pf-otp').focus();
+  });
+  $('pf-otp-verify').addEventListener('click', function () {
+    var v = ($('pf-otp').value || '').replace(/\D/g, '');
+    if (v.length !== 6) { $('pf-otp-msg').textContent = 'กรอกรหัส 6 หลัก (ต้นแบบ — ใส่ตัวเลข 6 ตัวใดก็ได้)'; return; }
+    phoneVerified = true;
+    phoneAtLoad = ($('pf-phone').value || '').trim();
+    $('pf-otp-box').hidden = true;
+    $('pf-otp').value = '';
+    $('pf-otp-msg').textContent = 'ต้นแบบ — ยังไม่ได้ส่ง SMS จริง พิมพ์ตัวเลข 6 ตัวใดก็ได้';
+    paintPhoneState();
+    dirty();
+  });
+  $('pf-phone').addEventListener('input', function () {
+    if (($('pf-phone').value || '').trim() !== phoneAtLoad) { $('pf-otp-box').hidden = true; }
+    paintPhoneState();
+  });
+  paintPhoneState();
 
   paintAge();
   paintWorks();

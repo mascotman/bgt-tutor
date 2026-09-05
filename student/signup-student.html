@@ -296,7 +296,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <a href="#sec1"><span class="sidenav-num">1</span>ข้อมูลของคุณ</a>
       <a href="#sec2"><span class="sidenav-num">2</span>สิ่งที่อยากเรียน</a>
       <a href="#sec3"><span class="sidenav-num">3</span>เวลา สถานที่ งบ</a>
-      <a href="#sec4"><span class="sidenav-num">4</span>ยืนยันเบอร์</a>
+      <a href="#sec4"><span class="sidenav-num">4</span>ยืนยันอีเมล</a>
       <a href="#sec5"><span class="sidenav-num">5</span>ข้อตกลง</a>
     </nav>
   </aside>
@@ -476,50 +476,66 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
           </div>
         </section>
 
+        <!-- 🔴 Owner เคาะ 2026-09-04: ผู้เรียนยืนยันด้วย "อีเมล + OTP ทางอีเมล" เท่านั้น
+             ไม่มีการยืนยันเบอร์เลย (เหตุผลที่ Owner ให้: ผู้เรียนจ่ายเงินก่อนอยู่แล้ว การจ่ายเงินทำหน้าที่กันบัญชีปลอมแทน)
+             อายุ 16-19 ยังต้องมีผู้ปกครองรับทราบตาม PDPA ม.20 — เปลี่ยนจากเบอร์ผู้ปกครองเป็นอีเมลผู้ปกครอง -->
         <section class="section" id="sec4">
           <div class="sec-head">
             <span class="sec-num">ขั้นที่ 4</span>
-            <h2>ยืนยันเบอร์ของคุณ</h2>
-            <p>ใช้เข้าสู่ระบบและให้ครูติดต่อหลังจองสำเร็จ</p>
+            <h2>ยืนยันอีเมลของคุณ</h2>
+            <p>ใช้เข้าสู่ระบบ และรับใบยืนยันการจอง ลิงก์ห้องเรียน กับใบเสร็จ</p>
           </div>
           <div class="otp-row">
             <div class="field">
-              <label for="s-phone">เบอร์มือถือ <span class="req">*</span></label>
-              <input type="tel" id="s-phone" name="phone" required placeholder="0812345678" inputmode="numeric" autocomplete="tel">
-              <div class="helper" data-for="s-phone"></div>
+              <label for="s-email">อีเมล <span class="req">*</span></label>
+              <input type="email" id="s-email" name="email" required placeholder="you@example.com" autocomplete="email">
+              <div class="helper" data-for="s-email"></div>
             </div>
-            <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัส</button>
+            <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัสไปที่อีเมล</button>
           </div>
           <div class="otp-row" id="otp-box" hidden>
             <div class="field">
-              <label for="otp">รหัส 6 หลักที่ได้รับ</label>
-              <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000">
-              <div class="helper" data-for="otp">ตัวอย่างเท่านั้น — พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
+              <label for="otp">รหัส 6 หลักที่ส่งไปทางอีเมล</label>
+              <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+              <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
             </div>
             <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยัน</button>
           </div>
-          <div id="otp-ok" hidden><span class="otp-status">ยืนยันเบอร์เรียบร้อย</span></div>
+          <div id="otp-ok" hidden><span class="otp-status">ยืนยันอีเมลเรียบร้อย</span></div>
+
+          <!-- ข้อความอธิบาย OTP (Owner สั่ง 2026-09-04: คนไทยหลายคนไม่เคยเจอ OTP ทางอีเมล เจอแต่ทาง SMS) -->
+          <div class="badge-note" style="margin-top:var(--space-5)">
+            <span class="badge-icon" aria-hidden="true">?</span>
+            <span><strong>ทำไมต้องมีรหัส 6 หลัก?</strong> เราส่งรหัสไปที่อีเมลของคุณ เพื่อพิสูจน์ว่าอีเมลนี้เป็นของคุณจริง — กันคนอื่นเอาอีเมลคุณไปสมัคร และเพราะเราใช้อีเมลนี้ส่งใบยืนยันการจองกับใบเสร็จให้คุณ<br>
+            รหัสใช้ได้ครั้งเดียว หมดอายุใน 10 นาที <strong style="display:inline">ไม่ใช่รหัสผ่าน ไม่ต้องจำ</strong></span>
+          </div>
 
           <div id="guardian-block" hidden style="margin-top:var(--space-8);padding-top:var(--space-6);border-top:1px solid var(--color-rule)">
             <div class="field" style="margin-bottom:var(--space-4)">
-              <label for="g-phone" style="font-size:var(--text-base)">เบอร์ผู้ปกครอง (ให้ผู้ปกครองรับทราบ) <span class="req">*</span></label>
+              <label for="g-email" style="font-size:var(--text-base)">อีเมลผู้ปกครอง (ให้ผู้ปกครองรับทราบ) <span class="req">*</span></label>
               <div class="helper" style="min-height:0;margin-bottom:6px">อายุยังไม่ถึง 20 ปี ต้องมีผู้ปกครองรับทราบ 1 ครั้ง แล้วหลังจากนั้นคุณใช้งานเองได้ทั้งหมด</div>
             </div>
             <div class="otp-row">
               <div class="field">
-                <input type="tel" id="g-phone" name="guardian_phone" placeholder="0898765432" inputmode="numeric" aria-label="เบอร์ผู้ปกครอง">
-                <div class="helper" data-for="g-phone"></div>
+                <input type="email" id="g-email" name="guardian_email" placeholder="parent@example.com" aria-label="อีเมลผู้ปกครอง">
+                <div class="helper" data-for="g-email"></div>
               </div>
               <button type="button" class="btn btn-secondary" id="send-g-otp">ส่งให้ผู้ปกครอง</button>
             </div>
             <div class="otp-row" id="g-otp-box" hidden>
               <div class="field">
-                <input type="text" id="g-otp" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="รหัสจากผู้ปกครอง">
-                <div class="helper" data-for="g-otp">ให้ผู้ปกครองบอกรหัสที่ได้รับ</div>
+                <input type="text" id="g-otp" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="รหัสจากผู้ปกครอง" autocomplete="one-time-code">
+                <div class="helper" data-for="g-otp">ให้ผู้ปกครองเปิดอีเมลแล้วบอกรหัส 6 หลักที่ได้รับ</div>
               </div>
               <button type="button" class="btn btn-secondary" id="verify-g-otp">ยืนยัน</button>
             </div>
             <div id="g-otp-ok" hidden><span class="otp-status">ผู้ปกครองรับทราบแล้ว</span></div>
+
+            <div class="badge-note" style="margin-top:var(--space-5)">
+              <span class="badge-icon" aria-hidden="true">?</span>
+              <span><strong>คุณสมัครเองได้เต็มรูปแบบ</strong> แต่กฎหมายไทย (PDPA มาตรา 20) กำหนดว่าคนที่อายุยังไม่ถึง 20 ปี ต้องให้ผู้ปกครองรับทราบด้วย เราจึงขออีเมลผู้ปกครองไว้ส่งแจ้ง 1 ฉบับ<br>
+              <strong style="display:inline">ผู้ปกครองไม่ต้องกรอกอะไรแทนคุณ</strong> และเราไม่ได้ส่งเนื้อหาบทเรียนหรือประวัติการใช้งานของคุณไปให้</span>
+            </div>
           </div>
 
           <div class="badge-note">
@@ -546,7 +562,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
           </div>
           <div class="agree">
             <input type="checkbox" id="agree2">
-            <label for="agree2">ยินดีรับข่าวสาร โปรโมชัน และครูแนะนำใหม่ ๆ ทาง SMS หรือ LINE (ไม่บังคับ ยกเลิกได้ทุกเมื่อ)</label>
+            <label for="agree2">ยินดีรับข่าวสาร โปรโมชัน และครูแนะนำใหม่ ๆ ทางอีเมล หรือ LINE (ไม่บังคับ ยกเลิกได้ทุกเมื่อ)</label>
           </div>
           <div class="submit-row">
             <button type="submit" class="btn btn-primary">ส่งใบสมัคร</button>
@@ -700,12 +716,14 @@ fill('s-grade', GRADES); fill('s-cur', CURRICULA); fill('zone', ZONES);
   window.__pickedSubjects = picked;
 })();
 
-/* OTP จำลอง — ของตัวเอง + ของผู้ปกครอง (เฉพาะอายุ 16-19) */
-function wireOtp(phoneId, sendId, boxId, otpId, verifyId, okId, flag) {
-  const phone = document.getElementById(phoneId);
+/* OTP ทางอีเมล (จำลอง) — ของตัวเอง + ของผู้ปกครอง (เฉพาะอายุ 16-19)
+   🔴 ต้นแบบ: ยังไม่มี backend ส่งอีเมลจริง — ห้ามเขียนบนจอว่า "ส่งอีเมลแล้ว" (กฎเหล็กข้อ 1) */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function wireOtp(emailId, sendId, boxId, otpId, verifyId, okId, flag) {
+  const mail = document.getElementById(emailId);
   document.getElementById(sendId).addEventListener('click', () => {
-    if (!/^0\d{8,9}$/.test(phone.value.trim())) { setErr(phone, 'กรอกเบอร์มือถือ 10 หลัก ขึ้นต้นด้วย 0'); return; }
-    clearErr(phone);
+    if (!EMAIL_RE.test(mail.value.trim())) { setErr(mail, 'กรอกอีเมลให้ถูกต้อง เช่น you@example.com'); return; }
+    clearErr(mail);
     document.getElementById(boxId).hidden = false;
     document.getElementById(otpId).focus();
   });
@@ -717,9 +735,17 @@ function wireOtp(phoneId, sendId, boxId, otpId, verifyId, okId, flag) {
     document.getElementById(okId).hidden = false;
     document.body.dataset[flag] = '1';
   });
+  /* แก้อีเมลหลังยืนยันแล้ว = ต้องยืนยันใหม่ ไม่งั้นสมัครด้วยอีเมลที่ไม่เคยยืนยันได้ */
+  mail.addEventListener('input', () => {
+    if (!document.body.dataset[flag]) return;
+    delete document.body.dataset[flag];
+    document.getElementById(okId).hidden = true;
+    document.getElementById(boxId).hidden = true;
+    document.getElementById(otpId).value = '';
+  });
 }
-wireOtp('s-phone','send-otp','otp-box','otp','verify-otp','otp-ok','otpVerified');
-wireOtp('g-phone','send-g-otp','g-otp-box','g-otp','verify-g-otp','g-otp-ok','guardianVerified');
+wireOtp('s-email','send-otp','otp-box','otp','verify-otp','otp-ok','otpVerified');
+wireOtp('g-email','send-g-otp','g-otp-box','g-otp','verify-g-otp','g-otp-ok','guardianVerified');
 
 /* ตรวจความถูกต้อง */
 function setErr(el, msg) {
@@ -757,8 +783,8 @@ document.getElementById('student-form').addEventListener('submit', e => {
   }
   if (!document.querySelector('input[name=goal]:checked')) problems.push(document.getElementById('goal-group'));
   if (!document.querySelector('input[name=place]:checked')) problems.push(document.getElementById('place-group'));
-  if (!document.body.dataset.otpVerified) problems.push(document.getElementById('s-phone'));
-  if (document.body.dataset.needsGuardian && !document.body.dataset.guardianVerified) problems.push(document.getElementById('g-phone'));
+  if (!document.body.dataset.otpVerified) problems.push(document.getElementById('s-email'));
+  if (document.body.dataset.needsGuardian && !document.body.dataset.guardianVerified) problems.push(document.getElementById('g-email'));
 
   if (problems.length) {
     errBox.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด — เลื่อนไปดูช่องที่มีข้อความสีแดง';
