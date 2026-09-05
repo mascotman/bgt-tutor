@@ -93,9 +93,90 @@
     return role === 'teacher' ? p + 'teacher/job-board.html' : p + 'student/my-jobs.html';
   }
 
+  /* ── แถบบัญชี + ปุ่มออกจากระบบ (Owner สั่ง 2026-09-06) ──────────────
+     หน้าฝั่งครูกับฝั่งผู้เรียนโครงแถบบนคนละแบบ (topnav / sidebar / mobile-header)
+     -> ไม่ไล่แก้ทีละหน้า แต่ให้ไฟล์นี้เสียบเข้าไปเองในที่ที่มีอยู่แล้วของแต่ละหน้า
+        (แก้ทีละหน้า = พลาดง่ายและ session หน้าตามไม่ทัน — บทเรียนแถบบน 4 หน้าคนละชุด 2026-09-01)
+     หน้าไหนไม่อยากได้ ใส่ <body data-no-session-bar> */
+
+  var CSS = '.bgt-acct{display:inline-flex;align-items:center;gap:8px;font-size:var(--text-sm);'
+          + 'color:var(--color-ink-2);white-space:nowrap}'
+          + '.bgt-acct .bgt-who{font-weight:600;color:var(--color-ink)}'
+          + '.bgt-acct .bgt-out{font:inherit;font-weight:600;color:var(--color-accent-deep);background:none;'
+          + 'border:0;padding:6px 4px;min-height:32px;cursor:pointer;text-decoration:underline}'
+          + '.bgt-acct .bgt-out:hover{color:var(--color-ink)}'
+          + '.bgt-acct a{color:var(--color-accent-deep);font-weight:600}'
+          + '.sidebar .bgt-acct{display:flex;flex-wrap:wrap;margin-top:var(--space-5);'
+          + 'padding-top:var(--space-4);border-top:1px solid var(--color-rule)}';
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  /* ../ กี่ชั้นถึงจะถึงรากเว็บ — หน้าในโฟลเดอร์ teacher/ กับ student/ ต้องถอยขึ้น 1 ชั้น */
+  function rootPrefix() {
+    var p = location.pathname.replace(/\\/g, '/');
+    return /\/(teacher|student)\//.test(p) ? '../' : '';
+  }
+
+  function buildBar() {
+    var box = el('div', 'bgt-acct');
+    var s = session();
+    var root = rootPrefix();
+    if (!s) {
+      var a = el('a', null, 'เข้าสู่ระบบ');
+      a.href = root + 'login.html';
+      box.appendChild(a);
+      return box;
+    }
+    var who = el('span', 'bgt-who', (s.name || s.email) + (s.role === 'teacher' ? ' (ครู)' : ' (ผู้เรียน)'));
+    var out = el('button', 'bgt-out', 'ออกจากระบบ');
+    out.type = 'button';
+    out.addEventListener('click', function () {
+      logout();
+      location.href = root + 'index.html';
+    });
+    box.appendChild(who);
+    box.appendChild(out);
+    return box;
+  }
+
+  function mountSessionBar() {
+    if (document.body.hasAttribute('data-no-session-bar')) return;
+    if (document.querySelector('.bgt-acct')) return;          /* กันเสียบซ้ำ */
+
+    var style = document.createElement('style');
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
+    /* เสียบเข้าไปในของที่หน้านั้นมีอยู่แล้ว — ได้หลายจุดก็เสียบหลายจุด (จอเล็กกับจอใหญ่คนละที่) */
+    var spots = [
+      document.querySelector('nav.topnav'),                    /* ฝั่งครู 4 หน้า */
+      document.querySelector('aside.sidebar'),                 /* ฝั่งผู้เรียนที่มีเมนูข้าง */
+      document.querySelector('header.mobile-header'),          /* แถบบนตอนจอแคบ */
+      document.querySelector('header.topbar')                  /* กันไว้เผื่อหน้าที่ไม่มี topnav */
+    ].filter(Boolean);
+
+    if (!spots.length) return;
+    spots.forEach(function (spot) {
+      if (spot.querySelector('.bgt-acct')) return;
+      spot.appendChild(buildBar());
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountSessionBar);
+  } else {
+    mountSessionBar();
+  }
+
   window.BGTAccounts = {
     all: all, find: find, save: save,
     login: login, logout: logout, session: session,
-    homeFor: homeFor, normalize: norm
+    homeFor: homeFor, normalize: norm,
+    mountSessionBar: mountSessionBar
   };
 })();
