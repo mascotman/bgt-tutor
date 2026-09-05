@@ -513,27 +513,19 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
           <div id="guardian-block" hidden style="margin-top:var(--space-8);padding-top:var(--space-6);border-top:1px solid var(--color-rule)">
             <div class="field" style="margin-bottom:var(--space-4)">
               <label for="g-email" style="font-size:var(--text-base)">อีเมลผู้ปกครอง (ให้ผู้ปกครองรับทราบ) <span class="req">*</span></label>
-              <div class="helper" style="min-height:0;margin-bottom:6px">อายุยังไม่ถึง 20 ปี ต้องมีผู้ปกครองรับทราบ 1 ครั้ง แล้วหลังจากนั้นคุณใช้งานเองได้ทั้งหมด</div>
+              <div class="helper" style="min-height:0;margin-bottom:6px">อายุยังไม่ถึง 20 ปี ต้องมีผู้ปกครองรับทราบ 1 ครั้ง แล้วหลังจากนั้นคุณใช้งานเองได้ทั้งหมด — เราส่งอีเมลแจ้งไป 1 ฉบับ ผู้ปกครองไม่ต้องกรอกรหัสอะไรกลับมา</div>
             </div>
-            <div class="otp-row">
-              <div class="field">
-                <input type="email" id="g-email" name="guardian_email" placeholder="parent@example.com" aria-label="อีเมลผู้ปกครอง">
-                <div class="helper" data-for="g-email"></div>
-              </div>
-              <button type="button" class="btn btn-secondary" id="send-g-otp">ส่งให้ผู้ปกครอง</button>
+            <!-- 🔴 Owner เคาะ 2026-09-05: ผู้ปกครอง "แจ้งให้ทราบ" พอ ไม่ต้องกรอกรหัสยืนยัน
+                 เหตุผลที่ Owner ให้: สุดท้ายผู้ปกครองเป็นคนจ่ายเงินอยู่ดี ยังไงก็รับรู้
+                 -> ไม่มีช่องรหัส 6 หลักของผู้ปกครองแล้ว (ของเดิมมี ถอดออก 2026-09-05) -->
+            <div class="field">
+              <input type="email" id="g-email" name="guardian_email" placeholder="parent@example.com" aria-label="อีเมลผู้ปกครอง">
+              <div class="helper" data-for="g-email"></div>
             </div>
-            <div class="otp-row" id="g-otp-box" hidden>
-              <div class="field">
-                <input type="text" id="g-otp" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="รหัสจากผู้ปกครอง" autocomplete="one-time-code">
-                <div class="helper" data-for="g-otp">ให้ผู้ปกครองเปิดอีเมลแล้วบอกรหัส 6 หลักที่ได้รับ</div>
-              </div>
-              <button type="button" class="btn btn-secondary" id="verify-g-otp">ยืนยัน</button>
-            </div>
-            <div id="g-otp-ok" hidden><span class="otp-status">ผู้ปกครองรับทราบแล้ว</span></div>
 
             <div class="badge-note" style="margin-top:var(--space-5)">
               <span class="badge-icon" aria-hidden="true">?</span>
-              <span><strong>คุณสมัครเองได้เต็มรูปแบบ</strong> แต่กฎหมายไทย (PDPA มาตรา 20) กำหนดว่าคนที่อายุยังไม่ถึง 20 ปี ต้องให้ผู้ปกครองรับทราบด้วย เราจึงขออีเมลผู้ปกครองไว้ส่งแจ้ง 1 ฉบับ<br>
+              <span><strong>คุณสมัครเองได้เต็มรูปแบบ</strong> แต่กฎหมายไทย (PDPA มาตรา 20) กำหนดว่าคนที่อายุยังไม่ถึง 20 ปี ต้องให้ผู้ปกครองรับทราบด้วย เราจึงขออีเมลผู้ปกครองไว้ส่งแจ้ง 1 ฉบับ และตอนจองเรียนจริงผู้ปกครองเป็นคนจ่ายเงินอยู่แล้ว<br>
               <strong style="display:inline">ผู้ปกครองไม่ต้องกรอกอะไรแทนคุณ</strong> และเราไม่ได้ส่งเนื้อหาบทเรียนหรือประวัติการใช้งานของคุณไปให้</span>
             </div>
           </div>
@@ -745,7 +737,14 @@ function wireOtp(emailId, sendId, boxId, otpId, verifyId, okId, flag) {
   });
 }
 wireOtp('s-email','send-otp','otp-box','otp','verify-otp','otp-ok','otpVerified');
-wireOtp('g-email','send-g-otp','g-otp-box','g-otp','verify-g-otp','g-otp-ok','guardianVerified');
+
+/* อีเมลผู้ปกครอง — แค่ตรวจว่ารูปแบบถูก ไม่มีรหัสให้ยืนยัน (Owner เคาะ 2026-09-05) */
+(() => {
+  const g = document.getElementById('g-email');
+  g.addEventListener('input', () => {
+    if (!g.value.trim() || EMAIL_RE.test(g.value.trim())) clearErr(g);
+  });
+})();
 
 /* ตรวจความถูกต้อง */
 function setErr(el, msg) {
@@ -784,7 +783,13 @@ document.getElementById('student-form').addEventListener('submit', e => {
   if (!document.querySelector('input[name=goal]:checked')) problems.push(document.getElementById('goal-group'));
   if (!document.querySelector('input[name=place]:checked')) problems.push(document.getElementById('place-group'));
   if (!document.body.dataset.otpVerified) problems.push(document.getElementById('s-email'));
-  if (document.body.dataset.needsGuardian && !document.body.dataset.guardianVerified) problems.push(document.getElementById('g-email'));
+  if (document.body.dataset.needsGuardian) {
+    const g = document.getElementById('g-email');
+    if (!EMAIL_RE.test(g.value.trim())) {
+      setErr(g, g.value.trim() ? 'กรอกอีเมลผู้ปกครองให้ถูกต้อง เช่น parent@example.com' : 'กรอกอีเมลผู้ปกครองด้วย (อายุยังไม่ถึง 20 ปี)');
+      problems.push(g);
+    }
+  }
 
   if (problems.length) {
     errBox.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด — เลื่อนไปดูช่องที่มีข้อความสีแดง';
