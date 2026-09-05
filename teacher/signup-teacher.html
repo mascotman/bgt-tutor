@@ -435,7 +435,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <a href="#sec-time"><span class="sidenav-num">03</span>เวลา/สถานที่สอน</a>
       <a href="#sec-price"><span class="sidenav-num">04</span>ราคา</a>
       <a href="#sec-media"><span class="sidenav-num">05</span>รูป/เอกสาร</a>
-      <a href="#sec-verify"><span class="sidenav-num">06</span>อีเมล/ยืนยันการสมัคร</a>
+      <a href="#sec-verify"><span class="sidenav-num">06</span>ยืนยันอีเมล</a>
       <a href="#sec-agree"><span class="sidenav-num">07</span>ข้อตกลง</a>
     </nav>
   </aside>
@@ -665,8 +665,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
     <section class="section" id="sec-verify">
       <div class="sec-head">
         <span class="sec-num">06</span>
-        <h2>อีเมลและยืนยันการสมัคร</h2>
-        <p>เราใช้อีเมลนี้ส่งคำขอจองจากผู้เรียน ใบยืนยันคาบเรียน และสรุปยอดเงิน — อีเมลไม่แสดงในโปรไฟล์สาธารณะ</p>
+        <h2>ยืนยันอีเมลของคุณ</h2>
+        <p>ใช้เข้าสู่ระบบ และรับใบยืนยันการจอง ลิงก์ห้องเรียน กับใบเสร็จ</p>
       </div>
 
       <div class="otp-row">
@@ -675,15 +675,15 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
           <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email">
           <div class="helper" data-for="email"></div>
         </div>
-        <button type="button" class="btn btn-secondary" id="send-otp" disabled>ส่งรหัสไปที่อีเมล</button>
+        <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัสไปที่อีเมล</button>
       </div>
 
       <div class="field" id="otp-field" style="display:none;margin-top:14px;max-width:340px">
-        <label for="otp">กรอกรหัส 6 หลักที่ส่งไปทางอีเมล</label>
+        <label for="otp">รหัส 6 หลักที่ส่งไปทางอีเมล</label>
         <input type="text" id="otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
-        <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์ตัวเลข 6 ตัวใดก็ได้</div>
+        <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
         <button type="button" class="btn btn-secondary" id="verify-otp" style="margin-top:10px">ยืนยันรหัส</button>
-        <span class="otp-status" id="otp-status" style="display:none"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> ยืนยันอีเมลแล้ว</span>
+        <span class="otp-status" id="otp-status" style="display:none"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> ยืนยันอีเมลเรียบร้อย</span>
       </div>
 
       <!-- ข้อความอธิบาย OTP (Owner สั่ง 2026-09-04: คนไทยหลายคนไม่เคยเจอ OTP ทางอีเมล เจอแต่ทาง SMS) -->
@@ -1248,7 +1248,6 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const emailInput=document.getElementById('email'), sendOtpBtn=document.getElementById('send-otp');
   emailInput.addEventListener('input', ()=>{
-    sendOtpBtn.disabled = !EMAIL_RE.test(emailInput.value.trim());
     /* แก้อีเมลหลังยืนยันแล้ว = ต้องยืนยันใหม่ ไม่งั้นสมัครด้วยอีเมลที่ไม่เคยยืนยันได้ */
     if(document.body.dataset.emailVerified){
       delete document.body.dataset.emailVerified;
@@ -1270,7 +1269,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
     if(otp.value.replace(/\D/g,'').length===6){
       document.getElementById('otp-status').style.display='inline-flex';
       document.body.dataset.emailVerified='1';
-      clearError(otp,'ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์ตัวเลข 6 ตัวใดก็ได้');
+      clearError(otp,'ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก');
     } else {
       delete document.body.dataset.emailVerified;
       document.getElementById('otp-status').style.display='none';
@@ -1346,6 +1345,10 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       return;
     }
     formError.style.display='none';
+  /* บันทึกบัญชีไว้ให้หน้าล็อกอินรู้จัก (ต้นแบบ: localStorage เครื่องนี้เท่านั้น — shared/accounts.js) */
+    if(window.BGTAccounts){
+      BGTAccounts.save(emailInput.value, 'teacher', document.getElementById('nickname').value.trim());
+    }
     form.style.display='none';
     document.getElementById('pillnav').style.display='none';
     document.getElementById('success-panel').style.display='block';
@@ -1364,6 +1367,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
     </nav>
   </div>
 </footer>
+<script src="../shared/accounts.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
 </body>
 </html>

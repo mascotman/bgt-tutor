@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เข้าสู่ระบบ — BGT Tutor</title>
+<!--
+  หน้าล็อกอิน — งานข้อ 2 (Owner สั่ง 2026-09-04 · ทำ 2026-09-06)
+
+  🔴 หน้าเดียวสำหรับทั้งครูและผู้เรียน — ไม่แยกประตู
+     เหตุผล: คนคนเดียวเป็นได้ทั้งครูและผู้ปกครอง · แยกประตูแล้วเขาจะงงว่าต้องเข้าทางไหน
+     และเว็บรู้อยู่แล้วว่าอีเมลนี้เป็นฝั่งไหน เลยเด้งไปหน้าที่ถูกได้เอง
+     ต้นแบบที่ Owner สั่งให้ดู (ตรวจของจริง 2026-09-06):
+       · Outschool  = ล็อกอินหน้าเดียว (อีเมล+รหัสผ่าน / Google / Apple) ไม่แยกครูกับผู้ปกครอง
+       · GoStudent  = /login มีการ์ดเดียว "log into my account" กรอก "เบอร์โทร" อย่างเดียว **ไม่มีช่องรหัสผ่าน**
+                      ส่วนคนจะเป็นครูมีลิงก์เล็ก ๆ "Do you want to teach? Apply now" แยกไปหน้าสมัคร
+     -> เราเดินตามท่า GoStudent แต่ใช้ "อีเมล" แทนเบอร์ (Owner เคาะให้ยืนยันตัวตนด้วยอีเมล 2026-09-04)
+
+  🔴 ห้ามทำช่องรหัสผ่านที่ตรวจจริง — ยังไม่มีระบบบัญชีจริง (กฎเหล็กข้อ 1)
+     ต้นแบบนี้ = ดูจากบัญชีที่เคยสมัครไว้ในเครื่องนี้ (shared/accounts.js -> localStorage)
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/theme-v3.css">
+<style>
+body{margin:0;background:var(--color-paper);color:var(--color-ink);font-family:var(--font-body);
+     display:flex;flex-direction:column;min-height:100vh}
+
+.testbar{background:var(--color-level-soft);color:var(--color-level);font-size:var(--text-sm);
+         padding:10px var(--space-5);text-align:center}
+.testbar b{font-weight:600}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+        padding:var(--space-4) var(--space-6);border-bottom:1px solid var(--color-rule);background:var(--color-surface)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;font-weight:500}
+.logo-mark{width:34px;height:34px;border-radius:9px;background:var(--color-accent);color:var(--color-accent-ink);
+           display:grid;place-items:center;font-family:var(--font-display);font-weight:700}
+.logo-text{font-family:var(--font-display);font-size:var(--text-lg);font-weight:600}
+.back{color:var(--color-ink-2);text-decoration:none;font-size:var(--text-sm)}
+.back:hover{color:var(--color-accent-deep);text-decoration:underline}
+
+main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:var(--space-10) var(--space-5)}
+.card{width:100%;max-width:480px;background:var(--color-surface);border:1px solid var(--color-rule);
+      border-radius:var(--radius-lg);padding:var(--space-8)}
+h1{font-family:var(--font-display);font-size:var(--text-2xl);margin:0 0 var(--space-2)}
+.lede{color:var(--color-ink-2);margin:0 0 var(--space-6);line-height:1.6}
+
+label{display:block;font-weight:600;margin-bottom:6px}
+input[type=email],input[type=text]{
+  width:100%;box-sizing:border-box;padding:12px 14px;font-family:inherit;font-size:var(--text-base);
+  color:var(--color-ink);background:var(--color-surface);border:1px solid var(--color-rule-2);
+  border-radius:var(--radius-md)}
+input:focus-visible{outline:2px solid var(--color-focus);outline-offset:1px}
+input[aria-invalid=true]{border-color:var(--color-error)}
+.helper{font-size:var(--text-sm);color:var(--color-ink-2);margin:6px 0 0;min-height:1.3em;line-height:1.5}
+.helper.err{color:var(--color-error);font-weight:600}
+
+.btn{font-family:inherit;font-size:var(--text-base);font-weight:600;padding:12px 20px;border-radius:var(--radius-md);
+     border:1px solid transparent;cursor:pointer;min-height:44px}
+.btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-accent);color:var(--color-accent-ink);width:100%;margin-top:var(--space-5)}
+.btn-primary:hover{background:var(--color-accent-deep)}
+.btn-ghost{background:var(--color-surface);color:var(--color-ink);border-color:var(--color-rule-2)}
+.btn-ghost:hover{background:var(--color-paper-2)}
+
+.rule{border:0;border-top:1px solid var(--color-rule);margin:var(--space-8) 0 var(--space-6)}
+.foot-q{color:var(--color-ink-2);font-size:var(--text-sm);margin:0 0 var(--space-3)}
+.signup-links{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.signup-links a{flex:1;min-width:170px;text-align:center;text-decoration:none;color:var(--color-ink);
+  background:var(--color-surface);border:1px solid var(--color-rule-2);border-radius:var(--radius-md);
+  padding:12px 14px;font-weight:600;min-height:44px;box-sizing:border-box}
+.signup-links a:hover{background:var(--color-paper-2);border-color:var(--color-accent-deep);color:var(--color-accent-deep)}
+
+.note{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-paper-2);
+      border-radius:var(--radius-md);padding:var(--space-4);margin-top:var(--space-6);
+      font-size:var(--text-sm);line-height:1.6;color:var(--color-ink-2)}
+.note .ic{width:28px;height:28px;flex-shrink:0;border-radius:50%;background:var(--color-ok);
+          color:var(--color-surface);display:grid;place-items:center;font-weight:700}
+
+.demo{margin-top:var(--space-4)}
+.demo-row{display:flex;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-3)}
+.demo-row button{flex:1;min-width:160px}
+
+.stepnote{font-size:var(--text-sm);color:var(--color-ink-2);margin:0 0 var(--space-4)}
+.mailshown{font-weight:600;color:var(--color-ink)}
+.linkish{background:none;border:0;padding:0;color:var(--color-accent-deep);font:inherit;font-size:var(--text-sm);
+         text-decoration:underline;cursor:pointer;min-height:auto}
+
+.site-footer{border-top:1px solid var(--color-rule);padding:var(--space-5) var(--space-6);
+             font-size:var(--text-sm);color:var(--color-ink-2);text-align:center}
+@media (max-width:520px){ .card{padding:var(--space-6)} }
+@media (prefers-reduced-motion:reduce){*{transition-duration:1ms !important;animation-duration:1ms !important}}
+</style>
+</head>
+<body>
+
+<div class="testbar">
+  <span aria-hidden="true">🧪</span>
+  <b>นี่คือเว็บตัวอย่างสำหรับทดลองใช้</b> — ยังไม่มีระบบบัญชีจริง เข้าสู่ระบบได้เฉพาะบัญชีที่สมัครไว้ในเครื่องนี้
+</div>
+
+<header class="topbar">
+  <a class="logo" href="index.html">
+    <span class="logo-mark" aria-hidden="true">B</span>
+    <span class="logo-text">BGT Tutor</span>
+  </a>
+  <a class="back" href="index.html">← กลับหน้าแรก</a>
+</header>
+
+<main>
+  <div class="card">
+
+    <!-- ขั้นที่ 1 — กรอกอีเมล -->
+    <div id="step-email">
+      <h1>เข้าสู่ระบบ</h1>
+      <p class="lede">ใช้อีเมลเดียวกับตอนสมัคร — ทั้งครูและผู้เรียนเข้าทางนี้เหมือนกัน เราจะพาไปหน้าที่ถูกให้เอง</p>
+
+      <label for="email">อีเมล</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email" autofocus>
+      <p class="helper" id="email-helper">อีเมลที่คุณใช้ตอนสมัคร</p>
+
+      <button type="button" class="btn btn-primary" id="send">ส่งรหัสไปที่อีเมล</button>
+
+      <div class="demo">
+        <p class="foot-q" style="margin-top:var(--space-6)">ยังไม่ได้สมัครในเครื่องนี้? กดเข้าด้วย <b>บัญชีตัวอย่าง</b> เพื่อดูหน้าจอก่อนได้</p>
+        <div class="demo-row" id="demo-row"></div>
+      </div>
+
+      <hr class="rule">
+      <p class="foot-q">ยังไม่มีบัญชี? สมัครก่อนได้ที่นี่</p>
+      <div class="signup-links">
+        <a href="student/signup-parent.html">สมัครฝั่งผู้เรียน</a>
+        <a href="teacher/signup-teacher.html">สมัครเป็นครู</a>
+      </div>
+    </div>
+
+    <!-- ขั้นที่ 2 — กรอกรหัส 6 หลัก (คำและปุ่มชุดเดียวกับหน้าสมัครทั้ง 3 หน้า) -->
+    <div id="step-code" hidden>
+      <h1>ยืนยันอีเมลของคุณ</h1>
+      <p class="stepnote">เราส่งรหัสไปที่ <span class="mailshown" id="mail-shown"></span>
+        · <button type="button" class="linkish" id="change-mail">แก้อีเมล</button></p>
+
+      <label for="code">รหัส 6 หลักที่ส่งไปทางอีเมล</label>
+      <input type="text" id="code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      <p class="helper" id="code-helper">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก</p>
+
+      <button type="button" class="btn btn-primary" id="verify">เข้าสู่ระบบ</button>
+
+      <div class="note">
+        <span class="ic" aria-hidden="true">?</span>
+        <span><strong>ทำไมต้องมีรหัส 6 หลัก?</strong> เราส่งรหัสไปที่อีเมลของคุณ เพื่อพิสูจน์ว่าคุณเป็นเจ้าของอีเมลนี้จริง
+        — เว็บนี้ <strong>ไม่มีรหัสผ่าน</strong> ให้ต้องจำ เข้าทีไรก็ขอรหัสใหม่ทุกครั้ง</span>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">BGT Tutor — แพลตฟอร์มจับคู่ครูสอนพิเศษกับผู้ปกครอง</footer>
+
+<script src="shared/accounts.js"></script>
+<script>
+(function () {
+  'use strict';
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var $ = function (id) { return document.getElementById(id); };
+  var pending = null;                       /* บัญชีที่ผ่านขั้นอีเมลแล้ว รอกรอกรหัส */
+
+  function setErr(el, helperId, msg) {
+    el.setAttribute('aria-invalid', 'true');
+    var h = $(helperId); h.textContent = msg; h.classList.add('err');
+  }
+  function clearErr(el, helperId, back) {
+    el.setAttribute('aria-invalid', 'false');
+    var h = $(helperId); h.textContent = back; h.classList.remove('err');
+  }
+
+  /* ── ปุ่มบัญชีตัวอย่าง ── */
+  var demos = BGTAccounts.all().filter(function (a) { return a.demo; });
+  var row = $('demo-row');
+  demos.forEach(function (a) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-ghost';
+    b.textContent = a.name + ' (' + (a.role === 'teacher' ? 'ครู' : 'ผู้เรียน') + ')';
+    b.addEventListener('click', function () {
+      $('email').value = a.email;
+      $('send').click();
+    });
+    row.appendChild(b);
+  });
+
+  /* ── ขั้นที่ 1 -> ขั้นที่ 2 ── */
+  $('send').addEventListener('click', function () {
+    var el = $('email'), v = el.value.trim();
+    if (!EMAIL_RE.test(v)) { setErr(el, 'email-helper', 'กรอกอีเมลให้ถูกต้อง เช่น you@example.com'); return; }
+
+    var acc = BGTAccounts.find(v);
+    if (!acc) {
+      /* 🔴 พูดตรง ๆ ว่าทำไมเข้าไม่ได้ — ต้นแบบยังไม่มีบัญชีกลาง ต่างเครื่องเห็นไม่ตรงกัน */
+      setErr(el, 'email-helper', 'ยังไม่มีบัญชีของอีเมลนี้ในเครื่องนี้ — สมัครก่อน หรือกดบัญชีตัวอย่างด้านล่าง');
+      return;
+    }
+    clearErr(el, 'email-helper', 'อีเมลที่คุณใช้ตอนสมัคร');
+    pending = acc;
+    $('mail-shown').textContent = acc.email;
+    $('step-email').hidden = true;
+    $('step-code').hidden = false;
+    $('code').value = '';
+    $('code').focus();
+  });
+
+  $('email').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('send').click(); });
+
+  /* ── กลับไปแก้อีเมล ── */
+  $('change-mail').addEventListener('click', function () {
+    pending = null;
+    $('step-code').hidden = true;
+    $('step-email').hidden = false;
+    $('email').focus();
+  });
+
+  /* ── ขั้นที่ 2 -> เข้าสู่ระบบ ── */
+  $('verify').addEventListener('click', function () {
+    var el = $('code'), v = el.value.replace(/\D/g, '');
+    if (v.length !== 6) { setErr(el, 'code-helper', 'กรอกรหัส 6 หลัก (ต้นแบบ — ใส่ตัวเลข 6 ตัวใดก็ได้)'); return; }
+    if (!pending) { $('change-mail').click(); return; }
+    clearErr(el, 'code-helper', 'ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก');
+    var acc = BGTAccounts.login(pending.email);
+    if (!acc) { $('change-mail').click(); return; }
+    location.href = BGTAccounts.homeFor(acc.role, '');
+  });
+
+  $('code').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('verify').click(); });
+
+  /* ล็อกอินค้างอยู่แล้ว -> บอกไว้ ไม่เด้งเอง (คนกดเข้ามาหน้านี้อาจตั้งใจสลับบัญชี) */
+  var s = BGTAccounts.session();
+  if (s) {
+    $('email').value = s.email;
+    $('email-helper').textContent = 'เครื่องนี้เข้าอยู่ด้วยอีเมลนี้ล่าสุด — กดส่งรหัสเพื่อเข้าต่อ หรือพิมพ์อีเมลอื่นเพื่อสลับบัญชี';
+  }
+})();
+</script>
+</body>
+</html>

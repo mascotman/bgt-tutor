@@ -425,13 +425,13 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
         <section class="section" id="sec3">
           <div class="sec-head">
             <span class="sec-num">ขั้นที่ 3</span>
-            <h2>ยืนยันอีเมลผู้ปกครอง</h2>
-            <p>เราส่งรหัสไปที่อีเมลของผู้ปกครอง ไม่ใช่ของเด็ก</p>
+            <h2>ยืนยันอีเมลของคุณ</h2>
+            <p>ใช้เข้าสู่ระบบ และรับใบยืนยันการจอง ลิงก์ห้องเรียน กับใบเสร็จ</p>
           </div>
           <div class="otp-row">
             <div class="field">
-              <label for="p-email">อีเมลผู้ปกครอง <span class="req">*</span></label>
-              <input type="email" id="p-email" name="parent_email" required placeholder="parent@example.com" autocomplete="email">
+              <label for="p-email">อีเมล <span class="req">*</span></label>
+              <input type="email" id="p-email" name="parent_email" required placeholder="you@example.com" autocomplete="email">
               <div class="helper" data-for="p-email"></div>
             </div>
             <button type="button" class="btn btn-secondary" id="send-otp">ส่งรหัสไปที่อีเมล</button>
@@ -442,7 +442,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
               <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
               <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
             </div>
-            <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยัน</button>
+            <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยันรหัส</button>
           </div>
           <div id="otp-ok" hidden><span class="otp-status">ยืนยันอีเมลเรียบร้อย</span></div>
 
@@ -924,13 +924,13 @@ window.slotsToBuckets = slotsToBuckets;
   const ok = document.getElementById('otp-ok');
   send.addEventListener('click', () => {
     if (!EMAIL_RE.test(mail.value.trim())) {
-      setErr(mail, 'กรอกอีเมลให้ถูกต้อง เช่น parent@example.com'); return;
+      setErr(mail, 'กรอกอีเมลให้ถูกต้อง เช่น you@example.com'); return;
     }
     clearErr(mail); box.hidden = false; document.getElementById('otp').focus();
   });
   verify.addEventListener('click', () => {
     const v = document.getElementById('otp').value.trim();
-    if (!/^\d{6}$/.test(v)) { setErr(document.getElementById('otp'), 'กรอกรหัส 6 หลัก'); return; }
+    if (!/^\d{6}$/.test(v)) { setErr(document.getElementById('otp'), 'กรอกรหัส 6 หลัก (ต้นแบบ — ใส่ตัวเลข 6 ตัวใดก็ได้)'); return; }
     clearErr(document.getElementById('otp'));
     box.hidden = true; ok.hidden = false; document.body.dataset.otpVerified = '1';
   });
@@ -1062,6 +1062,11 @@ document.getElementById('parent-form').addEventListener('submit', e => {
     return;
   }
   errBox.textContent = '';
+  /* บันทึกบัญชีไว้ให้หน้าล็อกอินรู้จัก (ต้นแบบ: localStorage เครื่องนี้เท่านั้น — shared/accounts.js) */
+  if (window.BGTAccounts) {
+    BGTAccounts.save(document.getElementById('p-email').value, 'learner',
+                     document.getElementById('p-first').value.trim());
+  }
   handoffToSearch();                       /* ก้อน C1ข — ต่อท่อไปหน้าค้นหาครู */
   document.getElementById('parent-form').style.display = 'none';
   document.querySelector('.hero-band').style.display = 'none';
@@ -1193,6 +1198,7 @@ function handoffToSearch(){
   sync();
 })();
 </script>
+<script src="../shared/accounts.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
 </body>
 </html>

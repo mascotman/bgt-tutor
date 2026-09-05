@@ -499,7 +499,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
               <input type="text" id="otp" name="otp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
               <div class="helper" data-for="otp">ต้นแบบ — ยังไม่ได้ส่งอีเมลจริง พิมพ์เลขอะไรก็ได้ 6 หลัก</div>
             </div>
-            <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยัน</button>
+            <button type="button" class="btn btn-secondary" id="verify-otp">ยืนยันรหัส</button>
           </div>
           <div id="otp-ok" hidden><span class="otp-status">ยืนยันอีเมลเรียบร้อย</span></div>
 
@@ -721,7 +721,7 @@ function wireOtp(emailId, sendId, boxId, otpId, verifyId, okId, flag) {
   });
   document.getElementById(verifyId).addEventListener('click', () => {
     const el = document.getElementById(otpId);
-    if (!/^\d{6}$/.test(el.value.trim())) { setErr(el, 'กรอกรหัส 6 หลัก'); return; }
+    if (!/^\d{6}$/.test(el.value.trim())) { setErr(el, 'กรอกรหัส 6 หลัก (ต้นแบบ — ใส่ตัวเลข 6 ตัวใดก็ได้)'); return; }
     clearErr(el);
     document.getElementById(boxId).hidden = true;
     document.getElementById(okId).hidden = false;
@@ -798,6 +798,11 @@ document.getElementById('student-form').addEventListener('submit', e => {
     return;
   }
   errBox.textContent = '';
+  /* บันทึกบัญชีไว้ให้หน้าล็อกอินรู้จัก (ต้นแบบ: localStorage เครื่องนี้เท่านั้น — shared/accounts.js) */
+  if (window.BGTAccounts) {
+    BGTAccounts.save(document.getElementById('s-email').value, 'learner',
+                     document.getElementById('s-nick').value.trim());
+  }
   handoffToSearch();                       /* ก้อน C1ข — ต่อท่อไปหน้าค้นหาครู */
   document.getElementById('student-form').style.display = 'none';
   document.querySelector('.hero-band').style.display = 'none';
@@ -902,6 +907,7 @@ function handoffToSearch(){
   per.addEventListener('change', sync);
 })();
 </script>
+<script src="../shared/accounts.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
 </body>
 </html>
