@@ -909,6 +909,8 @@ body.sheet-open{overflow:hidden}
   </main>
 </div>
 
+<script src="../shared/accounts.js"></script>
+<script src="../shared/learner-data.js"></script>
 <script>
 /* ตัวกรอง/เรียงลำดับของ prototype — ทำงานกับการ์ด 12 ใบในหน้านี้เท่านั้น
    ตอนขึ้นงาน B ตรรกะชุดนี้จะย้ายไปฝั่ง server (query DB) แต่ "กติกา" ต้องเหมือนกัน:
@@ -1337,8 +1339,13 @@ body.sheet-open{overflow:hidden}
        {"v":1,"prov":"กรุงเทพมหานคร","learners":[{id,nick,grade,subj[],time[],mode[],budget}]}
      🔴 เก็บแค่ชื่อเล่น+ระดับชั้น+เงื่อนไขค้นหา ไม่มีชื่อจริง/เบอร์/ที่อยู่ (กติกาถาวรข้อ 5)
      ตอนต่อฐานข้อมูลจริง (งาน B) เปลี่ยนมาอ่านจากบัญชีที่ล็อกอินแทน ตรรกะข้างล่างใช้ต่อได้ทั้งดุ้น */
+  var OFF_KEY = 'bgt_learner_off';   /* 🆕 ธงว่า "แท็บนี้ผู้ใช้กดล้างตัวกรองเอง" — ดูคำอธิบายใต้ forgetLearners */
   function forgetLearners() {
     try { sessionStorage.removeItem('bgt_learners'); } catch (e) {}
+    /* 🆕 2026-09-06 · โปรไฟล์ผู้เรียนย้ายมาอยู่กับบัญชีแล้ว (shared/learner-data.js)
+       "ล้างตัวกรองทั้งหมด" = เลิกใช้เงื่อนไขในหน้านี้ ไม่ใช่ลบโปรไฟล์ในบัญชีทิ้ง (ลบแล้วต้องกรอกใบสมัครใหม่ทั้งใบ)
+       -> ปักธงไว้แค่ในแท็บนี้ว่าอย่าเติมให้อีก · ปิดแท็บแล้วกลับมา ได้โปรไฟล์คืนตามเดิม */
+    try { sessionStorage.setItem(OFF_KEY, '1'); } catch (e) {}
   }
 
   /* ผู้ใช้กด "ล้างตัวกรองทั้งหมด" = ตั้งใจเลิกใช้ข้อมูลที่กรอกไว้ → ลืมทิ้งไปเลย ไม่เก็บค้างในเครื่อง
@@ -1351,6 +1358,19 @@ body.sheet-open{overflow:hidden}
   }
 
   function readLearners() {
+    /* ผู้ใช้กดล้างเองในแท็บนี้ = ห้ามเติมกลับ */
+    try { if (sessionStorage.getItem(OFF_KEY)) return null; } catch (e) {}
+    /* 🆕 2026-09-06 · แหล่งข้อมูลกลางฝั่งผู้เรียนมาก่อน (อยู่ข้ามแท็บ/ข้ามวัน ไม่หมดอายุ 2 ชม.)
+       ระดับชั้นที่กรอกตอนสมัคร -> ติ๊กตัวกรอง "ช่วงชั้น" ให้เองทุกครั้งที่เข้าหน้านี้ (Owner สั่ง) */
+    if (window.BGT_LEARNER) {
+      var d = BGT_LEARNER.read();
+      var ok = d.learners.filter(function (L) {
+        return L && typeof L.id === 'string' && Array.isArray(L.subj) && Array.isArray(L.time) && Array.isArray(L.mode);
+      });
+      /* คนที่ "กำลังเปิดอยู่" ต้องมาก่อนเสมอ — เข้าหน้านี้โดยไม่มี ?kid= จะได้ไม่เด้งกลับไปลูกคนแรกทุกที */
+      ok.sort(function (a, b) { return (b.id === d.activeId) - (a.id === d.activeId); });
+      if (ok.length) return { v: 1, ts: Date.now(), prov: d.prov, learners: ok };
+    }
     var raw = null;
     try { raw = sessionStorage.getItem('bgt_learners'); } catch (e) { return null; }   /* โหมดส่วนตัวบางเบราว์เซอร์โยน error */
     if (!raw) return null;
@@ -1438,6 +1458,8 @@ body.sheet-open{overflow:hidden}
         clearAll(true);                                        /* ล้างของคนก่อนหน้า ไม่งั้นวิชา 2 คนปนกัน (render ทีเดียวท้ายสุด) */
         subjOrder = (L.subj || []).slice();
         applyCriteria(criteriaOf(L, data.prov));
+        /* 🆕 จำผู้เรียนที่กำลังเปิดไว้กับบัญชี — หน้าโพสต์/หน้าจองจะได้ล็อกระดับชั้นของ "ลูกคนนี้" ต่อ */
+        if (window.BGT_LEARNER) BGT_LEARNER.setActive(L.id);
         [].forEach.call(wrap.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
         b.setAttribute('aria-pressed', 'true');
         /* เขียน query ใหม่ "ทั้งชุด" — ถ้าเปลี่ยนแค่ kid ลิงก์ที่ก๊อปไป/กดรีเฟรช จะได้เงื่อนไขของคนก่อนหน้าติดไปด้วย */
@@ -1503,6 +1525,5 @@ body.sheet-open{overflow:hidden}
 })();
 </script>
 
-<script src="../shared/accounts.js"></script>
 </body>
 </html>

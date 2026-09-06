@@ -687,6 +687,8 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   <span class="dock-total" id="dock-total">—</span>
 </div>
 
+<script src="../shared/accounts.js"></script>
+<script src="../shared/learner-data.js"></script>
 <script>
 (function () {
   'use strict';
@@ -947,6 +949,12 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
      🔴 นี่คือ "บัญชีจำลอง" ของทาง A — ตอนงาน B เปลี่ยนมาอ่านจากบัญชีที่ล็อกอินจริง แล้วลบตัวนี้ทิ้ง
      ต้นฉบับสัญญาข้อมูล: signup-parent.html (ค้น bgt_learners) · อายุ 2 ชม. เท่ากันทุกหน้า */
   function readStoredLearners() {
+    /* 🆕 2026-09-06 · แหล่งข้อมูลกลางฝั่งผู้เรียน (shared/learner-data.js) มาก่อนเสมอ
+       ค่าอยู่ข้ามแท็บ/ข้ามวัน = ไม่ต้องกรอกซ้ำ · ระดับชั้นล็อกตามที่สมัครไว้ (Owner สั่ง) */
+    if (window.BGT_LEARNER) {
+      var fromAcct = BGT_LEARNER.list();
+      if (fromAcct.length) return fromAcct;
+    }
     var raw = null;
     try { raw = sessionStorage.getItem('bgt_learners'); } catch (e) { return null; }
     if (!raw) return null;
@@ -2283,6 +2291,5 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
 })();
 </script>
 <script src="../shared/v4-stepflow.js"></script>
-<script src="../shared/accounts.js"></script>
 </body>
 </html>

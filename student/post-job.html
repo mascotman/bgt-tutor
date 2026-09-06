@@ -694,6 +694,8 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   </div>
 </div>
 
+<script src="../shared/accounts.js"></script>
+<script src="../shared/learner-data.js"></script>
 <script>
 (function () {
   'use strict';
@@ -759,6 +761,13 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
      🔴 นี่คือ "บัญชีจำลอง" ของทาง A — ตอนงาน B เปลี่ยนมาอ่านจากบัญชีที่ล็อกอินจริง แล้วลบตัวนี้ทิ้ง
      ต้นฉบับสัญญาข้อมูล: signup-parent.html (ค้น bgt_learners) · อายุ 2 ชม. เท่ากันทุกหน้า */
   function readStoredLearners() {
+    /* 🆕 2026-09-06 · แหล่งข้อมูลกลางฝั่งผู้เรียน (shared/learner-data.js) มาก่อนเสมอ
+       ได้ของครบชุด (วิชา/เวลา/รูปแบบ/งบ/เป้าหมาย/ครั้งละกี่นาที) ไม่ใช่แค่ 4 ฟิลด์เหมือนทางเก่า
+       -> นี่คือตัวที่ทำให้ "ระดับชั้นล็อกตามบัญชี" และไม่ต้องพิมพ์ซ้ำ (Owner สั่ง) */
+    if (window.BGT_LEARNER) {
+      var fromAcct = BGT_LEARNER.list();
+      if (fromAcct.length) return fromAcct;
+    }
     var raw = null;
     try { raw = sessionStorage.getItem('bgt_learners'); } catch (e) { return null; }
     if (!raw) return null;
@@ -782,7 +791,9 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
      ตรวจชื่อไม่ให้ชนกับตัวละครสมมติที่มีอยู่แล้วในเว็บ (ครูพลอย · น้องภูมิ/ใบเตย/แพร · น้องแทน/ข้าวปุ้น · พี่มายด์ในหน้าแรก) */
   var SELF = { id: 'me', nick: 'ปาล์ม', age: 17, grade: 'ม.5', curriculum: 'หลักสูตรสามัญ (ไทย)' };
   var LEARNERS = AS === 'student' ? [SELF] : AS === 'one' ? [KIDS[0]] : AS === 'none' ? [] : KIDS;
-  var isSelf = AS === 'student';
+  /* 🆕 2026-09-06 · นักเรียน 16+ ที่สมัครเอง ใช้รหัส 'me' เสมอ (signup-student.html)
+     เดิมดูจาก ?as= อย่างเดียว -> พอมีโปรไฟล์จริงในบัญชีแล้ว ลิงก์ "แก้โปรไฟล์" พาไปหน้าผู้ปกครองผิดฝั่ง */
+  var isSelf = AS === 'student' || (LEARNERS.length === 1 && LEARNERS[0].id === 'me');
 
   /* ไอคอนผูกกับ "ช่วงชั้น" ไม่ใช่ตัวอักษรแรกของชื่อ
      (ชื่อไทยขึ้นต้นด้วยสระบ่อย: น้องแทน / น้องแพร ได้ "แ" เหมือนกัน — Owner จับได้ 2026-08-16) */
@@ -813,7 +824,11 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   /* ── ขั้นที่ 1 · เลือกผู้เรียน (ขั้น 6.4) ───────────────────────
      ตรรกะเดียวกับ renderLearners() ใน booking.html — แก้ที่นี่ต้องไปแก้ที่นั่นด้วย */
   var learnerGroup = $('learner-group');
-  var pickedLearner = LEARNERS.length === 1 ? LEARNERS[0].id : '';
+  /* 🆕 2026-09-06 · ผู้ปกครองที่มีลูกหลายคน — เปิดค้างไว้ที่ลูกคนที่เพิ่งดูอยู่ในหน้าค้นหา
+     (ล็อกระดับชั้น "รายคน" ตามที่ Owner สั่ง) · ไม่มีของค้าง = พฤติกรรมเดิมทุกอย่าง */
+  var activeId = (window.BGT_LEARNER && (BGT_LEARNER.active() || {}).id) || '';
+  var pickedLearner = LEARNERS.length === 1 ? LEARNERS[0].id
+                    : (activeId && LEARNERS.filter(function (k) { return k.id === activeId; }).length ? activeId : '');
   function learner() {
     var f = LEARNERS.filter(function (k) { return k.id === pickedLearner; });
     return f.length ? f[0] : null;
@@ -1461,7 +1476,78 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
       (left.length ? ' — ตรวจแล้วแก้ได้ทุกช่อง · เหลือกรอก: ' + left.join(' · ') : ' — ตรวจแล้วแก้ได้ทุกช่อง');
     $('carry-note').hidden = false;
   }
+  /* ══ 🆕 เติมจาก "โปรไฟล์ผู้เรียนในบัญชี" (2026-09-06 · Owner สั่ง) ═══════════
+     Owner: "ก็ควรจะล็อก User นั้นตามที่กรอกไปเลย เพื่อที่จะง่ายต่อการค้นหา"
+     กติกา 2 ข้อที่ห้ามพลาด:
+       1. ค่าจาก URL (ยกมาจากหน้าจอง/โพสต์เดิม) ชนะเสมอ — ที่นี่เติม "เฉพาะช่องที่ยังว่าง"
+       2. เติมแล้วยังแก้ได้ทุกช่อง — ล็อกแปลว่าไม่ต้องพิมพ์ใหม่ ไม่ใช่ห้ามแก้ (กฎ 8 ข้อ 4)
+     ระดับชั้นไม่ต้องเติมตรงนี้ เพราะหน้านี้ไม่มีช่องชั้นเรียน — มันมาจากการ์ดผู้เรียนที่เลือกอยู่แล้ว */
+  function applyLearnerProfile() {
+    if (!window.BGT_LEARNER) return [];
+    var me = learner() || null;
+    if (!me) { var all = BGT_LEARNER.list(); me = all.length ? all[0] : null; }
+    if (!me) return [];
+    var filled = [];
+
+    /* วิชา — เติมได้เฉพาะชื่อที่มีในลิสต์กลางของหน้านี้ */
+    if (!picked.length && me.subj && me.subj.length) {
+      var flat2 = [];
+      SUBJECT_GROUPS.forEach(function (g) { flat2 = flat2.concat(g.items); });
+      me.subj.forEach(function (n) { if (flat2.indexOf(n) > -1 && picked.indexOf(n) === -1) picked.push(n); });
+      if (picked.length) { renderPicked(); filled.push('วิชา ' + picked.join(' · ')); }
+    }
+
+    /* รูปแบบการเรียน (online/home/public) */
+    if (!document.querySelector('input[name="place"]:checked') && me.mode && me.mode.length) {
+      var mHit = [];
+      me.mode.forEach(function (m) {
+        if (['online', 'home', 'public'].indexOf(m) === -1) return;
+        var cb = document.querySelector('input[name="place"][value="' + m + '"]');
+        if (cb) { cb.checked = true; mHit.push(cb.parentNode.textContent.trim()); }
+      });
+      if (mHit.length) filled.push('รูปแบบ ' + mHit.join(' · '));
+    }
+
+    /* เป้าหมายการเรียน — ชิป radio ชุดเดียวกับหน้าสมัคร */
+    if (!document.querySelector('input[name="goal"]:checked') && me.goal) {
+      var g2 = document.querySelector('#goal-group input[name="goal"][value="' + String(me.goal).replace(/[^a-z_]/g, '') + '"]');
+      if (g2) { g2.checked = true; filled.push('เป้าหมาย ' + g2.parentNode.textContent.trim()); }
+    }
+
+    /* งบต่อชั่วโมง */
+    if (!$('budget').value && me.budget) { $('budget').value = me.budget; filled.push('งบ ' + me.budget + ' บาท/ชม.'); }
+
+    /* ครั้งละกี่นาที — รับเฉพาะค่าที่มีจริงใน <select> */
+    if ($('seslen') && !$('seslen').value && me.sesLen) {
+      var okOpt = [].filter.call($('seslen').options, function (o) { return o.value === String(me.sesLen); })[0];
+      if (okOpt) { $('seslen').value = String(me.sesLen); filled.push('ครั้งละ ' + okOpt.textContent.trim()); }
+    }
+
+    /* จังหวัด — เก็บไว้ระดับบัญชี (บ้านเดียวกันใช้จังหวัดเดียวกัน · SYSTEM ข้อ 13) */
+    var pv = BGT_LEARNER.prov();
+    if (!zoneSel.value && pv && PROVINCES.indexOf(pv) > -1) { zoneSel.value = pv; filled.push('จังหวัด ' + pv); }
+
+    /* ช่วงเวลาที่สะดวก — โปรไฟล์เก็บเป็นชื่อช่วง (morning/afternoon/evening/night)
+       ตารางหน้านี้เป็น วัน × ช่วง จึงเติมไม่ได้ตรง ๆ (ไม่รู้ว่าวันไหน) -> จงใจไม่เติม
+       ให้ผู้ใช้ติ๊กวันเอง ดีกว่าเดาแล้วติ๊กผิดทั้งสัปดาห์ */
+    return filled;
+  }
+
   applyIncoming();
+  /* 🆕 ต่อท้าย applyIncoming เสมอ — ของจาก URL ได้เติมไปก่อนแล้ว ที่นี่อุดเฉพาะช่องที่ยังว่าง */
+  (function () {
+    var filled = applyLearnerProfile();
+    if (!filled.length) return;
+    /* ถ้าแถบ "ยกข้อมูลมาให้แล้ว" ยังไม่ได้โผล่ (เข้าหน้านี้ตรง ๆ ไม่ได้มาจากหน้าจอง) ต้องบอกด้วยว่าเติมอะไรให้
+       ไม่งั้นผู้ใช้เจอช่องมีค่าอยู่แล้วโดยไม่รู้ว่ามาจากไหน */
+    if ($('carry-note').hidden) {
+      $('carry-head').textContent = 'เติมจากโปรไฟล์ผู้เรียนในบัญชีให้แล้ว';
+      $('carry-body').textContent = filled.join(' · ') + ' — แก้ได้ทุกช่อง';
+      $('carry-note').hidden = false;
+    } else {
+      $('carry-body').textContent += ' · เติมจากโปรไฟล์: ' + filled.join(' · ');
+    }
+  })();
   /* 🔴 applyIncoming เซ็ต .value ตรง ๆ ซึ่งไม่ยิง event `change` -> ตัวที่ผูกกับ change ไม่ได้อัปเดตเอง
      (ผลตรวจ logic 2026-08-21: กรอกมาให้ครั้งละ 2 ชม. × 1 ครั้ง แต่บรรทัดสรุป "รวมสัปดาห์ละ" ยังว่าง) */
   syncWeekTotal();
@@ -1470,6 +1556,5 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
 })();
 </script>
 <script src="../shared/v4-stepflow.js"></script>
-<script src="../shared/accounts.js"></script>
 </body>
 </html>

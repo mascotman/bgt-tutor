@@ -552,6 +552,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   </div>
 </footer>
 
+<script src="../shared/accounts.js"></script>
+<script src="../shared/learner-data.js"></script>
 <script>
 /* ============================================================
    การ์ดผู้เรียน — ตัวตน + สิ่งที่อยากเรียน + เวลา/รูปแบบ/งบ  (C0 · 2026-08-19)
@@ -1169,6 +1171,10 @@ function handoffToSearch(){
     sessionStorage.setItem('bgt_learners', JSON.stringify({ v:1, ts: Date.now(), prov, learners: payload }));
     stored = true;
   } catch (e) {}
+  /* 🆕 2026-09-06 (Owner สั่ง "ล็อก User นั้นตามที่กรอกไปเลย เพื่อที่จะง่ายต่อการค้นหา")
+     ผู้ปกครองมีลูกได้หลายคน -> เก็บทั้งลิสต์ · ล็อกระดับชั้น "รายคน" ตอนเลือกลูกในหน้าถัดไป
+     (sessionStorage ด้านบนยังเขียนไว้เหมือนเดิม เผื่อแท็บ/หน้าที่ยังอ่านทางเก่าอยู่) */
+  if (window.BGT_LEARNER && BGT_LEARNER.save(prov, payload)) stored = true;
   const btn = document.getElementById('go-search');
   if (btn) btn.href = searchUrlFor(learners[0], prov, !stored);
   const note = document.getElementById('go-search-note');
@@ -1235,7 +1241,6 @@ function handoffToSearch(){
   sync();
 })();
 </script>
-<script src="../shared/accounts.js"></script>
 <script src="../shared/google-signup.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
 </body>

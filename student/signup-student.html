@@ -624,6 +624,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   </div>
 </footer>
 
+<script src="../shared/accounts.js"></script>
+<script src="../shared/learner-data.js"></script>
 <script>
 /* 🔴 ชุดย่อยของลิสต์ 18 ตัวใน signup-parent.html (ต้นฉบับ) — หน้านี้สำหรับ 16+ จึงตัดชั้นที่ต่ำกว่า ม.1 ออก
    ห้ามตั้งชื่อ/ลำดับเอง · เรียงจากน้อยไปมากให้ตรงกับต้นฉบับ (เดิมเรียงสลับ ม.4-6 ขึ้นก่อน ม.1-3)
@@ -880,6 +882,10 @@ function handoffToSearch(){
     sessionStorage.setItem('bgt_learners', JSON.stringify({ v:1, ts: Date.now(), prov, learners: [me] }));
     stored = true;
   } catch (e) {}
+  /* 🆕 2026-09-06 (Owner สั่ง "ล็อก User นั้นตามที่กรอกไปเลย เพื่อที่จะง่ายต่อการค้นหา")
+     เขียนลงแหล่งข้อมูลกลางฝั่งผู้เรียนด้วย = ค่าอยู่ข้ามแท็บ/ข้ามวัน ไม่ต้องกรอกซ้ำอีก
+     (sessionStorage ด้านบนยังเขียนไว้เหมือนเดิม เผื่อแท็บ/หน้าที่ยังอ่านทางเก่าอยู่) */
+  if (window.BGT_LEARNER && BGT_LEARNER.save(prov, [me])) stored = true;
   const p = new URLSearchParams();
   /* ปกติส่งแค่รหัส — ใส่เงื่อนไขลง URL เฉพาะตอนเขียน storage ไม่ได้ ไม่งั้นหน้าค้นหาจะว่างเปล่า */
   if (!stored) {
@@ -943,7 +949,6 @@ function handoffToSearch(){
   per.addEventListener('change', sync);
 })();
 </script>
-<script src="../shared/accounts.js"></script>
 <script src="../shared/google-signup.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
 </body>
