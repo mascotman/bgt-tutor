@@ -29,7 +29,13 @@
 .logo-mark{
   flex:none;width:34px;height:34px;border-radius:10px;
   display:grid;place-items:center;
-  background:var(--color-accent);color:var(--color-accent-ink);
+  /* 🔴 2026-09-06 · Owner ทัก: "สีหรือธีมมันดูแยกทางกันไปมาก ๆ"
+     ต้นเหตุจริง: ปุ่มหลักของหน้าแอปเป็น **อำพัน** ตามหน้า landing อยู่แล้ว (theme-v3.css ค้น .btn.btn-primary)
+     แต่โลโก้กับสีเน้นยังเป็น **ส้ม** (--color-accent) = แบรนด์ 2 สีชนกันในหน้าเดียวกัน
+     -> โลโก้ใช้อำพันชุดเดียวกับปุ่มและกับหน้า landing · ส้มถอยไปเป็นสีตัวหนังสือ/ขอบ/focus อย่างเดียว
+     ค่า fallback มีไว้เผื่อหน้าที่ไม่ได้โหลด theme-v3.css (หน้า landing) จะได้สีเดียวกันเป๊ะ */
+  background:var(--color-amber, oklch(85% 0.145 82));
+  color:var(--color-amber-ink, oklch(24% 0.060 70));
   font-family:var(--font-display);font-weight:600;font-size:18px;line-height:1;
 }
 
@@ -38,7 +44,5 @@
       ส่วนตัวกรอบใช้อำพันอ่อน = ทรงเดิมของ landing ที่ Owner ออกแบบไว้ให้เด่นบนพื้นน้ำเงินเข้ม
    ทรง (ขนาด/มุม/ฟอนต์/น้ำหนัก) ยังเป็นชุดเดียวกับทุกหน้า เปลี่ยนแค่สีตามพื้นหลัง */
 .logo--on-dark{color:oklch(98% .005 260)}
-.logo--on-dark .logo-mark{
-  background:oklch(85% .145 82);color:oklch(24% .06 70);
-  box-shadow:0 0 18px -4px oklch(80% .135 72/.55);
-}
+/* กรอบโลโก้ใช้สีเดียวกันทุกหน้าแล้ว — บนพื้นเข้มเหลือแค่เพิ่มแสงรอบ ๆ ให้ลอยขึ้น */
+.logo--on-dark .logo-mark{box-shadow:0 0 18px -4px oklch(80% .135 72/.55)}
