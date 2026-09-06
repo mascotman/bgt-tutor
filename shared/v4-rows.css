@@ -106,3 +106,19 @@ button.jbadge[disabled]{cursor:not-allowed}
    เดิมป้ายอยู่มุมบนขวาของแถบบน -> สายตาคนไปตรงกลางก่อน เลยไม่เห็น */
 .head-row{display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap}
 .head-row h1{margin:0}
+
+/* ═══ 2026-09-06 · ชิ้นส่วนที่จอ ⑤ (#s1 ในหน้า landing) ใช้ แต่ชุดนี้ยังไม่มี ═══
+   ที่มา: index.html ค้น `.mbadge.is-ok` และ `<h4>` ในจอจำลอง
+   🔴 เพิ่มที่นี่ที่เดียว ห้ามก๊อปไปวางในหน้า (กติกาโปรเจกต์: 2 หน้าห้ามหน้าตาคนละแบบ) */
+
+/* หัวข้อย่อยเหนือกลุ่มแถว — ในจอเป็น <h4> ตัวเล็ก สีจาง */
+.row-h4{margin:var(--space-6) 0 var(--space-2);font-family:var(--font-display);
+  font-size:var(--text-sm);font-weight:700;color:var(--color-ink-2)}
+
+/* แถวที่เป็น "ของโชว์" ไม่ใช่ปุ่ม — ห้ามทำเป็นมือชี้ ไม่งั้นผู้ใช้กดแล้วไม่มีอะไรเกิดขึ้น */
+.jrow-static{cursor:default}
+@media (hover:hover){.jrow-static:hover{background:none}}
+
+/* ป้ายผลตรวจ — เขียว = ผ่าน · แดง = ต้องแก้ก่อน (คู่กับ .mbadge.is-ok ในจอ) */
+.jbadge.is-ok{background:var(--color-ok-soft);color:var(--color-ok)}
+.jbadge.is-warn{background:var(--color-error-soft);color:var(--color-error)}

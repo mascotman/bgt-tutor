@@ -30,6 +30,7 @@
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
+<link rel="stylesheet" href="../shared/v4-rows.css">
 <link rel="stylesheet" href="../shared/v4-stepflow.css">
 <style>
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
@@ -379,10 +380,8 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
     <a class="back-link" href="teacher-search.html">ค้นหาครู</a>
     <nav class="sidenav" aria-label="ขั้นตอนการตั้งโพสต์">
       <a href="#sec1"><span class="sidenav-num">1</span>เรียนอะไร</a>
-      <a href="#sec2"><span class="sidenav-num">2</span>เรียนที่ไหน</a>
-      <a href="#sec3"><span class="sidenav-num">3</span>เวลาและงบ</a>
-      <a href="#sec4"><span class="sidenav-num">4</span>เล่าให้ครูฟัง</a>
-      <a href="#sec5"><span class="sidenav-num">5</span>ตรวจก่อนโพสต์</a>
+      <a href="#sec2"><span class="sidenav-num">2</span>เวลาและงบ</a>
+      <a href="#sec3"><span class="sidenav-num">3</span>ตรวจก่อนโพสต์</a>
     </nav>
     <p class="side-note">
       <strong>โพสต์เดียว ครูมาหาเอง</strong>
@@ -422,7 +421,7 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
           <div class="sec-head">
             <span class="sec-num">ขั้นที่ 1</span>
             <h2>เรียนอะไร</h2>
-            <p>เลือกจากรายการเดียวกับที่ครูใช้กรอกตอนสมัคร ระบบจะได้จับคู่เจอ</p>
+            <p>วิชา ระดับชั้น และรูปแบบการเรียน — ครูใช้ 3 อย่างนี้ตัดสินใจว่าจะยื่นข้อเสนอไหม</p>
           </div>
 
           <div class="field" style="position:relative">
@@ -454,17 +453,10 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
             </div>
             <div class="helper" data-for="goal-group">ครูใช้ข้อนี้ตัดสินใจว่ารับไหวไหม</div>
           </div>
-        </section>
 
-        <!-- 2 -->
-        <section class="section" id="sec2">
-          <div class="sec-head">
-            <span class="sec-num">ขั้นที่ 2</span>
-            <h2>เรียนที่ไหน</h2>
-            <p>ถ้าเลือกให้ครูมาสอนถึงที่ ครูจะเห็นแค่จังหวัดกับย่านคร่าว ๆ — ที่อยู่เต็มจะเห็นหลังชำระเงินแล้วเท่านั้น</p>
-          </div>
-
-          <div class="field">
+          <!-- ยกมาจากขั้น "เรียนที่ไหน" เดิม (2026-09-06) — เดิมเป็นช่องแรกของก้อนเลยไม่มีช่องไฟบน
+               พอมาต่อท้ายก้อนนี้ต้องเว้นเท่าช่องอื่น ไม่งั้นดูเหมือนเป็นส่วนหนึ่งของ "เป้าหมาย" -->
+          <div class="field" style="margin-top:var(--space-5)">
             <label>รูปแบบการเรียน <span class="req">*</span></label>
             <div class="chip-group" id="place-group">
               <!-- 🔴 รหัสล็อกทั้งเว็บ: online / home / public · ป้ายไทยเปลี่ยนตามมุมคนดูได้ แต่ value ห้ามเปลี่ยน -->
@@ -487,12 +479,29 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
               <div class="helper">ไม่ต้องใส่บ้านเลขที่ ใส่แค่ย่านพอ</div>
             </div>
           </div>
+          <!-- 🔴 ตามจอ ⑤ (#s1 ในหน้า landing): h4 "สิ่งที่ครูจะเห็น" + แถว 1 บรรทัด
+               วงกลมระดับชั้น + ข้อความ 2 บรรทัด + ป้ายงบชิดขวา (ท่า .jrow ในชุดกลาง v4-rows.css)
+               อัปเดตสดจาก refresh() — ผู้เรียนเห็นทันทีว่าครูจะเห็นอะไร ไม่ต้องรอถึงขั้นสุดท้าย -->
+          <h4 class="row-h4">สิ่งที่ครูจะเห็น</h4>
+          <ul class="row-list">
+            <li class="jrow">
+              <span class="jrow-main jrow-static">
+                <span class="jav" id="pvr-av" aria-hidden="true">?</span>
+                <span class="jtxt">
+                  <b id="pvr-title">— ยังไม่ได้เลือกวิชา —</b>
+                  <small id="pvr-sub">เลือกวิชาและผู้เรียนก่อน</small>
+                </span>
+              </span>
+              <span class="jact"><span class="jbadge is-off" id="pvr-budget">งบ —</span></span>
+            </li>
+          </ul>
         </section>
 
+
         <!-- 3 -->
-        <section class="section" id="sec3">
+        <section class="section" id="sec2">
           <div class="sec-head">
-            <span class="sec-num">ขั้นที่ 3</span>
+            <span class="sec-num">ขั้นที่ 2</span>
             <h2>เวลาและงบ</h2>
             <p>ตรงนี้เอาไว้คัดครูที่ว่างตรงกับคุณ — เวลานัดจริงจะไปตกลงกันตอนจองคาบ</p>
           </div>
@@ -567,13 +576,15 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
           </div>
         </section>
 
-        <!-- 4 -->
-        <section class="section" id="sec4">
+
+        <!-- 5 -->
+        <section class="section" id="sec3">
           <div class="sec-head">
-            <span class="sec-num">ขั้นที่ 4</span>
-            <h2>เล่าให้ครูฟัง</h2>
-            <p>ข้อความนี้คือสิ่งที่ทำให้ครูตัดสินใจยื่นข้อเสนอ — บอกจุดที่ติด บอกสิ่งที่อยากได้</p>
+            <span class="sec-num">ขั้นที่ 3</span>
+            <h2>ตรวจก่อนโพสต์</h2>
+            <p>เขียนข้อความถึงครู แล้วดูหน้าตาจริงที่ครูจะเห็น — เลื่อนขึ้นไปแก้ได้ตลอด</p>
           </div>
+
 
           <div class="field">
             <label for="detail">รายละเอียด <span class="req">*</span></label>
@@ -606,16 +617,6 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
               <strong style="display:inline">ไม่เห็นชื่อจริง เบอร์ ไอดีไลน์ หรือที่อยู่เต็ม</strong>
             </span>
           </div>
-        </section>
-
-        <!-- 5 -->
-        <section class="section" id="sec5">
-          <div class="sec-head">
-            <span class="sec-num">ขั้นที่ 5</span>
-            <h2>ตรวจก่อนโพสต์</h2>
-            <p>นี่คือหน้าตาที่ครูจะเห็นจริง ๆ เลื่อนขึ้นไปแก้ได้ตลอด</p>
-          </div>
-
           <div class="preview-frame">
             <span class="preview-label">ตัวอย่างที่ครูเห็น</span>
             <article class="j-card" id="preview-card" aria-live="polite">
@@ -632,6 +633,20 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
               </div>
             </article>
           </div>
+
+          <!-- 🔴 ตามจอ ⑤: แถวสุดท้าย "ตรวจก่อนโพสต์ / ไม่มีเบอร์โทรหรือที่อยู่หลุดลงโพสต์ / ป้าย ผ่าน (เขียว)"
+               ในจอไม่มีวงกลมตัวอักษรที่แถวนี้ -> ที่นี่ก็ไม่ใส่ · ป้ายเปลี่ยนเป็นแดงเองเมื่อ contactRisk() จับได้ -->
+          <ul class="row-list" style="margin-top:var(--space-6)">
+            <li class="jrow">
+              <span class="jrow-main jrow-static">
+                <span class="jtxt">
+                  <b>ตรวจก่อนโพสต์</b>
+                  <small id="safety-sub">ไม่มีเบอร์โทรหรือที่อยู่หลุดลงโพสต์</small>
+                </span>
+              </span>
+              <span class="jact"><span class="jbadge is-ok" id="safety-badge">ผ่าน</span></span>
+            </li>
+          </ul>
 
           <ul class="summary" style="margin-top:var(--space-6)" id="summary"></ul>
 
@@ -1029,10 +1044,19 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
     /* ที่อยู่: ต้องมี "เลขจริง" ตามหลัง — ชื่อย่านเฉย ๆ ไม่นับ (เราขอย่านอยู่แล้ว)
        🔴 ชุดเดียวกับ signup-parent.html (ค้น looksLikeAddress) — เดิมไฟล์นี้ขาด `199/45` และ ชั้น/ห้อง
           ทั้งที่หน้านี้คือหน้าที่โพสต์ขึ้นกระดานสาธารณะจริง (ผลตรวจ security 2026-08-20) */
+    /* 🔴 2026-09-06 — ต้องล้าง "คะแนนสอบ" ออกก่อนเทียบเลขทับ ไม่งั้นเตือนผิดตลอด
+       ต่างจาก signup-parent/booking ที่เอาชุดนี้ไปจับ **ช่องย่านอย่างเดียว** (ที่นั่น 12/40 = น่าสงสัยจริง)
+       แต่หน้านี้เอาไปจับ **ข้อความเล่าเรื่องถึงครู** ซึ่ง "สอบกลางภาคได้ 12/40" เป็นเรื่องปกติที่สุด
+       — ข้อความตัวอย่างในช่องของหน้านี้เองก็เขียนแบบนั้น = ขึ้นเตือนผิดตั้งแต่ยังไม่ทันพิมพ์
+       เตือนผิดบ่อย -> ผู้ใช้เลิกอ่านคำเตือน ซึ่งอันตรายกว่าไม่เตือนเลย
+       🔴 กฎอื่น (บ้านเลขที่ · ซอย/ถนน · ชั้น/ห้อง) ยังใช้ t2 เหมือนเดิม ไม่ผ่อนลง */
+    var t3 = t2
+      .replace(/(ได้|คะแนน|เกรด|สอบ|ข้อ|เต็ม)\s*[\d๐-๙]{1,4}\s*\/\s*[\d๐-๙]{1,4}/g, ' ')
+      .replace(/[\d๐-๙]{1,4}\s*\/\s*[\d๐-๙]{1,4}\s*(คะแนน|ข้อ|เต็ม)/g, ' ');
     if (/(บ้านเลขที่|เลขที่)\s*[\d๐-๙]/.test(t2)
         || /(ซอย|ซ\.|ถนน|ถ\.|หมู่ที่|หมู่)[^\d๐-๙]{0,20}[\d๐-๙]/.test(t2)
         || /(ชั้น|ห้อง|อาคาร|ตึก|คอนโด)\s*\S{0,10}[\d๐-๙]/.test(t2)
-        || /[\d๐-๙]{1,4}\/[\d๐-๙]{1,4}/.test(t2)) found.push('ที่อยู่');
+        || /[\d๐-๙]{1,4}\/[\d๐-๙]{1,4}/.test(t3)) found.push('ที่อยู่');
 
     return found;
   }
@@ -1162,8 +1186,30 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
       ul.appendChild(li);
     });
 
+    /* ── แถว "สิ่งที่ครูจะเห็น" ในขั้นที่ 1 (ตามจอ ⑤) ──────────────
+       จอโชว์: วงกลม `ม3` · "คณิตศาสตร์ · ม.3" / "ที่บ้าน · เสาร์ 10:00 · 2 ชม." · ป้าย "งบ ฿400/ชม."
+       🔴 textContent ล้วน — ค่าพวกนี้ผู้ใช้พิมพ์เอง ห้ามยัดเข้า innerHTML */
+    $('pvr-av').textContent = d.grade ? d.grade.replace(/[.\s]/g, '') : '?';
+    $('pvr-title').textContent = d.subjects.length
+      ? d.subjects.join(' · ') + (d.grade ? ' · ' + d.grade : '')
+      : '— ยังไม่ได้เลือกวิชา —';
+    var sub = [];
+    if (d.places.length) sub.push(d.places.map(function (m) { return MODE_LABEL[m] || m; }).join(' · '));
+    if (d.slots.length)  sub.push(d.slots.map(function (c) { return SLOT_LABEL[c] || c; }).join(' / '));
+    if (d.sesLen)        sub.push('ครั้งละ ' + hoursLabel(d.sesLen) + ' ชม.');
+    $('pvr-sub').textContent = sub.length ? sub.join(' · ') : 'เลือกวิชาและผู้เรียนก่อน';
+    $('pvr-budget').textContent = d.budget ? 'งบ ฿' + Number(d.budget).toLocaleString('th-TH') + '/ชม.' : 'งบ —';
+    $('pvr-budget').className = 'jbadge ' + (d.budget ? 'is-go' : 'is-off');
+
     /* ยาม PDPA */
     var risk = contactRisk(d.detail + ' ' + d.zoneDetail);
+
+    /* ── แถวผลตรวจในขั้นที่ 3 (ตามจอ ⑤) — ป้ายเขียว "ผ่าน" / แดงเมื่อเจอของที่ห้ามหลุด ── */
+    $('safety-sub').textContent = risk.length
+      ? 'เจอ' + risk.join(' และ ') + 'ในข้อความ — เอาออกก่อนโพสต์'
+      : 'ไม่มีเบอร์โทรหรือที่อยู่หลุดลงโพสต์';
+    $('safety-badge').textContent = risk.length ? 'ต้องแก้' : 'ผ่าน';
+    $('safety-badge').className = 'jbadge ' + (risk.length ? 'is-warn' : 'is-ok');
     var warn = $('pdpa-warn');
     if (risk.length) {
       $('pdpa-what').textContent = 'เราเจอ ' + risk.join(' และ ') + ' ในข้อความ';
@@ -1199,10 +1245,10 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
       bad.push('#sec1');
     } else setErr('learner-group', '');
     if (!d.goal) { setErr('goal-group', 'เลือกเป้าหมาย 1 ข้อ'); bad.push('#sec1'); } else setErr('goal-group', '');
-    if (!d.places.length) { setErr('place-group', 'เลือกรูปแบบการเรียนอย่างน้อย 1 อย่าง'); bad.push('#sec2'); } else setErr('place-group', '');
-    if (needsOnsite(d) && !d.zone) { setErr('zone', 'เลือกจังหวัดเมื่อให้ครูมาสอนถึงที่'); bad.push('#sec2'); } else setErr('zone', '');
-    if (!d.budget || Number(d.budget) <= 0) { setErr('budget', 'ใส่งบต่อชั่วโมงเป็นตัวเลข'); bad.push('#sec3'); } else setErr('budget', '');
-    if (d.detail.length < 20) { setErr('detail', 'เขียนอย่างน้อย 20 ตัวอักษร (ตอนนี้ ' + d.detail.length + ')'); bad.push('#sec4'); } else setErr('detail', '');
+    if (!d.places.length) { setErr('place-group', 'เลือกรูปแบบการเรียนอย่างน้อย 1 อย่าง'); bad.push('#sec1'); } else setErr('place-group', '');
+    if (needsOnsite(d) && !d.zone) { setErr('zone', 'เลือกจังหวัดเมื่อให้ครูมาสอนถึงที่'); bad.push('#sec1'); } else setErr('zone', '');
+    if (!d.budget || Number(d.budget) <= 0) { setErr('budget', 'ใส่งบต่อชั่วโมงเป็นตัวเลข'); bad.push('#sec2'); } else setErr('budget', '');
+    if (d.detail.length < 20) { setErr('detail', 'เขียนอย่างน้อย 20 ตัวอักษร (ตอนนี้ ' + d.detail.length + ')'); bad.push('#sec3'); } else setErr('detail', '');
     return bad;
   }
 
@@ -1266,11 +1312,11 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   });
 
   $('edit-post').addEventListener('click', function () {
-    document.querySelector('#sec5 .preview-frame').appendChild($('preview-card'));
+    document.querySelector('#sec3 .preview-frame').appendChild($('preview-card'));
     $('success').style.display = 'none';
     form.hidden = false;
     document.querySelector('.hero-band').hidden = false;
-    document.querySelector('#sec5').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelector('#sec3').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   /* ── sidenav ไฮไลต์หัวข้อที่กำลังอ่าน ─────────────────────── */
