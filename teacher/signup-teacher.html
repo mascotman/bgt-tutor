@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="../shared/tokens.css">
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
+<link rel="stylesheet" href="../shared/social-login.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
 <link rel="stylesheet" href="../shared/v4-stepflow.css">
 <style>
@@ -466,6 +467,22 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   <div class="page-blob page-blob--5" aria-hidden="true"></div>
   <form id="teacher-form" novalidate>
     <input type="hidden" name="teacher_status" value="professional">
+
+    <!-- 🔴 สมัครด้วย Google — ยังปิดอยู่ (ต้องมีระบบหลังบ้าน = งาน B)
+         ผูกฝั่งจากประตูที่กดเข้ามา: กดจากหน้านี้ = บัญชีฝั่งครู -->
+    <div class="wrap">
+      <div class="social-signup">
+        <p class="social-q">สมัครให้เร็วกว่านี้</p>
+        <div class="social">
+          <button type="button" class="btn-social" disabled aria-describedby="social-why">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"/><path fill="#34A853" d="M12 23.5c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v2.9A11.5 11.5 0 0 0 12 23.5z"/><path fill="#FBBC05" d="M5.6 14.2a6.9 6.9 0 0 1 0-4.4V6.9H1.8a11.5 11.5 0 0 0 0 10.2l3.8-2.9z"/><path fill="#EA4335" d="M12 4.9c1.7 0 3.2.6 4.4 1.7l3.3-3.3A11.5 11.5 0 0 0 1.8 6.9l3.8 2.9C6.5 7 9 4.9 12 4.9z"/></svg>สมัครด้วย Google <span class="soon">ยังไม่เปิด</span>
+          </button>
+                  </div>
+        <p class="social-why" id="social-why">🔒 <b>ยังกดไม่ได้</b> — ต้องต่อระบบหลังบ้านก่อน (งาน B)
+          พอเปิดใช้แล้ว: สมัครจากหน้านี้ด้วย Google จะได้บัญชี<b>ฝั่งครู</b>โดยอัตโนมัติ
+          เติมชื่อกับอีเมลให้เอง และ<b>ข้ามขั้นกรอกอีเมล + รหัส 6 หลัก</b>ไปเลย</p>
+      </div>
+    </div>
 
     <!-- 1. ข้อมูลส่วนตัว -->
     <section class="section" id="sec-personal">
@@ -1368,6 +1385,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   </div>
 </footer>
 <script src="../shared/accounts.js"></script>
+<script src="../shared/google-signup.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
 </body>
 </html>

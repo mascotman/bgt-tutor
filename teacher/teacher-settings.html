@@ -164,7 +164,7 @@ select,input[type=number],input[type=text]{
 /* ── แท็บโปรไฟล์ (2026-09-01) ── */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .avatar-row{display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap}
-.avatar-pic{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;
+.avatar-pic{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;overflow:hidden;
   background:var(--color-accent-soft);color:var(--color-accent-deep);
   font-family:var(--font-display);font-weight:700;font-size:1.7rem}
 /* ป้ายที่ทำหน้าที่เป็นปุ่มเลือกไฟล์ — input จริงถูกซ่อนด้วย .sr-only */
@@ -240,7 +240,7 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
 
           <h4>รูปโปรไฟล์</h4>
           <div class="avatar-row">
-            <span class="avatar-pic" id="pf-avatar" aria-hidden="true">พ</span>
+            <span class="avatar-pic" id="pf-avatar"><img src="../photo-web/teachers/teacher-a.jpg" alt="รูปโปรไฟล์ของคุณ" width="480" height="480" loading="lazy" decoding="async"></span>
             <div>
               <label class="btn btn-sm pick-btn" for="pf-photo">เปลี่ยนรูป</label>
               <input type="file" id="pf-photo" accept="image/*" class="sr-only">
@@ -768,7 +768,8 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
   /* ชื่อเล่นเปลี่ยน -> ตัวอักษรในวงกลมเปลี่ยนตาม (ผู้เรียนเห็นวงกลมนี้ในผลค้นหา) */
   $('pf-nick').addEventListener('input', function () {
     var v = $('pf-nick').value.replace(/^ครู/, '').trim();
-    $('pf-avatar').textContent = v ? v.charAt(0) : '?';
+    /* มีรูปจริงอยู่แล้วห้ามเขียนทับด้วยตัวอักษร (รูปครูจริง 2026-09-06) */
+    if (!$('pf-avatar').querySelector('img')) $('pf-avatar').textContent = v ? v.charAt(0) : '?';
   });
   $('pf-photo').addEventListener('change', function () {
     var f = this.files && this.files[0];
@@ -802,7 +803,7 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
     $('pf-intro').value  = p.intro || '';
     $('pf-phone').value  = p.phone || '';
     var v = (p.nick || '').replace(/^ครู/, '').trim();
-    $('pf-avatar').textContent = v ? v.charAt(0) : '?';
+    if (!$('pf-avatar').querySelector('img')) $('pf-avatar').textContent = v ? v.charAt(0) : '?';
   })();
 
   /* ── ยืนยันเบอร์ด้วย OTP (ย้ายมาจากหน้าสมัคร · Owner เคาะ 2026-09-04) ──
