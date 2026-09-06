@@ -67,7 +67,7 @@ button.jbadge[disabled]{cursor:not-allowed}
 /* ═══ ก้อน 2 ขั้น 2 (2026-09-01) — แถบบนแทน sidebar + หัวหน้าแบบลีน ═══
    Owner: "Side bar ไม่น่ามีแล้ว ... ไม่จำเป็นต้องมีพวกนี้แล้ว" (อนุมัติให้ตัด)
    เทียบกับจอ ② แล้ว หน้าเหลือแค่: แถบบน -> ชื่อหน้า -> การ์ดที่มีแท็บ + แถว */
-.page-shell{display:block}
+body:has(.topbar) .page-shell{display:block}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:var(--space-5);
   flex-wrap:wrap;padding:var(--space-3) var(--space-6);
   background:var(--color-surface);border-bottom:1px solid var(--color-rule)}
@@ -85,8 +85,19 @@ button.jbadge[disabled]{cursor:not-allowed}
 .filter-bar .result-count{color:var(--color-ink-2);font-size:.9rem}
 .filters{margin-bottom:var(--space-5)}
 
-/* ── ของที่ตายแล้วหลังตัด sidebar/แถวเลื่อน — ปิดไว้กันหลุดมาแสดง ── */
-.sidebar,.sidenav,.rail,.hero-band,.me-strip{display:none !important}
+/* ── ของที่ตายแล้วหลังตัด sidebar/แถวเลื่อน — ปิดไว้กันหลุดมาแสดง ──
+   🔴 2026-09-06 · ต้องมี `body:has(.topbar)` คุมขอบเขต ห้ามปล่อยลอย
+   เหตุ: ไฟล์นี้ถูกยกมาจากหน้าฝั่งครูที่ "ตัดแถบข้างทิ้งแล้ว" ทุกหน้า -> เขียนกฎแบบเหมารวมไว้
+   พอหน้าอื่นโหลดไฟล์นี้เพื่อเอา **ชุดแถว (.jrow)** ไปใช้ กฎนี้ก็ตามไปตัดของที่หน้านั้นยังต้องใช้
+   เจอจริง 2026-09-06 ตอนทำจอ ⑥:
+     · teacher-search.html — **แถบกรองซ้ายหายทั้งแผง** ทั้งที่ SPEC สั่งห้ามถอด (มันคือตัวกรอง ไม่ใช่สารบัญ)
+     · post-job.html — แถบหัวหน้า (.hero-band) หายเงียบ ๆ ตั้งแต่รอบทำจอ ⑤
+   `body:has(.topbar)` = "เฉพาะหน้าที่เปลี่ยนมาใช้แถบบนแล้วจริง ๆ" ซึ่งคือหน้าฝั่งครูที่ตั้งใจตัด */
+body:has(.topbar) .sidebar,
+body:has(.topbar) .sidenav,
+body:has(.topbar) .rail,
+body:has(.topbar) .hero-band,
+body:has(.topbar) .me-strip{display:none !important}
 
 @media (max-width:700px){
   .topbar{gap:var(--space-3);padding:var(--space-3) var(--space-4)}

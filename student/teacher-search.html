@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../shared/tokens.css">
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
 <style>
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
  * genre: modern-minimal · macrostructure: Catalogue · design-system: design.md · designed-as-app
@@ -315,89 +316,29 @@ select:focus-visible,.txt:focus-visible{outline:2px solid var(--color-focus);out
   background:var(--color-paper-2);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);
 }
 
-/* ---- ตารางการ์ดครู (Catalogue: การ์ดขนาดเท่ากันทุกใบ) ----
-   ใช้ container query เพราะจอ 900-1280px โดน sidebar 264px กินไปแล้ว
-   ถ้าวัดจากความกว้างจอจะได้การ์ด 2 คอลัมน์ที่แคบจนราคาตกบรรทัด */
-.card-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-5);margin-top:var(--space-6)}
-@container (min-width:640px){.card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@container (min-width:1060px){.card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* ---- รายชื่อครู: 1 คน = 1 แถว (ตามจอ ⑥ `#s2` ในหน้า landing · 2026-09-06) ----
+   ของเดิมเป็นการ์ดกริด 3 คอลัมน์ (รูป 104px + ตรายืนยัน + ดาว + แท็กวิชา/ระดับชั้น + แถวราคา)
+   ในจอจำลองเป็น **แถวเดียว**: วงกลมรูป + ชื่อ + บรรทัดเล็ก "★ ดาว · จังหวัด · รูปแบบ" + ป้ายราคาชิดขวา
+   -> ยกท่า .jrow จากชุดกลาง shared/v4-rows.css (ชุดเดียวกับกระดานงานฝั่งครู)
+      กติกาโปรเจกต์: 2 หน้าห้ามหน้าตาคนละแบบ · แก้ที่ชุดกลางที่เดียว ห้ามก๊อปมาวางที่นี่
 
-.t-card{
-  position:relative;min-width:0;
-  display:flex;flex-direction:column;gap:var(--space-4);
-  background:var(--color-surface);border:1px solid var(--color-rule);
-  border-radius:var(--radius-lg);padding:var(--space-6);
-  box-shadow:var(--shadow-raise);
-  transition:transform var(--dur-short) var(--ease-out),box-shadow var(--dur-short) var(--ease-out);
+   ⚠️ จงใจต่างจากจอ 1 จุด: จอจำลองใช้ "วงกลมตัวอักษร" (`พ`) เพราะจอนั้นวาดด้วย CSS ล้วน ไม่มีไฟล์รูป
+      หน้าจริงมีรูปครูจริงที่ Owner อนุญาตให้ใช้แล้ว -> ใส่รูปในวงกลมขนาดเดียวกัน
+      (ขนาด/ตำแหน่ง/ทรงเหมือนจอเป๊ะ เปลี่ยนแค่ "ข้างในวงกลมเป็นรูปแทนตัวอักษร") */
+.card-grid{display:block;margin-top:var(--space-5)}
+.t-card{position:relative}
+.jav img{width:100%;height:100%;object-fit:cover}
+/* ทั้งแถวเป็นลิงก์เข้าโปรไฟล์ — .jrow-main ในชุดกลางเป็นทรงปุ่ม ที่นี่ใช้เป็น <a> */
+.t-card .jrow-main{text-decoration:none}
+/* ป้ายราคาเป็น "ข้อมูล" ไม่ใช่ปุ่ม -> ห้ามเป็นมือชี้ */
+.t-card .jbadge{cursor:default}
+/* ตรายืนยันตัวตน: ในจอไม่มี (จอมีแท็บ "ครูที่ยืนยันแล้ว" แทน) แต่หน้าจริงมีตัวกรองนี้อยู่
+   -> ย่อเหลือเครื่องหมายถูกเล็ก ๆ ท้ายชื่อ ไม่กินที่ทั้งแถว */
+.t-tick{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;margin-inline-start:6px;border-radius:50%;vertical-align:1px;
+  background:var(--color-ok);color:var(--color-surface);font-size:10px;font-weight:700;
 }
-@media (hover:hover){.t-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}}
-.t-card:focus-within{box-shadow:var(--shadow-lift)}
-.t-top{display:flex;gap:var(--space-4);align-items:flex-start;min-width:0}
-/* Owner สั่ง 2026-08-12: กรอบรูปใหญ่ขึ้นอีก — 64 -> 104px (เท่ากับหน้าโปรไฟล์ครู)
-   จอแคบ (คอลัมน์ผลลัพธ์ ≤380px) หด 88px ไม่งั้นตรา "ยืนยันตัวตนแล้ว" ซึ่ง nowrap จะดันการ์ดล้นขอบ */
-.t-avatar{
-  flex:0 0 auto;width:104px;height:104px;border-radius:var(--radius-md);overflow:hidden;
-  background:var(--color-accent-soft);border:1px solid var(--color-rule);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display);font-weight:700;font-size:var(--text-2xl);color:var(--color-accent-deep);
-}
-.t-avatar img{width:100%;height:100%;object-fit:cover}
-@container (max-width:380px){
-  .t-avatar{width:88px;height:88px;font-size:var(--text-xl)}
-}
-.t-id{min-width:0;flex:1 1 auto}
-.t-name{font-size:var(--text-lg);line-height:1.3}
-/* ลิงก์ยืดคลุมทั้งการ์ด: กดตรงไหนของการ์ดก็เข้าโปรไฟล์ แต่ยังมี target ที่อ่านออกให้ screen reader */
-.t-name a{text-decoration:none}
-.t-name a::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
-.t-name a:focus-visible{outline:none}
-.t-name a:focus-visible::after{outline:2px solid var(--color-focus);outline-offset:2px}
-.t-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
-.badge-verified{
-  display:inline-flex;align-items:center;gap:6px;
-  font-family:var(--font-display);font-size:var(--text-xs);font-weight:700;
-  color:var(--color-ok);background:var(--color-ok-soft);
-  border:1px solid var(--color-ok);
-  padding:3px 10px;border-radius:var(--radius-pill);white-space:nowrap;
-}
-.badge-verified .tick{
-  width:15px;height:15px;border-radius:50%;background:var(--color-ok);color:var(--color-surface);
-  display:flex;align-items:center;justify-content:center;font-size:10px;flex:0 0 auto;
-}
-.stars{display:inline-flex;align-items:center;gap:1px;color:var(--color-accent);font-size:var(--text-base);line-height:1}
-.stars .off{color:var(--color-rule)}
-.rating-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.rating-num{font-family:var(--font-display);font-weight:700}
-.rating-count{color:var(--color-ink-2);font-size:var(--text-sm)}
-.t-meta{display:flex;flex-wrap:wrap;gap:4px var(--space-3);font-size:var(--text-sm);color:var(--color-ink-2);margin-top:6px}
-.t-meta span{display:inline-flex;align-items:center;gap:6px}
-.t-meta .ic{color:var(--color-accent-deep)}
-.tag-group{display:flex;flex-wrap:wrap;gap:6px}
-/* แท็ก 2 ชนิด = สีที่ 3 (น้ำเงินหม่น) ตระกูลเดียว 2 น้ำหนัก — ไม่ต้องเพิ่มสีที่ 4
-     วิชา      = ทึบเข้ม  (ข้อมูลสำคัญสุดของการ์ด สายตาอ่านก่อน)
-     ระดับชั้น = อ่อนสว่าง (ข้อมูลประกอบ แต่ยัง "มีสี" ชัด ไม่อ่านว่าปิดอยู่)
-   Owner สั่ง 2026-08-12: แท็กอย่าใช้ส้ม — ส้มถูกดึงกลับไปเป็นของปุ่ม/ดาว/ป้ายเน้นอย่างเดียว
-
-   ประวัติการแก้ (จดกันวนกลับไปทำผิดซ้ำ):
-     1) ระดับชั้นเป็น "ขอบบางพื้นโปร่ง" -> Owner: "ไม่มีสีอะ มันทำให้ดูแล้วสอนรึเปล่า"
-        (ชิปพื้นโปร่ง/ขอบบาง ในภาษา UI = "ยังไม่ถูกเลือก / ปิดอยู่" ห้ามใช้กับข้อเท็จจริง)
-     2) เปลี่ยนเป็นพื้นนวลอุ่น + เติมคำว่า "สอนระดับ" นำหน้า -> Owner: "ไม่เป็นระเบียบเลย เอาออก
-        แต่ใส่สีให้ชัดขึ้นก็พอ" -> ถอนคำนำหน้าออกทั้ง 12 การ์ด
-     3) ✅ ปัจจุบัน: ไม่มีคำนำหน้า แยกด้วยน้ำหนักสีล้วน */
-.tag{
-  display:inline-flex;align-items:center;
-  background:var(--color-subject);color:var(--color-surface);
-  font-size:var(--text-sm);font-weight:600;padding:5px 10px;border-radius:var(--radius-sm);
-}
-.tag--plain{background:var(--color-level-soft);color:var(--color-level);font-weight:600}
-.t-foot{
-  display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;
-  margin-top:auto;padding-top:var(--space-4);border-top:1px solid var(--color-rule);
-}
-.price-amt{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);white-space:nowrap}
-.price-amt small{font-family:var(--font-sans);font-weight:400;font-size:var(--text-sm);color:var(--color-ink-2)}
-.price-from{font-size:var(--text-sm);color:var(--color-ink-2)}
-.t-cta{font-family:var(--font-display);font-weight:700;font-size:var(--text-sm);color:var(--color-accent-deep);white-space:nowrap}
 
 /* ---- ไม่พบผลลัพธ์ ---- */
 .empty{
@@ -638,6 +579,15 @@ body.sheet-open{overflow:hidden}
         <p><b>กรองให้แล้วจากข้อมูลที่คุณกรอกไว้</b> <span id="prefillWhat"></span> — ปรับตัวกรองทางซ้ายได้ตลอด</p>
       </div>
 
+      <!-- 🔴 แท็บ 3 อันตามจอ ⑥: ผลค้นหา · ตัวกรอง · ครูที่ยืนยันแล้ว
+           "ตัวกรอง" = ปุ่มเปิดแผงตัวกรอง (ไม่ใช่มุมมอง) -> กดแล้วไฮไลต์กลับไปที่แท็บเดิม
+           🔴 แถบกรองซ้ายยังอยู่เหมือนเดิม ห้ามถอด (SPEC: มันคือตัวกรอง ไม่ใช่สารบัญ) -->
+      <div class="jb-tabs" id="resultTabs">
+        <button class="jb-tab is-on" type="button" data-tab="all" aria-pressed="true">ผลค้นหา <span class="jb-n" id="tabAllN">12</span></button>
+        <button class="jb-tab" type="button" data-tab="filters" aria-pressed="false" aria-controls="filterPanel">ตัวกรอง <span class="jb-n" id="tabFilterN" hidden>0</span></button>
+        <button class="jb-tab" type="button" data-tab="verified" aria-pressed="false">ครูที่ยืนยันแล้ว <span class="jb-n" id="tabVerifiedN">8</span></button>
+      </div>
+
       <div class="applied" id="applied"></div>
 
       <p class="sort-note" id="sortNote">
@@ -646,240 +596,136 @@ body.sheet-open{overflow:hidden}
 
       <div class="card-grid" id="grid">
 
-        <article class="t-card" data-t="ploy" data-name="ครูพลอย" data-subj="คณิตศาสตร์,ฟิสิกส์,วิทยาศาสตร์" data-level="middle,high" data-mode="online,home" data-prov="กรุงเทพมหานคร" data-price="380" data-rating="4.9" data-reviews="128" data-verified="1" data-time="evening,night" data-added="6">
-          <div class="t-top">
-            <div class="t-avatar"><img src="../photo-web/teachers/teacher-a.jpg" alt="รูปโปรไฟล์ของครูพลอย" width="480" height="480" loading="eager" decoding="async"></div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูพลอย</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.9 จาก 5</span>
-            <span class="rating-num">4.9</span><span class="rating-count">(128 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">คณิตศาสตร์</span><span class="tag">ฟิสิกส์</span>
-            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿380 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="ploy" data-name="ครูพลอย" data-subj="คณิตศาสตร์,ฟิสิกส์,วิทยาศาสตร์" data-level="middle,high" data-mode="online,home" data-prov="กรุงเทพมหานคร" data-price="380" data-rating="4.9" data-reviews="128" data-verified="1" data-time="evening,night" data-added="6">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav"><img src="../photo-web/teachers/teacher-a.jpg" alt="รูปโปรไฟล์ของครูพลอย" width="480" height="480" loading="eager" decoding="async"></span>
+            <span class="jtxt">
+              <b>ครูพลอย<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 4.9 · กรุงเทพมหานคร · ออนไลน์ · ที่บ้าน · 128 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿380/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="boss" data-name="ครูบอส" data-subj="ฟิสิกส์,ติว TCAS/GAT/PAT" data-level="high,university" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="520" data-rating="4.8" data-reviews="86" data-verified="1" data-time="night" data-added="4">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">บ</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูบอส</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.8 จาก 5</span>
-            <span class="rating-num">4.8</span><span class="rating-count">(86 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">ฟิสิกส์</span><span class="tag">ติว TCAS/GAT/PAT</span>
-            <span class="tag tag--plain">มัธยมปลาย/ปวช.</span><span class="tag tag--plain">มหาวิทยาลัย</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿520 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="boss" data-name="ครูบอส" data-subj="ฟิสิกส์,ติว TCAS/GAT/PAT" data-level="high,university" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="520" data-rating="4.8" data-reviews="86" data-verified="1" data-time="night" data-added="4">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">บ</span>
+            <span class="jtxt">
+              <b>ครูบอส<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 4.8 · กรุงเทพมหานคร · ออนไลน์ · 86 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿520/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="nan" data-name="ครูแนน" data-subj="ภาษาอังกฤษ" data-level="primary_low,primary_high,middle" data-mode="online,home,public" data-prov="นนทบุรี" data-price="350" data-rating="4.7" data-reviews="203" data-verified="1" data-time="afternoon,evening" data-added="2">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">น</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูแนน</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>นนทบุรี</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน · สถานที่อื่นๆ</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.7 จาก 5</span>
-            <span class="rating-num">4.7</span><span class="rating-count">(203 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">ภาษาอังกฤษ</span>
-            <span class="tag tag--plain">ประถมต้น</span><span class="tag tag--plain">ประถมปลาย</span><span class="tag tag--plain">มัธยมต้น</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿350 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="nan" data-name="ครูแนน" data-subj="ภาษาอังกฤษ" data-level="primary_low,primary_high,middle" data-mode="online,home,public" data-prov="นนทบุรี" data-price="350" data-rating="4.7" data-reviews="203" data-verified="1" data-time="afternoon,evening" data-added="2">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">น</span>
+            <span class="jtxt">
+              <b>ครูแนน<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 4.7 · นนทบุรี · ออนไลน์ · ที่บ้าน · สถานที่อื่นๆ · 203 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿350/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="kit" data-name="ครูกิต" data-subj="เคมี" data-level="high" data-mode="home,public" data-prov="ปทุมธานี" data-price="450" data-rating="4.6" data-reviews="41" data-verified="0" data-time="evening" data-added="5">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">ก</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูกิต</a></h2>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>ปทุมธานี</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน · สถานที่อื่นๆ</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.6 จาก 5</span>
-            <span class="rating-num">4.6</span><span class="rating-count">(41 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">เคมี</span>
-            <span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿450 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="kit" data-name="ครูกิต" data-subj="เคมี" data-level="high" data-mode="home,public" data-prov="ปทุมธานี" data-price="450" data-rating="4.6" data-reviews="41" data-verified="0" data-time="evening" data-added="5">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">ก</span>
+            <span class="jtxt">
+              <b>ครูกิต</b>
+              <small>★ 4.6 · ปทุมธานี · ที่บ้าน · สถานที่อื่นๆ · 41 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿450/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="aom" data-name="ครูอ้อม" data-subj="ภาษาไทย" data-level="kindergarten,primary_low" data-mode="home" data-prov="กรุงเทพมหานคร" data-price="300" data-rating="5.0" data-reviews="17" data-verified="1" data-time="morning,afternoon" data-added="8">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">อ</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูอ้อม</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">5.0 จาก 5</span>
-            <span class="rating-num">5.0</span><span class="rating-count">(17 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">ภาษาไทย</span>
-            <span class="tag tag--plain">อนุบาล</span><span class="tag tag--plain">ประถมต้น</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿300 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="aom" data-name="ครูอ้อม" data-subj="ภาษาไทย" data-level="kindergarten,primary_low" data-mode="home" data-prov="กรุงเทพมหานคร" data-price="300" data-rating="5.0" data-reviews="17" data-verified="1" data-time="morning,afternoon" data-added="8">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">อ</span>
+            <span class="jtxt">
+              <b>ครูอ้อม<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 5.0 · กรุงเทพมหานคร · ที่บ้าน · 17 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿300/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="mint" data-name="ครูมิ้นท์" data-subj="เปียโน,ทฤษฎีดนตรี/แต่งเพลง" data-level="primary_low,primary_high,adult" data-mode="home,public" data-prov="กรุงเทพมหานคร" data-price="600" data-rating="4.9" data-reviews="54" data-verified="1" data-time="morning,afternoon,evening" data-added="7">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">ม</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูมิ้นท์</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน · สถานที่อื่นๆ</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.9 จาก 5</span>
-            <span class="rating-num">4.9</span><span class="rating-count">(54 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">เปียโน</span><span class="tag">ทฤษฎีดนตรี/แต่งเพลง</span>
-            <span class="tag tag--plain">ประถมต้น</span><span class="tag tag--plain">ประถมปลาย</span><span class="tag tag--plain">ผู้ใหญ่ทั่วไป</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿600 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="mint" data-name="ครูมิ้นท์" data-subj="เปียโน,ทฤษฎีดนตรี/แต่งเพลง" data-level="primary_low,primary_high,adult" data-mode="home,public" data-prov="กรุงเทพมหานคร" data-price="600" data-rating="4.9" data-reviews="54" data-verified="1" data-time="morning,afternoon,evening" data-added="7">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">ม</span>
+            <span class="jtxt">
+              <b>ครูมิ้นท์<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 4.9 · กรุงเทพมหานคร · ที่บ้าน · สถานที่อื่นๆ · 54 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿600/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="oat" data-name="ครูโอ๊ต" data-subj="คณิตศาสตร์" data-level="primary_high,middle" data-mode="online,home" data-prov="เชียงใหม่" data-price="280" data-rating="4.5" data-reviews="33" data-verified="0" data-time="evening,night" data-added="3">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">อ</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูโอ๊ต</a></h2>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>เชียงใหม่</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.5 จาก 5</span>
-            <span class="rating-num">4.5</span><span class="rating-count">(33 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">คณิตศาสตร์</span>
-            <span class="tag tag--plain">ประถมปลาย</span><span class="tag tag--plain">มัธยมต้น</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿280 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="oat" data-name="ครูโอ๊ต" data-subj="คณิตศาสตร์" data-level="primary_high,middle" data-mode="online,home" data-prov="เชียงใหม่" data-price="280" data-rating="4.5" data-reviews="33" data-verified="0" data-time="evening,night" data-added="3">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">อ</span>
+            <span class="jtxt">
+              <b>ครูโอ๊ต</b>
+              <small>★ 4.5 · เชียงใหม่ · ออนไลน์ · ที่บ้าน · 33 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿280/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="gigi" data-name="ครูจีจี้" data-subj="ภาษาจีน" data-level="middle,high,adult" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="420" data-rating="4.8" data-reviews="95" data-verified="1" data-time="night" data-added="9">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">จ</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูจีจี้</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.8 จาก 5</span>
-            <span class="rating-num">4.8</span><span class="rating-count">(95 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">ภาษาจีน</span>
-            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span><span class="tag tag--plain">ผู้ใหญ่ทั่วไป</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿420 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="gigi" data-name="ครูจีจี้" data-subj="ภาษาจีน" data-level="middle,high,adult" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="420" data-rating="4.8" data-reviews="95" data-verified="1" data-time="night" data-added="9">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">จ</span>
+            <span class="jtxt">
+              <b>ครูจีจี้<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 4.8 · กรุงเทพมหานคร · ออนไลน์ · 95 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿420/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="tan" data-name="ครูแทน" data-subj="ชีววิทยา,ติวสอบเข้ามหาวิทยาลัย" data-level="high" data-mode="online,home" data-prov="ชลบุรี" data-price="480" data-rating="4.7" data-reviews="62" data-verified="1" data-time="afternoon,evening" data-added="1">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">ท</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูแทน</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>ชลบุรี</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">4.7 จาก 5</span>
-            <span class="rating-num">4.7</span><span class="rating-count">(62 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">ชีววิทยา</span><span class="tag">ติวสอบเข้ามหาวิทยาลัย</span>
-            <span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿480 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="tan" data-name="ครูแทน" data-subj="ชีววิทยา,ติวสอบเข้ามหาวิทยาลัย" data-level="high" data-mode="online,home" data-prov="ชลบุรี" data-price="480" data-rating="4.7" data-reviews="62" data-verified="1" data-time="afternoon,evening" data-added="1">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">ท</span>
+            <span class="jtxt">
+              <b>ครูแทน<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 4.7 · ชลบุรี · ออนไลน์ · ที่บ้าน · 62 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿480/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="fahart" data-name="ครูฟ้า" data-subj="วาดรูป/ระบายสี,ศิลปะสำหรับเด็ก" data-level="kindergarten,primary_low,primary_high" data-mode="home,public" data-prov="สมุทรปราการ" data-price="320" data-rating="4.6" data-reviews="28" data-verified="0" data-time="morning,afternoon" data-added="11">
-          <div class="t-top">
-            <div class="t-avatar"><img src="../photo-web/teachers/teacher-b.jpg" alt="รูปโปรไฟล์ของครูฟ้า" width="480" height="480" loading="eager" decoding="async"></div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูฟ้า</a></h2>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>สมุทรปราการ</span><span><span class="ic" aria-hidden="true">🏠</span>ที่บ้าน · สถานที่อื่นๆ</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.6 จาก 5</span>
-            <span class="rating-num">4.6</span><span class="rating-count">(28 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">วาดรูป/ระบายสี</span><span class="tag">ศิลปะสำหรับเด็ก</span>
-            <span class="tag tag--plain">อนุบาล</span><span class="tag tag--plain">ประถมต้น</span><span class="tag tag--plain">ประถมปลาย</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿320 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="fahart" data-name="ครูฟ้า" data-subj="วาดรูป/ระบายสี,ศิลปะสำหรับเด็ก" data-level="kindergarten,primary_low,primary_high" data-mode="home,public" data-prov="สมุทรปราการ" data-price="320" data-rating="4.6" data-reviews="28" data-verified="0" data-time="morning,afternoon" data-added="11">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav"><img src="../photo-web/teachers/teacher-b.jpg" alt="รูปโปรไฟล์ของครูฟ้า" width="480" height="480" loading="eager" decoding="async"></span>
+            <span class="jtxt">
+              <b>ครูฟ้า</b>
+              <small>★ 4.6 · สมุทรปราการ · ที่บ้าน · สถานที่อื่นๆ · 28 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿320/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="earth" data-name="ครูเอิร์ธ" data-subj="คอมพิวเตอร์/เขียนโปรแกรม" data-level="middle,high,adult" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="550" data-rating="5.0" data-reviews="12" data-verified="1" data-time="night" data-added="12">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">อ</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูเอิร์ธ</a></h2>
-              <div class="t-badges"><span class="badge-verified"><span class="tick" aria-hidden="true">✓</span>ยืนยันตัวตนแล้ว</span></div>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>กรุงเทพมหานคร</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★★</span><span class="sr-only">5.0 จาก 5</span>
-            <span class="rating-num">5.0</span><span class="rating-count">(12 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">คอมพิวเตอร์/เขียนโปรแกรม</span>
-            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span><span class="tag tag--plain">ผู้ใหญ่ทั่วไป</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿550 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="earth" data-name="ครูเอิร์ธ" data-subj="คอมพิวเตอร์/เขียนโปรแกรม" data-level="middle,high,adult" data-mode="online" data-prov="กรุงเทพมหานคร" data-price="550" data-rating="5.0" data-reviews="12" data-verified="1" data-time="night" data-added="12">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">อ</span>
+            <span class="jtxt">
+              <b>ครูเอิร์ธ<span class="t-tick" title="ยืนยันตัวตนแล้ว" aria-hidden="true">✓</span><span class="sr-only"> (ยืนยันตัวตนแล้ว)</span></b>
+              <small>★ 5.0 · กรุงเทพมหานคร · ออนไลน์ · 12 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿550/ชม.</span></span>
         </article>
 
-        <article class="t-card" data-t="neung" data-name="ครูหนึ่ง" data-subj="สังคมศึกษา" data-level="middle,high" data-mode="online,home" data-prov="ขอนแก่น" data-price="300" data-rating="4.4" data-reviews="58" data-verified="0" data-time="evening" data-added="10">
-          <div class="t-top">
-            <div class="t-avatar" aria-hidden="true">ห</div>
-            <div class="t-id">
-              <h2 class="t-name"><a href="teacher-profile.html">ครูหนึ่ง</a></h2>
-              <div class="t-meta"><span><span class="ic" aria-hidden="true">📍</span>ขอนแก่น</span><span><span class="ic" aria-hidden="true">💻</span>ออนไลน์ · ที่บ้าน</span></div>
-            </div>
-          </div>
-          <div class="rating-line">
-            <span class="stars" aria-hidden="true">★★★★<span class="off">★</span></span><span class="sr-only">4.4 จาก 5</span>
-            <span class="rating-num">4.4</span><span class="rating-count">(58 รีวิว)</span>
-          </div>
-          <div class="tag-group">
-            <span class="tag">สังคมศึกษา</span>
-            <span class="tag tag--plain">มัธยมต้น</span><span class="tag tag--plain">มัธยมปลาย/ปวช.</span>
-          </div>
-          <div class="t-foot"><span><span class="price-from">เริ่มต้น </span><span class="price-amt">฿300 <small>/ ชม.</small></span></span><span class="t-cta">ดูโปรไฟล์ →</span></div>
+        <article class="t-card jrow" data-t="neung" data-name="ครูหนึ่ง" data-subj="สังคมศึกษา" data-level="middle,high" data-mode="online,home" data-prov="ขอนแก่น" data-price="300" data-rating="4.4" data-reviews="58" data-verified="0" data-time="evening" data-added="10">
+          <a class="jrow-main" href="teacher-profile.html">
+            <span class="jav" aria-hidden="true">ห</span>
+            <span class="jtxt">
+              <b>ครูหนึ่ง</b>
+              <small>★ 4.4 · ขอนแก่น · ออนไลน์ · ที่บ้าน · 58 รีวิว</small>
+            </span>
+          </a>
+          <span class="jact"><span class="jbadge is-go">฿300/ชม.</span></span>
         </article>
 
       </div>
@@ -1199,6 +1045,7 @@ body.sheet-open{overflow:hidden}
       });
 
     updateOptionCounts(s);
+    syncTabs(s);
 
     /* ชิปยอดนิยมด้านบน = ทางลัดของตัวกรองวิชา ต้องสะท้อนสถานะจริงเสมอ */
     [].forEach.call(document.querySelectorAll('[data-quick]'), function (btn) {
@@ -1207,6 +1054,46 @@ body.sheet-open{overflow:hidden}
       btn.setAttribute('aria-pressed', input && input.checked ? 'true' : 'false');
     });
   }
+
+  /* ── แท็บ 3 อันตามจอ ⑥ (2026-09-06) ─────────────────────────────
+     "ครูที่ยืนยันแล้ว" ไม่ได้เป็นตัวกรองแยกอีกชุด — มันสั่งช่อง #fVerified ตัวเดิมในแถบซ้าย
+     🔴 ห้ามทำตัวกรองซ้อนสองชุด: ติ๊กในแถบซ้ายแล้วแท็บต้องเปลี่ยนตาม และกลับกันด้วย
+     เลขบนแท็บนับแบบ "ไม่คิดตัวกรองยืนยันตัวตน" (match(...,'verified'))
+     ไม่งั้นพอเปิดแท็บยืนยันแล้ว เลขของอีกแท็บจะเท่ากันหมด อ่านแล้วไม่ได้ความ */
+  function syncTabs(s) {
+    var base = cards.filter(function (c) { return match(c, s, 'verified'); });
+    var ver  = base.filter(function (c) { return c.getAttribute('data-verified') === '1'; });
+    var allN = document.getElementById('tabAllN'), verN = document.getElementById('tabVerifiedN');
+    if (allN) allN.textContent = base.length;
+    if (verN) verN.textContent = ver.length;
+    var on = s.verified ? 'verified' : 'all';
+    [].forEach.call(document.querySelectorAll('#resultTabs .jb-tab'), function (b) {
+      var isOn = b.getAttribute('data-tab') === on;
+      b.classList.toggle('is-on', isOn);
+      b.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+    });
+    var fN = document.getElementById('tabFilterN'), bar = document.getElementById('fcountBar');
+    if (fN && bar) { fN.textContent = bar.textContent; fN.hidden = bar.hidden; }
+  }
+  [].forEach.call(document.querySelectorAll('#resultTabs .jb-tab'), function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-tab');
+      if (t === 'filters') {
+        /* จอแคบ: เปิดแผงตัวกรองที่มีอยู่แล้ว · จอกว้าง: แถบซ้ายโชว์อยู่แล้ว -> เลื่อนไปหาแล้วโฟกัสช่องแรก */
+        var sheet = document.getElementById('sheetOpen');
+        if (sheet && sheet.offsetParent !== null) { sheet.click(); return; }
+        var panel = document.getElementById('filterPanel');
+        if (panel) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          var first = panel.querySelector('input');
+          if (first) first.focus({ preventScroll: true });
+        }
+        return;
+      }
+      verifiedBox.checked = (t === 'verified');
+      render();
+    });
+  });
 
   /* แถบเลือกผู้เรียนต้องคลายไฮไลต์ตอนกด ล้างตัวกรอง ด้วย — ไม่งั้นชื่อลูกยังเข้มอยู่ทั้งที่ตัวกรองว่างแล้ว
      (initLearnerBar เป็นคนใส่ตัวจริงให้ · ถ้าไม่มีแถบก็ไม่ทำอะไร) */
