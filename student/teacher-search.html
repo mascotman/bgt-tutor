@@ -72,7 +72,8 @@ img{max-width:100%;display:block}
 /* ---- layout shell (เหมือนหน้าสมัคร/หน้าโปรไฟล์ทุกประการ) ---- */
 .page-shell{display:flex;flex-direction:column;min-height:100vh}
 .content-col{flex:1;min-width:0;display:flex;flex-direction:column}
-@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
+/* 🔴 เลิกเรียงแนวนอน 2026-09-06: ไม่มีคอลัมน์ซ้ายแล้ว
+   ถ้าปล่อยไว้ แถบบน (.mobile-header) จะกลายเป็นคอลัมน์ซ้ายแทน — บั๊กเดียวกับที่แก้ไปรอบ 7 */
 
 .logo{
   font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;
@@ -116,19 +117,21 @@ img{max-width:100%;display:block}
    -> ตัดลูกเล่นทิ้งตาม design.md ข้อ 7 ("ตัดก่อนเพิ่มเสมอ") แล้วได้ความแน่นอนกลับมา */
 .sidebar.is-open{display:flex}
 @media (min-width:900px){
-  .mobile-header{display:none}
+  /* แถบบนโชว์ทุกความกว้างแล้ว (เดิมซ่อนตอนจอกว้างเพราะโลโก้อยู่ในแถบข้าง) */
   .sidebar{
-    display:flex;
-    width:264px;flex:0 0 264px;
-    /* 🔴 ลำดับสำคัญมาก: ต้องล้าง inset:0 ของโหมดมือถือ "ก่อน" แล้วค่อยตั้ง top:0
-       ถ้าเขียน inset:auto ไว้ท้าย top:0 มันจะล้าง top ทิ้ง -> computed top:auto
-       -> sticky ไม่ทำงานเลย แถบข้างเลื่อนตามหน้าไปจนดูเหมือน "ขาดครึ่ง" (บั๊กจริงที่ Owner เจอ 2026-08-12) */
-    inset:auto;
-    position:sticky;top:0;height:100vh;
-    padding:var(--space-8) var(--space-6);
-    border-right:1px solid var(--color-rule);
+    /* 🔴 ล้างค่าโหมดมือถือให้หมดก่อน (fixed/inset/z-index) แล้วค่อยตั้งค่าของแผงพับ
+       ลำดับสำคัญ — บทเรียนเดิม 2026-08-12: เขียน inset:auto ไว้ท้าย top จะล้าง top ทิ้ง */
+    position:static;inset:auto;z-index:auto;
+    display:none;height:auto;overflow:visible;
+    background:var(--color-surface);
+    border:1px solid var(--color-rule);border-radius:var(--radius-lg);
+    padding:var(--space-6);margin-bottom:var(--space-5);
   }
-  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .sidebar.is-open{display:block}
+  /* กลุ่มตัวกรองไหลเป็นคอลัมน์ ไม่ให้แผงยาวเป็นหางว่าวจนดันผลค้นหาตกจอ
+     break-inside:avoid = ห้ามหั่นกลุ่มเดียวกันคนละคอลัมน์ (อ่านแล้วงง) */
+  .sidebar .filters{padding:0;columns:3;column-gap:var(--space-8)}
+  .sidebar .f-group,.sidebar .f-verified{break-inside:avoid;margin-bottom:var(--space-6)}
   .sheet-only{display:none !important}
 }
 
@@ -391,129 +394,10 @@ body.sheet-open{overflow:hidden}
 
 <div class="page-shell">
 
-  <!-- ตัวกรอง: จอ ≥900px = แถบข้างติดหนึบ · จอเล็ก = ชั้นเต็มจอที่เปิดจากปุ่ม "ตัวกรอง" -->
-  <aside class="sidebar" id="filterPanel" aria-label="ตัวกรองผลค้นหา">
-
-    <div class="sheet-bar sheet-only">
-      <h2>ตัวกรอง</h2>
-      <button class="icon-btn" type="button" id="sheetClose" aria-label="ปิดตัวกรอง">✕</button>
-    </div>
-
-    <div class="filters">
-      <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
-      <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
-
-      <div class="f-verified">
-        <label class="f-opt">
-          <input type="checkbox" id="fVerified">
-          <span><b>เฉพาะครูที่ยืนยันตัวตนแล้ว</b></span>
-          <span class="f-count" data-count-for="verified"></span>
-        </label>
-        <span class="f-why">ครูที่ส่งเอกสารยืนยันตัวตนกับผู้ให้บริการภายนอกแล้ว · BGT ไม่เก็บไฟล์บัตรไว้เอง</span>
-      </div>
-
-      <!-- 🔴 ชื่อวิชา = สตริงชุดเดียวกับ SUBJECT_GROUPS ใน signup-teacher/parent/student (ห้ามตั้งชื่อเองใหม่)
-           หัวข้อกลุ่ม 6 กลุ่มก็มาจากลิสต์เดียวกัน — ตัวอย่างนี้แสดงเฉพาะวิชาที่ครู 12 คนนี้สอนจริง -->
-      <fieldset class="f-group" data-group="subj">
-        <legend class="f-legend">วิชา</legend>
-        <span class="f-sub">วิชาการ (ประถม-มัธยม)</span>
-        <label class="f-opt"><input type="checkbox" value="คณิตศาสตร์"><span>คณิตศาสตร์</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ฟิสิกส์"><span>ฟิสิกส์</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="เคมี"><span>เคมี</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ชีววิทยา"><span>ชีววิทยา</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ภาษาไทย"><span>ภาษาไทย</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ภาษาอังกฤษ"><span>ภาษาอังกฤษ</span><span class="f-count"></span></label>
-        <!-- ⭐ 2026-08-21: ครูพลอยสอนวิทยาศาสตร์ด้วย · ชื่อตรงลิสต์กลาง ไม่มีวงเล็บระดับชั้นแล้ว (Owner เคาะ) -->
-        <label class="f-opt"><input type="checkbox" value="วิทยาศาสตร์"><span>วิทยาศาสตร์</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="สังคมศึกษา"><span>สังคมศึกษา</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="คอมพิวเตอร์/เขียนโปรแกรม"><span>คอมพิวเตอร์ / เขียนโปรแกรม</span><span class="f-count"></span></label>
-        <span class="f-sub">ติวสอบ / สอบเข้า</span>
-        <label class="f-opt"><input type="checkbox" value="ติว TCAS/GAT/PAT"><span>ติว TCAS / GAT / PAT</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ติวสอบเข้ามหาวิทยาลัย"><span>ติวสอบเข้ามหาวิทยาลัย</span><span class="f-count"></span></label>
-        <span class="f-sub">ภาษาต่างประเทศ</span>
-        <label class="f-opt"><input type="checkbox" value="ภาษาจีน"><span>ภาษาจีน</span><span class="f-count"></span></label>
-        <span class="f-sub">ดนตรี</span>
-        <label class="f-opt"><input type="checkbox" value="เปียโน"><span>เปียโน</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ทฤษฎีดนตรี/แต่งเพลง"><span>ทฤษฎีดนตรี / แต่งเพลง</span><span class="f-count"></span></label>
-        <span class="f-sub">ศิลปะและงานฝีมือ</span>
-        <label class="f-opt"><input type="checkbox" value="วาดรูป/ระบายสี"><span>วาดรูป / ระบายสี</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="ศิลปะสำหรับเด็ก"><span>ศิลปะสำหรับเด็ก</span><span class="f-count"></span></label>
-        <span class="f-note">ลิสต์จริงมี 6 หมวด (รวมกีฬา) ~70 วิชา — ตอนต่อฐานข้อมูลจะดึงมาจากลิสต์กลางชุดเดียวกับหน้าสมัคร</span>
-      </fieldset>
-
-      <!-- 🔴 ค่าของระดับชั้น = โค้ดชุดเดียวกับ name="grade_level" ใน signup-teacher.html:489-495
-           (kindergarten / primary_low / primary_high / middle / high / university / adult)
-           ผู้เรียนกรอกเป็น "รายชั้น" (ป.4 / ม.2) -> ต้องมีตารางแปลงเป็นช่วงชั้นก่อนยิงค้นหา ดู mapGrade() ท้ายไฟล์ -->
-      <fieldset class="f-group" data-group="level">
-        <legend class="f-legend">ระดับชั้นที่ครูรับสอน</legend>
-        <label class="f-opt"><input type="checkbox" value="kindergarten"><span>อนุบาล</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="primary_low"><span>ประถมต้น</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="primary_high"><span>ประถมปลาย</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="middle"><span>มัธยมต้น</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="high"><span>มัธยมปลาย / ปวช.</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="university"><span>มหาวิทยาลัย</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="adult"><span>ผู้ใหญ่ทั่วไป</span><span class="f-count"></span></label>
-      </fieldset>
-
-      <fieldset class="f-group" data-group="mode">
-        <legend class="f-legend">รูปแบบการเรียน</legend>
-        <label class="f-opt"><input type="checkbox" value="online"><span>ออนไลน์</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="home"><span>ที่บ้าน</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="public"><span>สถานที่อื่นๆ</span><span class="f-count"></span></label>
-      </fieldset>
-
-      <fieldset class="f-group">
-        <legend class="f-legend">จังหวัดของคุณ</legend>
-        <!-- 🔴 ลิสต์จังหวัดต้องเป็นชุดเดียวกับหน้าสมัคร (ต้นฉบับ: signup-parent.html ค้น id="zone")
-             เดิมมีแค่ 7 จังหวัด → คนที่กรอก "ภูเก็ต" ไว้ตอนสมัคร ค่าหล่นเงียบ ช่องค้างที่กรุงเทพ (ผลตรวจ logic 2026-08-20 ข้อ 4) -->
-        <select id="fProv" aria-label="จังหวัดของคุณ"><option value="กรุงเทพมหานคร" selected>กรุงเทพมหานคร</option><option value="กระบี่">กระบี่</option><option value="กาญจนบุรี">กาญจนบุรี</option><option value="กาฬสินธุ์">กาฬสินธุ์</option><option value="กำแพงเพชร">กำแพงเพชร</option><option value="ขอนแก่น">ขอนแก่น</option><option value="จันทบุรี">จันทบุรี</option><option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option><option value="ชลบุรี">ชลบุรี</option><option value="ชัยนาท">ชัยนาท</option><option value="ชัยภูมิ">ชัยภูมิ</option><option value="ชุมพร">ชุมพร</option><option value="เชียงราย">เชียงราย</option><option value="เชียงใหม่">เชียงใหม่</option><option value="ตรัง">ตรัง</option><option value="ตราด">ตราด</option><option value="ตาก">ตาก</option><option value="นครนายก">นครนายก</option><option value="นครปฐม">นครปฐม</option><option value="นครพนม">นครพนม</option><option value="นครราชสีมา">นครราชสีมา</option><option value="นครศรีธรรมราช">นครศรีธรรมราช</option><option value="นครสวรรค์">นครสวรรค์</option><option value="นนทบุรี">นนทบุรี</option><option value="นราธิวาส">นราธิวาส</option><option value="น่าน">น่าน</option><option value="บึงกาฬ">บึงกาฬ</option><option value="บุรีรัมย์">บุรีรัมย์</option><option value="ปทุมธานี">ปทุมธานี</option><option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option><option value="ปราจีนบุรี">ปราจีนบุรี</option><option value="ปัตตานี">ปัตตานี</option><option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option><option value="พะเยา">พะเยา</option><option value="พังงา">พังงา</option><option value="พัทลุง">พัทลุง</option><option value="พิจิตร">พิจิตร</option><option value="พิษณุโลก">พิษณุโลก</option><option value="เพชรบุรี">เพชรบุรี</option><option value="เพชรบูรณ์">เพชรบูรณ์</option><option value="แพร่">แพร่</option><option value="ภูเก็ต">ภูเก็ต</option><option value="มหาสารคาม">มหาสารคาม</option><option value="มุกดาหาร">มุกดาหาร</option><option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option><option value="ยโสธร">ยโสธร</option><option value="ยะลา">ยะลา</option><option value="ร้อยเอ็ด">ร้อยเอ็ด</option><option value="ระนอง">ระนอง</option><option value="ระยอง">ระยอง</option><option value="ราชบุรี">ราชบุรี</option><option value="ลพบุรี">ลพบุรี</option><option value="ลำปาง">ลำปาง</option><option value="ลำพูน">ลำพูน</option><option value="เลย">เลย</option><option value="ศรีสะเกษ">ศรีสะเกษ</option><option value="สกลนคร">สกลนคร</option><option value="สงขลา">สงขลา</option><option value="สตูล">สตูล</option><option value="สมุทรปราการ">สมุทรปราการ</option><option value="สมุทรสงคราม">สมุทรสงคราม</option><option value="สมุทรสาคร">สมุทรสาคร</option><option value="สระแก้ว">สระแก้ว</option><option value="สระบุรี">สระบุรี</option><option value="สิงห์บุรี">สิงห์บุรี</option><option value="สุโขทัย">สุโขทัย</option><option value="สุพรรณบุรี">สุพรรณบุรี</option><option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option><option value="สุรินทร์">สุรินทร์</option><option value="หนองคาย">หนองคาย</option><option value="หนองบัวลำภู">หนองบัวลำภู</option><option value="อ่างทอง">อ่างทอง</option><option value="อำนาจเจริญ">อำนาจเจริญ</option><option value="อุดรธานี">อุดรธานี</option><option value="อุตรดิตถ์">อุตรดิตถ์</option><option value="อุทัยธานี">อุทัยธานี</option><option value="อุบลราชธานี">อุบลราชธานี</option></select>
-        <label class="f-opt" style="margin-top:8px">
-          <input type="checkbox" id="fProvOnly">
-          <span>แสดงเฉพาะครูที่อยู่ในจังหวัดนี้</span>
-          <span class="f-count" data-count-for="provOnly"></span>
-        </label>
-        <span class="f-why" style="display:block;font-size:var(--text-xs);color:var(--color-ink-2);padding:0 8px;line-height:1.5">
-          ปกติเราไม่ตัดครูจังหวัดอื่นทิ้ง แค่เอาครูจังหวัดเดียวกับคุณขึ้นก่อน — เพราะครูออนไลน์สอนข้ามจังหวัดได้
-        </span>
-      </fieldset>
-
-      <!-- 🔴 ค่าในช่องติ๊ก = รหัสอังกฤษ (morning/afternoon/evening/night) ชุดเดียวกับ data-time ของการ์ดครู
-           ต้นฉบับลิสต์: signup-parent.html ค้น SLOT_CODES · ข้อความในวงเล็บเป็นป้ายให้คนอ่านเท่านั้น -->
-      <fieldset class="f-group" data-group="time">
-        <legend class="f-legend">ช่วงเวลาที่สะดวก</legend>
-        <!-- 🔴 ชั่วโมงต้องตรงกับ BUCKETS ในโค้ด (signup-teacher.html) เป๊ะ — เดิมเขียน 08:00 แต่โค้ดจริงคือ 06:00 (แก้ 2026-08-15) -->
-        <label class="f-opt"><input type="checkbox" value="morning"><span>เช้า (06:00–12:00)</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="afternoon"><span>บ่าย (12:00–16:00)</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="evening"><span>เย็น (16:00–19:00)</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="night"><span>ค่ำ (19:00–22:00)</span><span class="f-count"></span></label>
-      </fieldset>
-
-      <!-- 🔗 ช่องนี้คือปลายทางของ "งบต่อชั่วโมง" ที่ผู้ปกครอง/นักเรียนกรอกไว้ตอนสมัคร
-           (signup-parent.html #budget · signup-student.html #budget — helper ในหน้านั้นเขียนไว้แล้วว่า "ใช้กรองครูที่อยู่ในงบ")
-           เข้าหน้านี้ด้วย ?budget=400 -> ระบบติ๊กทุกช่วงราคาที่ไม่เกินงบให้เอง -->
-      <fieldset class="f-group" data-group="price">
-        <legend class="f-legend">ราคาต่อชั่วโมง</legend>
-        <label class="f-opt"><input type="checkbox" value="0-300"><span>ไม่เกิน ฿300</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="301-400"><span>฿301–400</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="401-500"><span>฿401–500</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="checkbox" value="501-99999"><span>มากกว่า ฿500</span><span class="f-count"></span></label>
-      </fieldset>
-
-      <fieldset class="f-group" data-group="rating">
-        <legend class="f-legend">คะแนนรีวิว</legend>
-        <label class="f-opt"><input type="radio" name="rating" value="0" checked><span>ทั้งหมด</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="radio" name="rating" value="4.5"><span>4.5 ดาวขึ้นไป</span><span class="f-count"></span></label>
-        <label class="f-opt"><input type="radio" name="rating" value="4"><span>4.0 ดาวขึ้นไป</span><span class="f-count"></span></label>
-      </fieldset>
-    </div>
-
-    <div class="sheet-foot sheet-only">
-      <button class="btn btn-primary" type="button" id="sheetApply">ดูผลลัพธ์ (<span id="sheetCount">12</span> คน)</button>
-    </div>
-  </aside>
 
   <header class="mobile-header">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
     <button class="btn btn-secondary filter-open sheet-only" type="button" id="sheetOpenTop" aria-expanded="false" aria-controls="filterPanel">
       ตัวกรอง <span class="fcount" id="fcountTop" hidden>0</span>
     </button>
@@ -526,7 +410,7 @@ body.sheet-open{overflow:hidden}
         <div class="search-inner">
           <span class="eyebrow">ตัวอย่างผลค้นหา · ข้อมูลสมมติทั้งหมด</span>
           <h1 class="cat-head">ครู 12 คน · ทุกวิชา ทุกแขนง · อัปเดตวันนี้</h1>
-          <p class="lede">เลือกวิชา ระดับชั้น และรูปแบบการเรียนทางซ้าย แล้วกดเข้าไปดูโปรไฟล์ครูก่อนตัดสินใจจอง</p>
+          <p class="lede">กดปุ่ม “ตัวกรอง” เพื่อเลือกวิชา ระดับชั้น และรูปแบบการเรียน แล้วกดเข้าไปดูโปรไฟล์ครูก่อนตัดสินใจจอง</p>
 
           <form class="searchbar" role="search" id="searchForm">
             <label class="sr-only" for="q">ค้นหาชื่อครูหรือวิชา</label>
@@ -587,6 +471,129 @@ body.sheet-open{overflow:hidden}
         <button class="jb-tab" type="button" data-tab="filters" aria-pressed="false" aria-controls="filterPanel">ตัวกรอง <span class="jb-n" id="tabFilterN" hidden>0</span></button>
         <button class="jb-tab" type="button" data-tab="verified" aria-pressed="false">ครูที่ยืนยันแล้ว <span class="jb-n" id="tabVerifiedN">8</span></button>
       </div>
+
+          <!-- 🔴 2026-09-06 · Owner สั่ง: "side bar ไม่ควรมีแล้ว หากอิงจากฝั่ง teacher จริง ๆ"
+               -> เอาคอลัมน์ซ้ายออก แล้วทำเป็น **แผงพับได้ใต้แท็บ** ท่าเดียวกับกระดานงานฝั่งครู
+                  (job-board.html ค้น .filter-bar / .filters — ปุ่ม "ตัวกรอง" กางแผงลงมา)
+               จอเล็ก: ยังเป็นชั้นเต็มจอเหมือนเดิม (Baymard: ห้ามยัดแผงตัวกรองยาว ๆ ลงมือถือ)
+               DOM ก้อนเดียวทำสองหน้าที่เหมือนเดิม -> ไม่มี id ซ้ำ ไม่มีสถานะสองชุดให้หลุดกัน -->
+      <aside class="sidebar" id="filterPanel" aria-label="ตัวกรองผลค้นหา">
+
+        <div class="sheet-bar sheet-only">
+          <h2>ตัวกรอง</h2>
+          <button class="icon-btn" type="button" id="sheetClose" aria-label="ปิดตัวกรอง">✕</button>
+        </div>
+
+        <div class="filters">
+
+          <div class="f-verified">
+            <label class="f-opt">
+              <input type="checkbox" id="fVerified">
+              <span><b>เฉพาะครูที่ยืนยันตัวตนแล้ว</b></span>
+              <span class="f-count" data-count-for="verified"></span>
+            </label>
+            <span class="f-why">ครูที่ส่งเอกสารยืนยันตัวตนกับผู้ให้บริการภายนอกแล้ว · BGT ไม่เก็บไฟล์บัตรไว้เอง</span>
+          </div>
+
+          <!-- 🔴 ชื่อวิชา = สตริงชุดเดียวกับ SUBJECT_GROUPS ใน signup-teacher/parent/student (ห้ามตั้งชื่อเองใหม่)
+               หัวข้อกลุ่ม 6 กลุ่มก็มาจากลิสต์เดียวกัน — ตัวอย่างนี้แสดงเฉพาะวิชาที่ครู 12 คนนี้สอนจริง -->
+          <fieldset class="f-group" data-group="subj">
+            <legend class="f-legend">วิชา</legend>
+            <span class="f-sub">วิชาการ (ประถม-มัธยม)</span>
+            <label class="f-opt"><input type="checkbox" value="คณิตศาสตร์"><span>คณิตศาสตร์</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ฟิสิกส์"><span>ฟิสิกส์</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="เคมี"><span>เคมี</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ชีววิทยา"><span>ชีววิทยา</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ภาษาไทย"><span>ภาษาไทย</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ภาษาอังกฤษ"><span>ภาษาอังกฤษ</span><span class="f-count"></span></label>
+            <!-- ⭐ 2026-08-21: ครูพลอยสอนวิทยาศาสตร์ด้วย · ชื่อตรงลิสต์กลาง ไม่มีวงเล็บระดับชั้นแล้ว (Owner เคาะ) -->
+            <label class="f-opt"><input type="checkbox" value="วิทยาศาสตร์"><span>วิทยาศาสตร์</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="สังคมศึกษา"><span>สังคมศึกษา</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="คอมพิวเตอร์/เขียนโปรแกรม"><span>คอมพิวเตอร์ / เขียนโปรแกรม</span><span class="f-count"></span></label>
+            <span class="f-sub">ติวสอบ / สอบเข้า</span>
+            <label class="f-opt"><input type="checkbox" value="ติว TCAS/GAT/PAT"><span>ติว TCAS / GAT / PAT</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ติวสอบเข้ามหาวิทยาลัย"><span>ติวสอบเข้ามหาวิทยาลัย</span><span class="f-count"></span></label>
+            <span class="f-sub">ภาษาต่างประเทศ</span>
+            <label class="f-opt"><input type="checkbox" value="ภาษาจีน"><span>ภาษาจีน</span><span class="f-count"></span></label>
+            <span class="f-sub">ดนตรี</span>
+            <label class="f-opt"><input type="checkbox" value="เปียโน"><span>เปียโน</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ทฤษฎีดนตรี/แต่งเพลง"><span>ทฤษฎีดนตรี / แต่งเพลง</span><span class="f-count"></span></label>
+            <span class="f-sub">ศิลปะและงานฝีมือ</span>
+            <label class="f-opt"><input type="checkbox" value="วาดรูป/ระบายสี"><span>วาดรูป / ระบายสี</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="ศิลปะสำหรับเด็ก"><span>ศิลปะสำหรับเด็ก</span><span class="f-count"></span></label>
+            <span class="f-note">ลิสต์จริงมี 6 หมวด (รวมกีฬา) ~70 วิชา — ตอนต่อฐานข้อมูลจะดึงมาจากลิสต์กลางชุดเดียวกับหน้าสมัคร</span>
+          </fieldset>
+
+          <!-- 🔴 ค่าของระดับชั้น = โค้ดชุดเดียวกับ name="grade_level" ใน signup-teacher.html:489-495
+               (kindergarten / primary_low / primary_high / middle / high / university / adult)
+               ผู้เรียนกรอกเป็น "รายชั้น" (ป.4 / ม.2) -> ต้องมีตารางแปลงเป็นช่วงชั้นก่อนยิงค้นหา ดู mapGrade() ท้ายไฟล์ -->
+          <fieldset class="f-group" data-group="level">
+            <legend class="f-legend">ระดับชั้นที่ครูรับสอน</legend>
+            <label class="f-opt"><input type="checkbox" value="kindergarten"><span>อนุบาล</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="primary_low"><span>ประถมต้น</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="primary_high"><span>ประถมปลาย</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="middle"><span>มัธยมต้น</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="high"><span>มัธยมปลาย / ปวช.</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="university"><span>มหาวิทยาลัย</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="adult"><span>ผู้ใหญ่ทั่วไป</span><span class="f-count"></span></label>
+          </fieldset>
+
+          <fieldset class="f-group" data-group="mode">
+            <legend class="f-legend">รูปแบบการเรียน</legend>
+            <label class="f-opt"><input type="checkbox" value="online"><span>ออนไลน์</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="home"><span>ที่บ้าน</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="public"><span>สถานที่อื่นๆ</span><span class="f-count"></span></label>
+          </fieldset>
+
+          <fieldset class="f-group">
+            <legend class="f-legend">จังหวัดของคุณ</legend>
+            <!-- 🔴 ลิสต์จังหวัดต้องเป็นชุดเดียวกับหน้าสมัคร (ต้นฉบับ: signup-parent.html ค้น id="zone")
+                 เดิมมีแค่ 7 จังหวัด → คนที่กรอก "ภูเก็ต" ไว้ตอนสมัคร ค่าหล่นเงียบ ช่องค้างที่กรุงเทพ (ผลตรวจ logic 2026-08-20 ข้อ 4) -->
+            <select id="fProv" aria-label="จังหวัดของคุณ"><option value="กรุงเทพมหานคร" selected>กรุงเทพมหานคร</option><option value="กระบี่">กระบี่</option><option value="กาญจนบุรี">กาญจนบุรี</option><option value="กาฬสินธุ์">กาฬสินธุ์</option><option value="กำแพงเพชร">กำแพงเพชร</option><option value="ขอนแก่น">ขอนแก่น</option><option value="จันทบุรี">จันทบุรี</option><option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option><option value="ชลบุรี">ชลบุรี</option><option value="ชัยนาท">ชัยนาท</option><option value="ชัยภูมิ">ชัยภูมิ</option><option value="ชุมพร">ชุมพร</option><option value="เชียงราย">เชียงราย</option><option value="เชียงใหม่">เชียงใหม่</option><option value="ตรัง">ตรัง</option><option value="ตราด">ตราด</option><option value="ตาก">ตาก</option><option value="นครนายก">นครนายก</option><option value="นครปฐม">นครปฐม</option><option value="นครพนม">นครพนม</option><option value="นครราชสีมา">นครราชสีมา</option><option value="นครศรีธรรมราช">นครศรีธรรมราช</option><option value="นครสวรรค์">นครสวรรค์</option><option value="นนทบุรี">นนทบุรี</option><option value="นราธิวาส">นราธิวาส</option><option value="น่าน">น่าน</option><option value="บึงกาฬ">บึงกาฬ</option><option value="บุรีรัมย์">บุรีรัมย์</option><option value="ปทุมธานี">ปทุมธานี</option><option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option><option value="ปราจีนบุรี">ปราจีนบุรี</option><option value="ปัตตานี">ปัตตานี</option><option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option><option value="พะเยา">พะเยา</option><option value="พังงา">พังงา</option><option value="พัทลุง">พัทลุง</option><option value="พิจิตร">พิจิตร</option><option value="พิษณุโลก">พิษณุโลก</option><option value="เพชรบุรี">เพชรบุรี</option><option value="เพชรบูรณ์">เพชรบูรณ์</option><option value="แพร่">แพร่</option><option value="ภูเก็ต">ภูเก็ต</option><option value="มหาสารคาม">มหาสารคาม</option><option value="มุกดาหาร">มุกดาหาร</option><option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option><option value="ยโสธร">ยโสธร</option><option value="ยะลา">ยะลา</option><option value="ร้อยเอ็ด">ร้อยเอ็ด</option><option value="ระนอง">ระนอง</option><option value="ระยอง">ระยอง</option><option value="ราชบุรี">ราชบุรี</option><option value="ลพบุรี">ลพบุรี</option><option value="ลำปาง">ลำปาง</option><option value="ลำพูน">ลำพูน</option><option value="เลย">เลย</option><option value="ศรีสะเกษ">ศรีสะเกษ</option><option value="สกลนคร">สกลนคร</option><option value="สงขลา">สงขลา</option><option value="สตูล">สตูล</option><option value="สมุทรปราการ">สมุทรปราการ</option><option value="สมุทรสงคราม">สมุทรสงคราม</option><option value="สมุทรสาคร">สมุทรสาคร</option><option value="สระแก้ว">สระแก้ว</option><option value="สระบุรี">สระบุรี</option><option value="สิงห์บุรี">สิงห์บุรี</option><option value="สุโขทัย">สุโขทัย</option><option value="สุพรรณบุรี">สุพรรณบุรี</option><option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option><option value="สุรินทร์">สุรินทร์</option><option value="หนองคาย">หนองคาย</option><option value="หนองบัวลำภู">หนองบัวลำภู</option><option value="อ่างทอง">อ่างทอง</option><option value="อำนาจเจริญ">อำนาจเจริญ</option><option value="อุดรธานี">อุดรธานี</option><option value="อุตรดิตถ์">อุตรดิตถ์</option><option value="อุทัยธานี">อุทัยธานี</option><option value="อุบลราชธานี">อุบลราชธานี</option></select>
+            <label class="f-opt" style="margin-top:8px">
+              <input type="checkbox" id="fProvOnly">
+              <span>แสดงเฉพาะครูที่อยู่ในจังหวัดนี้</span>
+              <span class="f-count" data-count-for="provOnly"></span>
+            </label>
+            <span class="f-why" style="display:block;font-size:var(--text-xs);color:var(--color-ink-2);padding:0 8px;line-height:1.5">
+              ปกติเราไม่ตัดครูจังหวัดอื่นทิ้ง แค่เอาครูจังหวัดเดียวกับคุณขึ้นก่อน — เพราะครูออนไลน์สอนข้ามจังหวัดได้
+            </span>
+          </fieldset>
+
+          <!-- 🔴 ค่าในช่องติ๊ก = รหัสอังกฤษ (morning/afternoon/evening/night) ชุดเดียวกับ data-time ของการ์ดครู
+               ต้นฉบับลิสต์: signup-parent.html ค้น SLOT_CODES · ข้อความในวงเล็บเป็นป้ายให้คนอ่านเท่านั้น -->
+          <fieldset class="f-group" data-group="time">
+            <legend class="f-legend">ช่วงเวลาที่สะดวก</legend>
+            <!-- 🔴 ชั่วโมงต้องตรงกับ BUCKETS ในโค้ด (signup-teacher.html) เป๊ะ — เดิมเขียน 08:00 แต่โค้ดจริงคือ 06:00 (แก้ 2026-08-15) -->
+            <label class="f-opt"><input type="checkbox" value="morning"><span>เช้า (06:00–12:00)</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="afternoon"><span>บ่าย (12:00–16:00)</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="evening"><span>เย็น (16:00–19:00)</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="night"><span>ค่ำ (19:00–22:00)</span><span class="f-count"></span></label>
+          </fieldset>
+
+          <!-- 🔗 ช่องนี้คือปลายทางของ "งบต่อชั่วโมง" ที่ผู้ปกครอง/นักเรียนกรอกไว้ตอนสมัคร
+               (signup-parent.html #budget · signup-student.html #budget — helper ในหน้านั้นเขียนไว้แล้วว่า "ใช้กรองครูที่อยู่ในงบ")
+               เข้าหน้านี้ด้วย ?budget=400 -> ระบบติ๊กทุกช่วงราคาที่ไม่เกินงบให้เอง -->
+          <fieldset class="f-group" data-group="price">
+            <legend class="f-legend">ราคาต่อชั่วโมง</legend>
+            <label class="f-opt"><input type="checkbox" value="0-300"><span>ไม่เกิน ฿300</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="301-400"><span>฿301–400</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="401-500"><span>฿401–500</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="checkbox" value="501-99999"><span>มากกว่า ฿500</span><span class="f-count"></span></label>
+          </fieldset>
+
+          <fieldset class="f-group" data-group="rating">
+            <legend class="f-legend">คะแนนรีวิว</legend>
+            <label class="f-opt"><input type="radio" name="rating" value="0" checked><span>ทั้งหมด</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="radio" name="rating" value="4.5"><span>4.5 ดาวขึ้นไป</span><span class="f-count"></span></label>
+            <label class="f-opt"><input type="radio" name="rating" value="4"><span>4.0 ดาวขึ้นไป</span><span class="f-count"></span></label>
+          </fieldset>
+        </div>
+
+        <div class="sheet-foot sheet-only">
+          <button class="btn btn-primary" type="button" id="sheetApply">ดูผลลัพธ์ (<span id="sheetCount">12</span> คน)</button>
+        </div>
+      </aside>
 
       <div class="applied" id="applied"></div>
 
@@ -1079,15 +1086,10 @@ body.sheet-open{overflow:hidden}
     b.addEventListener('click', function () {
       var t = b.getAttribute('data-tab');
       if (t === 'filters') {
-        /* จอแคบ: เปิดแผงตัวกรองที่มีอยู่แล้ว · จอกว้าง: แถบซ้ายโชว์อยู่แล้ว -> เลื่อนไปหาแล้วโฟกัสช่องแรก */
-        var sheet = document.getElementById('sheetOpen');
-        if (sheet && sheet.offsetParent !== null) { sheet.click(); return; }
-        var panel = document.getElementById('filterPanel');
-        if (panel) {
-          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          var first = panel.querySelector('input');
-          if (first) first.focus({ preventScroll: true });
-        }
+        /* 🔴 2026-09-06 · ไม่มีแถบข้างแล้ว -> แท็บนี้ "เปิด/ปิดแผง" ตรง ๆ (กดซ้ำ = ปิด)
+           ตัวเปิด-ปิดใช้ของเดิมทั้งคู่ ไม่ได้ทำสถานะชุดใหม่ */
+        if (panel.classList.contains('is-open')) closeSheet(b); else openSheet();
+        b.setAttribute('aria-expanded', panel.classList.contains('is-open') ? 'true' : 'false');
         return;
       }
       verifiedBox.checked = (t === 'verified');
@@ -1385,10 +1387,15 @@ body.sheet-open{overflow:hidden}
 
   /* ---- ชั้นตัวกรองเต็มจอ (เฉพาะจอเล็ก) ---- */
   var openers = [document.getElementById('sheetOpen'), document.getElementById('sheetOpenTop')];
+  function isSheetMode() {
+    var close = document.getElementById('sheetClose');
+    return !!(close && close.offsetParent !== null);   /* ปุ่มปิดโผล่ = อยู่โหมดชั้นเต็มจอ (จอเล็ก) */
+  }
   function openSheet() {
     panel.classList.add('is-open');
-    document.body.classList.add('sheet-open');
     openers.forEach(function (b) { if (b) b.setAttribute('aria-expanded', 'true'); });
+    if (!isSheetMode()) return;                        /* จอกว้าง = แผงพับ ไม่ต้องล็อกหน้า ไม่ต้องย้ายโฟกัส */
+    document.body.classList.add('sheet-open');
     var close = document.getElementById('sheetClose');
     if (close) close.focus();
   }

@@ -167,16 +167,75 @@
     });
   }
 
+  function boot() { mountSessionBar(); applyGate(); }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mountSessionBar);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    mountSessionBar();
+    boot();
+  }
+
+  /* ── ด่าน "ต้องเข้าสู่ระบบก่อน" (Owner ทัก 2026-09-06) ──────────────
+     Owner: *"ทำไมหน้านี้มีปุ่มเข้าสู่ระบบละครับ? ไม่ใช่ว่าเข้าระบบมาแล้วถึงเจอหน้า post-job.html หรอ?"*
+     -> ถูกต้อง · ของเดิมไม่มีด่านอะไรเลย ทุกหน้าเปิดตรงได้หมด แถบบนเลยขึ้น "เข้าสู่ระบบ" ค้างไว้เฉย ๆ
+        ซึ่งอ่านแล้วสับสน: อยู่ในหน้าที่ต้องเป็นสมาชิก แต่ยังไม่ได้เป็นสมาชิก
+
+     วิธีใช้: ใส่ `data-require="learner"` (หรือ "teacher") ที่ <body> ของหน้านั้น — จบ
+     🔴 ทำที่นี่ที่เดียว ห้ามไล่เขียนทีละหน้า (บทเรียนเดิม: แก้ทีละหน้า = พลาดง่าย session หน้าตามไม่ทัน)
+     🔴 **ซ่อน ไม่ใช่ลบ** — สคริปต์ของหน้าเดิมยังเดินอยู่และยังเขียนค่าลง element พวกนั้น
+        ถ้า .remove() ทิ้งจะพังแบบ "Cannot set properties of null" (เจอจริงตอนถอด sidebar 2026-08-31) */
+  var GATE_CSS = '.bgt-gate{max-width:520px;margin:var(--space-16) auto;padding:var(--space-8);'
+               + 'background:var(--color-surface);border:1px solid var(--color-rule);'
+               + 'border-radius:var(--radius-lg);box-shadow:var(--shadow-raise);text-align:center}'
+               + '.bgt-gate h2{font-family:var(--font-display);font-size:var(--text-xl);margin:0 0 var(--space-3)}'
+               + '.bgt-gate p{color:var(--color-ink-2);line-height:1.6;margin:0 0 var(--space-6)}'
+               + '.bgt-gate .bgt-gate-btns{display:flex;gap:var(--space-3);justify-content:center;flex-wrap:wrap}'
+               + '.bgt-gate .bgt-gate-note{font-size:var(--text-sm);margin:var(--space-6) 0 0}';
+
+  var ROLE_WORD = { learner: 'ผู้เรียน / ผู้ปกครอง', teacher: 'ครูผู้สอน' };
+
+  function buildGate(need, s) {
+    var root = rootPrefix();
+    var box = el('div', 'bgt-gate');
+    var wrongSide = !!s;      /* ล็อกอินอยู่ แต่ผิดฝั่ง */
+    box.appendChild(el('h2', null, wrongSide ? 'หน้านี้สำหรับ' + ROLE_WORD[need] : 'เข้าสู่ระบบก่อนถึงจะใช้หน้านี้ได้'));
+    box.appendChild(el('p', null, wrongSide
+      ? 'ตอนนี้คุณเข้าสู่ระบบเป็น' + ROLE_WORD[s.role === 'teacher' ? 'teacher' : 'learner'] + ' — สลับบัญชีก่อนถึงจะเข้าหน้านี้ได้'
+      : 'หน้านี้เป็นของบัญชี' + ROLE_WORD[need] + ' ระบบต้องรู้ว่าคุณเป็นใครก่อน ถึงจะบันทึกให้ถูกบัญชี'));
+
+    var btns = el('div', 'bgt-gate-btns');
+    var login = el('a', 'btn btn-primary', wrongSide ? 'สลับบัญชี' : 'เข้าสู่ระบบ');
+    login.href = root + 'login.html';
+    btns.appendChild(login);
+    if (!wrongSide) {
+      var signup = el('a', 'btn btn-secondary', 'ยังไม่มีบัญชี — สมัคร');
+      signup.href = root + (need === 'teacher' ? 'teacher/signup-teacher.html' : 'student/signup-parent.html');
+      btns.appendChild(signup);
+    }
+    box.appendChild(btns);
+    box.appendChild(el('p', 'bgt-gate-note', 'ต้นแบบนี้มีบัญชีตัวอย่างให้กดเข้าได้เลยที่หน้าเข้าสู่ระบบ ไม่ต้องกรอกใบสมัครทั้งใบก่อน'));
+    return box;
+  }
+
+  function applyGate() {
+    var need = document.body.getAttribute('data-require');
+    if (need !== 'learner' && need !== 'teacher') return;
+    var s = session();
+    if (s && s.role === need) return;                 /* ผ่านด่าน */
+
+    var style = document.createElement('style');
+    style.textContent = GATE_CSS;
+    document.head.appendChild(style);
+
+    /* ซ่อนเนื้อหาของหน้า แล้ววางการ์ดด่านแทน — ที่ที่หน้านี้ใช้วางเนื้อหาจริง */
+    var host = document.querySelector('.content-col') || document.querySelector('main') || document.body;
+    [].forEach.call(host.children, function (c) { c.style.display = 'none'; });
+    host.appendChild(buildGate(need, s));
   }
 
   window.BGTAccounts = {
     all: all, find: find, save: save,
     login: login, logout: logout, session: session,
-    homeFor: homeFor, normalize: norm,
+    homeFor: homeFor, normalize: norm, applyGate: applyGate,
     mountSessionBar: mountSessionBar
   };
 })();
