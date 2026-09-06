@@ -26,6 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/logo.css">
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 -->
@@ -54,10 +55,6 @@ a{color:inherit}
   display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
 }
 .sidebar{display:none}   /* 🔴 ถอดเมนูข้างแล้ว (Owner สั่ง) — ห้ามเอากลับมาโผล่ตอนจอกว้าง */
-.logo{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;
-  font-size:1.05rem;text-decoration:none}
-.logo-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
-  background:var(--color-accent);color:var(--color-accent-ink);font-weight:700}
 .back-link{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-3);
   border-radius:var(--radius-sm);color:var(--color-ink-2);text-decoration:none;font-size:var(--text-sm)}
 .back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
@@ -191,7 +188,7 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
 <body>
 <div class="page-shell">
   <aside class="sidebar">
-    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-jobs.html">← ตารางสอนของฉัน</a>
     <nav class="sidenav" aria-label="หัวข้อการตั้งค่า">
       <a href="#set-profile">โปรไฟล์</a>
@@ -208,7 +205,7 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
           กระดานงาน · ตารางสอนของฉัน · ผลงาน · โปรไฟล์ของฉัน
        🔴 หน้าที่เปิดอยู่ต้องมี aria-current="page" ไม่งั้นคนหลงว่าตัวเองอยู่หน้าไหน -->
   <header class="topbar">
-    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <nav class="topnav" aria-label="เมนูครู">
       <a href="job-board.html">กระดานงาน</a>
       <a href="teacher-jobs.html">ตารางสอนของฉัน</a>

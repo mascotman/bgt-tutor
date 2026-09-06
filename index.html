@@ -33,6 +33,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300..700&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="shared/logo.css">
 <style>
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R4 V5
  * genre: atmospheric x modern-minimal · macrostructure: Marquee Hero + Feature Stack (แผ่นเรียง)
@@ -178,14 +179,6 @@ a{color:inherit}
 }
 .nav.is-stuck .pill{box-shadow:0 6px 18px -8px oklch(12% .09 264/.75);border-color:oklch(64% .09 264)}
 @media(max-width:430px){.pill{width:min(1180px,100% - 28px);border-radius:var(--r-lg)}}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:500;min-height:44px}
-.logo-mark{
-  width:34px;height:34px;border-radius:10px;flex:none;
-  background:oklch(85% .145 82);color:oklch(24% .06 70);
-  display:grid;place-items:center;font-family:var(--f-display);font-weight:600;font-size:18px;
-  box-shadow:0 0 18px -4px oklch(80% .135 72/.55);
-}
-.logo-text{font-family:var(--f-display);font-weight:500;font-size:1.2rem;letter-spacing:-.01em}
 .nav-links{margin-inline-start:auto;display:flex;align-items:center;gap:var(--s2) var(--s5);
   font-size:.9rem;flex-wrap:wrap;justify-content:flex-end}
 .nav-links a{
@@ -925,7 +918,7 @@ h1{
 
 <header class="nav" id="nav">
   <div class="pill">
-    <a class="logo" href="index.html">
+    <a class="logo logo--on-dark" href="index.html">
       <span class="logo-mark" aria-hidden="true">B</span>
       <span class="logo-text">BGT Tutor</span>
     </a>

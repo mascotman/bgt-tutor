@@ -24,6 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/logo.css">
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
@@ -65,12 +66,6 @@ img{max-width:100%;display:block}
 .content-col > .wrap{width:100%}
 /* 🔴 ถอดแล้ว — ไม่มีเมนูข้างให้วางข้าง ๆ อีกต่อไป */
 
-.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
-.logo-mark{
-  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
-  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
-  display:flex;align-items:center;justify-content:center;
-}
 .back-link{
   min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
   color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
@@ -468,7 +463,7 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
           กระดานงาน · ตารางสอนของฉัน · ผลงาน · โปรไฟล์ของฉัน
        🔴 หน้าที่เปิดอยู่ต้องมี aria-current="page" ไม่งั้นคนหลงว่าตัวเองอยู่หน้าไหน -->
   <header class="topbar">
-    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <nav class="topnav" aria-label="เมนูครู">
       <a href="job-board.html" aria-current="page" class="is-here">กระดานงาน</a>
       <a href="teacher-jobs.html">ตารางสอนของฉัน</a>

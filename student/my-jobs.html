@@ -36,6 +36,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/logo.css">
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
@@ -70,12 +71,6 @@ img{max-width:100%;display:block}
 .content-col > .wrap{width:100%}
 @media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
 
-.logo{font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;display:flex;align-items:center;gap:10px}
-.logo-mark{
-  flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:var(--color-accent);
-  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
-  display:flex;align-items:center;justify-content:center;
-}
 .back-link{
   min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
   color:var(--color-ink-2);text-decoration:none;display:inline-flex;align-items:center;
@@ -413,12 +408,12 @@ img{max-width:100%;display:block}
 <div class="page-shell">
 
   <header class="mobile-header">
-    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <span class="quota" id="quota-mobile">รอคุณตัดสินใจ <span class="q-num">0</span></span>
   </header>
 
   <aside class="sidebar">
-    <a class="logo" href="../index.html"><span class="logo-mark">B</span>BGT Tutor</a>
+    <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-search.html">ค้นหาครู</a>
     <nav class="sidenav" aria-label="หมวดการจองของฉัน">
       <a href="#need-you"><span class="sidenav-num" id="nav-n-need">0</span>รอคุณตัดสินใจ</a>

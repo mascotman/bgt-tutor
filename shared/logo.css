@@ -1,0 +1,44 @@
+/* logo.css — โลโก้ BGT Tutor ชุดเดียวของทั้งเว็บ
+ * สร้าง 2026-09-06 · Owner สั่ง: "logo BGT Tutor ของหน้าครู กับ นักเรียน สีและขนาดต่างกันครับ งานไม่เนียบเลย"
+ *                                "จริง ๆ ต่างกันทุกหน้าเลย ... ควรจะอิงหน้า landing page ไปก่อน"
+ *
+ * 🔴 ทำไมต้องมีไฟล์นี้: `.logo` / `.logo-mark` เคยถูกประกาศซ้ำ "ในทุกหน้า หน้าละชุด"
+ *    ไม่มีใครเป็นต้นฉบับ -> แก้หน้าไหนก็เพี้ยนเฉพาะหน้านั้น สะสมจนกลายเป็น 5 แบบ
+ *    (วัดจริงในเบราว์เซอร์ 2026-09-06 ก่อนแก้ — ไม่ได้เดาจากโค้ด):
+ *      A `index.html`             ตัวอักษร 16px/500 · กรอบ 34px มุม 10px · พื้น oklch(85% .145 82)
+ *      B `login.html`             ตัวอักษร 16px/500 · กรอบ 34px มุม  9px · พื้น oklch(54% .135 68)
+ *      C 10 หน้าแอป               ตัวอักษร 19px/700 · กรอบ 32px มุม  8px · พื้น oklch(54% .135 68)
+ *      D `teacher-settings.html`  ตัวอักษร 16.8px/700 · กรอบ 32px มุม 9px
+ *      E `teacher-earnings.html`  ตัวอักษร 16px/700 · กรอบ **28px** · พื้น **oklch(46% .09 72)** สีคนละตัวไปเลย
+ *
+ * 🔴 กติกาต่อจากนี้: ห้ามประกาศ `.logo` / `.logo-mark` / `.logo-text` ในหน้าใดหน้าหนึ่งอีก
+ *    อยากได้ขนาดอื่นให้เพิ่ม modifier ที่ไฟล์นี้ (เช่น .logo--sm) แล้วไปติดคลาสที่หน้านั้น
+ *    `tools/check.mjs` ข้อ 12 คอยจับให้ว่ามีหน้าไหนแอบประกาศซ้ำอีกไหม
+ */
+
+/* ── ทรงมาตรฐาน: ยึดหน้า landing ตามที่ Owner สั่ง ──
+   กรอบ 34px · มุม 10px · ระยะห่าง 10px · ตัวอักษร 1.2rem น้ำหนัก 500 ฟอนต์หัวเรื่อง
+   min-height 44px = เป้ากดขั้นต่ำบนมือถือ (มีอยู่แล้วในหน้า landing เก็บไว้) */
+.logo{
+  display:flex;align-items:center;gap:10px;min-height:44px;
+  text-decoration:none;color:var(--color-ink);
+  font-family:var(--font-display);font-size:1.2rem;font-weight:500;letter-spacing:-.01em;line-height:1;
+}
+.logo-text{font:inherit;letter-spacing:inherit}
+
+.logo-mark{
+  flex:none;width:34px;height:34px;border-radius:10px;
+  display:grid;place-items:center;
+  background:var(--color-accent);color:var(--color-accent-ink);
+  font-family:var(--font-display);font-weight:600;font-size:18px;line-height:1;
+}
+
+/* ── บนแถบสีเข้ม (แถบบนของหน้า landing) ──
+   🔴 ที่นี่ห้ามใช้สีเดียวกับพื้นสว่าง: ตัวหนังสือ --color-ink เป็นหมึกเข้ม อ่านไม่ออกบนพื้นเข้ม
+      ส่วนตัวกรอบใช้อำพันอ่อน = ทรงเดิมของ landing ที่ Owner ออกแบบไว้ให้เด่นบนพื้นน้ำเงินเข้ม
+   ทรง (ขนาด/มุม/ฟอนต์/น้ำหนัก) ยังเป็นชุดเดียวกับทุกหน้า เปลี่ยนแค่สีตามพื้นหลัง */
+.logo--on-dark{color:oklch(98% .005 260)}
+.logo--on-dark .logo-mark{
+  background:oklch(85% .145 82);color:oklch(24% .06 70);
+  box-shadow:0 0 18px -4px oklch(80% .135 72/.55);
+}

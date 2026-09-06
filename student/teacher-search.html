@@ -21,6 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/logo.css">
 <!-- 🎨 หน้าตาแบบ index-v3 (Owner สั่ง LOG 191) · ลบบรรทัดนี้ = กลับไปแบบเดิมทันที -->
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <link rel="stylesheet" href="../shared/v4-rows.css">
@@ -75,16 +76,6 @@ img{max-width:100%;display:block}
 /* 🔴 เลิกเรียงแนวนอน 2026-09-06: ไม่มีคอลัมน์ซ้ายแล้ว
    ถ้าปล่อยไว้ แถบบน (.mobile-header) จะกลายเป็นคอลัมน์ซ้ายแทน — บั๊กเดียวกับที่แก้ไปรอบ 7 */
 
-.logo{
-  font-weight:700;font-size:19px;letter-spacing:-0.02em;line-height:1;color:var(--color-ink);text-decoration:none;
-  display:flex;align-items:center;gap:10px;
-}
-.logo-mark{
-  flex:0 0 auto;width:32px;height:32px;border-radius:8px;
-  background:var(--color-accent);
-  color:var(--color-accent-ink);font-weight:700;font-size:16px;font-family:var(--font-display);
-  display:flex;align-items:center;justify-content:center;
-}
 .back-link{
   min-height:44px;box-sizing:border-box;
   font-size:var(--text-sm);font-weight:600;line-height:1;color:var(--color-ink-2);text-decoration:none;
@@ -396,7 +387,7 @@ body.sheet-open{overflow:hidden}
 
 
   <header class="mobile-header">
-    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span>BGT Tutor</a>
+    <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
     <button class="btn btn-secondary filter-open sheet-only" type="button" id="sheetOpenTop" aria-expanded="false" aria-controls="filterPanel">
       ตัวกรอง <span class="fcount" id="fcountTop" hidden>0</span>
