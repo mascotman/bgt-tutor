@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="../shared/social-login.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
 <link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
 <style>
 /* Hallmark · genre: modern-minimal · macrostructure: Narrative Workflow · design-system: design.md · designed-as-app
  * nav: N3 side-rail · footer: Ft2 inline · enrichment: none
@@ -69,10 +70,10 @@ img{max-width:100%;display:block}
 .mobile-header .logo{height:40px}
 
 /* ---- desktop sidebar ---- */
-.sidebar{display:none}
+.stepindex{display:none}
 @media (min-width:900px){
   .mobile-header{display:none}
-  .sidebar{
+  .stepindex{
     display:flex;flex-direction:column;
     width:264px;flex:0 0 264px;
     position:sticky;top:0;height:100vh;overflow-y:auto;
@@ -80,7 +81,7 @@ img{max-width:100%;display:block}
     border-right:1px solid var(--color-rule);
     background:var(--color-paper);
   }
-  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .stepindex .logo{height:auto;margin-bottom:var(--space-2)}
 }
 .sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
 .sidenav a{
@@ -99,7 +100,6 @@ img{max-width:100%;display:block}
 .sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
 
 /* ---- hero / intro ---- */
-.hero-band{position:relative;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
 .hero-blob,.page-blob{display:none}
 .intro{padding:var(--space-16) 0 var(--space-12);position:relative;z-index:var(--z-base)}
 .intro .eyebrow{
@@ -418,7 +418,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 <body data-no-session-bar>
 
 <div class="page-shell">
-  <aside class="sidebar">
+  <aside class="stepindex">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
     <nav class="sidenav" id="pillnav" aria-label="สารบัญฟอร์ม">
@@ -432,15 +432,14 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
     </nav>
   </aside>
 
-  <header class="mobile-header">
+  <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
   </header>
 
   <main class="content-col">
 
-<div class="hero-band">
-  <div class="hero-blob" aria-hidden="true"></div>
+<div class="page-head">
   <div class="wrap">
     <div class="intro">
       <span class="eyebrow">เริ่มต้นเป็นครู BGT Tutor</span>
@@ -757,7 +756,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   const form = document.getElementById('teacher-form');
 
   /* ---------- keep --header-h in sync with the real sticky header (fixes anchor-jump landing under it) ---------- */
-  const topbarEl = document.querySelector('.mobile-header');
+  const topbarEl = document.querySelector('.topbar');
   function syncHeaderHeight(){
     document.documentElement.style.setProperty('--header-h', topbarEl.getBoundingClientRect().height + 'px');
   }

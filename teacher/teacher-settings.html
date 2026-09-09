@@ -42,7 +42,7 @@ body{background:var(--color-paper);color:var(--color-ink);font-family:var(--font
 a{color:inherit}
 :focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:var(--radius-sm)}
 
-/* โครงหน้า — ชุดเดียวกับหน้าอื่น (v4 จะซ่อน .sidebar แล้วดัน .mobile-header ขึ้นมาแทน) */
+/* โครงหน้า — ชุดเดียวกับหน้าอื่น (v4 จะซ่อน .stepindex แล้วดัน .mobile-header ขึ้นมาแทน) */
 /* 🔴 2026-09-01 — เดิมเป็น flex แนวนอนเพื่อวางแถบเมนูข้าง
    พอเอา sidebar ออกแล้วเอา .topbar มาไว้ข้างใน แถบบนเลยกลายเป็น "คอลัมน์ซ้าย" กินที่ 661px
    -> เนื้อหาเบี้ยวไปทางขวาทั้งหน้า (Owner เห็นจากภาพ 2026-09-01)
@@ -54,7 +54,7 @@ a{color:inherit}
   border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
   display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
 }
-.sidebar{display:none}   /* 🔴 ถอดเมนูข้างแล้ว (Owner สั่ง) — ห้ามเอากลับมาโผล่ตอนจอกว้าง */
+.stepindex{display:none}   /* 🔴 ถอดเมนูข้างแล้ว (Owner สั่ง) — ห้ามเอากลับมาโผล่ตอนจอกว้าง */
 .back-link{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-3);
   border-radius:var(--radius-sm);color:var(--color-ink-2);text-decoration:none;font-size:var(--text-sm)}
 .back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
@@ -187,7 +187,7 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
 </head>
 <body>
 <div class="page-shell">
-  <aside class="sidebar">
+  <aside class="stepindex">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-jobs.html">← ตารางสอนของฉัน</a>
     <nav class="sidenav" aria-label="หัวข้อการตั้งค่า">
@@ -215,11 +215,19 @@ textarea{font:inherit;width:100%;padding:var(--space-3);border-radius:var(--radi
   </header>
 
   <main class="content-col">
+
+    <!-- 🔴 2026-09-10 — หัวหน้าแบบลีนของกลาง (.page-head) ตาม STANDARD ข้อ 1
+         เดิมหัวเรื่องลอยอยู่ใน .wrap เดียวกับเนื้อหา ทำให้ระยะห่างไม่ตรงกับหน้าอื่น -->
+    <div class="page-head">
+      <div class="wrap">
+        <span class="eyebrow">ตัวอย่างหน้าตั้งค่า · ข้อมูลสมมติ</span>
+        <h1>โปรไฟล์ของฉัน</h1>
+        <p class="lede">คุณเป็นคนกำหนดเองทั้งหมด — เปิดวิชาที่รับสอน ตั้งช่วงเวลาที่ว่างจริง และตั้งราคาของตัวเอง
+          ผู้เรียนจะเห็นเฉพาะสิ่งที่คุณเปิดไว้เท่านั้น</p>
+      </div>
+    </div>
+
     <div class="wrap">
-      <span class="eyebrow">ตัวอย่างหน้าตั้งค่า · ข้อมูลสมมติ</span>
-      <h1>โปรไฟล์ของฉัน</h1>
-      <p class="lede">คุณเป็นคนกำหนดเองทั้งหมด — เปิดวิชาที่รับสอน ตั้งช่วงเวลาที่ว่างจริง และตั้งราคาของตัวเอง
-        ผู้เรียนจะเห็นเฉพาะสิ่งที่คุณเปิดไว้เท่านั้น</p>
 
       <div class="sheet" id="settings">
 

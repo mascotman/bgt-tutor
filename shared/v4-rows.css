@@ -94,6 +94,7 @@ body:has(.topbar) .page-shell{display:block}
      · post-job.html — แถบหัวหน้า (.hero-band) หายเงียบ ๆ ตั้งแต่รอบทำจอ ⑤
    `body:has(.topbar)` = "เฉพาะหน้าที่เปลี่ยนมาใช้แถบบนแล้วจริง ๆ" ซึ่งคือหน้าฝั่งครูที่ตั้งใจตัด */
 body:has(.topbar) .sidebar,
+body:has(.topbar) .stepindex,   /* ชื่อใหม่ของสารบัญขั้นตอน (2026-09-10) */
 body:has(.topbar) .sidenav,
 body:has(.topbar) .rail,
 body:has(.topbar) .hero-band,

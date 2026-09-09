@@ -38,7 +38,8 @@
    จอจำลองใน landing ไม่มีแถบข้าง มีแต่ **แท็บแถวบน** (.mock-tabs)
    -> ซ่อนแถบข้าง แล้วเอาแถบบน (ที่หน้าเดิมใช้เฉพาะจอแคบ) มาโชว์ทุกความกว้างแทน
       = โลโก้กับปุ่มกลับหน้าแรกยังอยู่ครบ ไม่ได้ตัดทางออกของใคร */
-.v4 .sidebar{ display:none !important }
+.v4 .sidebar,
+.v4 .stepindex{ display:none !important }   /* .stepindex = ชื่อใหม่ของสารบัญขั้นตอน (2026-09-10) */
 .v4 .mobile-header{ display:flex !important }
 
 /* 🔴 2026-09-06 — Owner ทัก: "ซ้ายมือบน แถบ head menu มันเป็นแบบนั้นเห็นไหมครับ??"

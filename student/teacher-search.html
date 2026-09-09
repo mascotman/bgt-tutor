@@ -97,7 +97,7 @@ img{max-width:100%;display:block}
 /* ---- sidebar = แผงตัวกรอง ----
    จอเล็ก: แผงเดียวกันนี้กลายเป็น "ชั้นเต็มจอ" (Baymard: ห้ามยัด sidebar ลงมือถือ)
    ใช้ DOM ก้อนเดียวสองหน้าที่ -> ไม่มี id ซ้ำ ไม่มีสถานะสองชุดให้หลุดกัน */
-.sidebar{
+.filter-panel{
   position:fixed;inset:0;z-index:var(--z-modal);
   background:var(--color-paper);
   display:none;flex-direction:column;
@@ -106,10 +106,10 @@ img{max-width:100%;display:block}
 /* เปิด/ปิดด้วย display ตรง ๆ ไม่ใส่ transition:
    ถ้าเบราว์เซอร์หยุดวาดเฟรม (throttle/แท็บพื้นหลัง) แอนิเมชันจะค้างที่เฟรมแรก = แผงไม่โผล่เลย
    -> ตัดลูกเล่นทิ้งตาม design.md ข้อ 7 ("ตัดก่อนเพิ่มเสมอ") แล้วได้ความแน่นอนกลับมา */
-.sidebar.is-open{display:flex}
+.filter-panel.is-open{display:flex}
 @media (min-width:900px){
   /* แถบบนโชว์ทุกความกว้างแล้ว (เดิมซ่อนตอนจอกว้างเพราะโลโก้อยู่ในแถบข้าง) */
-  .sidebar{
+  .filter-panel{
     /* 🔴 ล้างค่าโหมดมือถือให้หมดก่อน (fixed/inset/z-index) แล้วค่อยตั้งค่าของแผงพับ
        ลำดับสำคัญ — บทเรียนเดิม 2026-08-12: เขียน inset:auto ไว้ท้าย top จะล้าง top ทิ้ง */
     position:static;inset:auto;z-index:auto;
@@ -118,11 +118,11 @@ img{max-width:100%;display:block}
     border:1px solid var(--color-rule);border-radius:var(--radius-lg);
     padding:var(--space-6);margin-bottom:var(--space-5);
   }
-  .sidebar.is-open{display:block}
+  .filter-panel.is-open{display:block}
   /* กลุ่มตัวกรองไหลเป็นคอลัมน์ ไม่ให้แผงยาวเป็นหางว่าวจนดันผลค้นหาตกจอ
      break-inside:avoid = ห้ามหั่นกลุ่มเดียวกันคนละคอลัมน์ (อ่านแล้วงง) */
-  .sidebar .filters{padding:0;columns:3;column-gap:var(--space-8)}
-  .sidebar .f-group,.sidebar .f-verified{break-inside:avoid;margin-bottom:var(--space-6)}
+  .filter-panel .filters{padding:0;columns:3;column-gap:var(--space-8)}
+  .filter-panel .f-group,.filter-panel .f-verified{break-inside:avoid;margin-bottom:var(--space-6)}
   .sheet-only{display:none !important}
 }
 
@@ -386,7 +386,7 @@ body.sheet-open{overflow:hidden}
 <div class="page-shell">
 
 
-  <header class="mobile-header">
+  <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
     <button class="btn btn-secondary filter-open sheet-only" type="button" id="sheetOpenTop" aria-expanded="false" aria-controls="filterPanel">
@@ -396,7 +396,7 @@ body.sheet-open{overflow:hidden}
 
   <main class="content-col">
 
-    <div class="search-band">
+    <div class="search-band page-head">
       <div class="wrap">
         <div class="search-inner">
           <span class="eyebrow">ตัวอย่างผลค้นหา · ข้อมูลสมมติทั้งหมด</span>
@@ -468,7 +468,7 @@ body.sheet-open{overflow:hidden}
                   (job-board.html ค้น .filter-bar / .filters — ปุ่ม "ตัวกรอง" กางแผงลงมา)
                จอเล็ก: ยังเป็นชั้นเต็มจอเหมือนเดิม (Baymard: ห้ามยัดแผงตัวกรองยาว ๆ ลงมือถือ)
                DOM ก้อนเดียวทำสองหน้าที่เหมือนเดิม -> ไม่มี id ซ้ำ ไม่มีสถานะสองชุดให้หลุดกัน -->
-      <aside class="sidebar" id="filterPanel" aria-label="ตัวกรองผลค้นหา">
+      <aside class="filter-panel" id="filterPanel" aria-label="ตัวกรองผลค้นหา">
 
         <div class="sheet-bar sheet-only">
           <h2>ตัวกรอง</h2>

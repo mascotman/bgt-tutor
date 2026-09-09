@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
 <link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
 <style>
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
  * genre: modern-minimal · macrostructure: Split Studio · design-system: design.md · designed-as-app
@@ -77,10 +78,10 @@ img{max-width:100%;display:block}
 }
 .mobile-header .logo{height:40px}
 
-.sidebar{display:none}
+.stepindex{display:none}
 @media (min-width:900px){
   .mobile-header{display:none}
-  .sidebar{
+  .stepindex{
     display:flex;flex-direction:column;
     width:264px;flex:0 0 264px;
     position:sticky;top:0;height:100vh;overflow-y:auto;
@@ -88,7 +89,7 @@ img{max-width:100%;display:block}
     border-right:1px solid var(--color-rule);
     background:var(--color-paper);
   }
-  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .stepindex .logo{height:auto;margin-bottom:var(--space-2)}
 }
 .sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
 .sidenav a{
@@ -102,7 +103,6 @@ img{max-width:100%;display:block}
 .sidenav a:focus-visible{outline:2px solid var(--color-focus);outline-offset:-2px;border-radius:var(--radius-sm)}
 
 /* ---- แถบหัวหน้า: ตัวตนของครู ---- */
-.hero-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
 .pro-intro{padding:var(--space-12) 0 var(--space-10)}
 .eyebrow{
   display:inline-flex;align-items:center;gap:8px;
@@ -387,7 +387,7 @@ img{max-width:100%;display:block}
 <body>
 
 <div class="page-shell">
-  <aside class="sidebar">
+  <aside class="stepindex">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <!-- 🔴 2026-09-01 — เดิมชี้ index.html ทั้งที่ป้ายเขียนว่า "กลับผลค้นหา" (บั๊กเก่า มีมาก่อนจัดโฟลเดอร์) -->
     <a class="back-link" href="teacher-search.html">← กลับผลค้นหา</a>
@@ -401,14 +401,14 @@ img{max-width:100%;display:block}
     </nav>
   </aside>
 
-  <header class="mobile-header">
+  <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-search.html">← กลับ</a>
   </header>
 
   <main class="content-col">
 
-  <div class="hero-band">
+  <div class="page-head">
     <div class="wrap">
       <div class="pro-intro">
         <span class="eyebrow">ตัวอย่างโปรไฟล์ · ข้อมูลสมมติ</span>

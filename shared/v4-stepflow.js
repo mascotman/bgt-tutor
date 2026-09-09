@@ -23,6 +23,38 @@
      - ส่งสำเร็จแล้วฟอร์มถูกซ่อน -> เก็บแท็บ/แถบความคืบหน้าตามไปด้วย
    ═════════════════════════════════════════════════════════════════════════ */
 (() => {
+  /* ═══ 🔴 2026-09-10 · กฎกลาง "กด Enter ในช่องที่มีปุ่มคู่" ═══
+     อาการที่เจอ: ช่องอีเมล / ช่องรหัส OTP มีปุ่ม "ส่งรหัสไปที่อีเมล" · "ยืนยันรหัส" อยู่ข้าง ๆ
+     แต่ปุ่มพวกนั้นเป็น type="button" (ไม่ใช่ปุ่มส่งฟอร์ม) และไม่มีใครดัก Enter ไว้
+     -> ผู้ใช้พิมพ์อีเมลเสร็จกด Enter คิดว่าจะเป็นการกดปุ่มนั้น แต่ได้ "ส่งใบสมัครทั้งใบ" แทน
+        แล้วหน้าจอเด้งข้ามขั้นเพราะช่องอื่นยังกรอกไม่ครบ (พบ 3 หน้า: สมัครผู้ปกครอง/นักเรียน/ครู)
+
+     ท่าที่ถูกมีอยู่แล้วในบ้านที่ login.html:230,251 -> ยกขึ้นมาเป็นกฎกลาง ทุกหน้าได้พร้อมกัน
+
+     🔴 ขอบเขต: แตะเฉพาะช่องที่ "มีปุ่มคู่จริง" เท่านั้น
+        ช่องธรรมดา (ชื่อ · อายุ · งบ · เขต) ไม่แตะ เพราะ Enter = ส่งฟอร์ม
+        เป็นพฤติกรรมมาตรฐานของ HTML ไม่ใช่บั๊ก — ถ้าจะเปลี่ยนต้องให้ Owner เคาะก่อน */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.defaultPrevented) return;      /* ช่องที่ดักเองแล้ว (เช่นช่องวิชา) ไม่ยุ่ง */
+    const el = e.target;
+    if (!el || el.tagName !== 'INPUT') return;
+    if (['submit', 'button', 'reset', 'checkbox', 'radio', 'file'].indexOf(el.type) > -1) return;
+    if (!el.closest('form')) return;                          /* ไม่อยู่ในฟอร์ม = ไม่มีอะไรให้กัน */
+
+    /* หาปุ่มคู่: ขึ้นไปไม่เกิน 2 ชั้น (โครงจริงคือ .field > input แล้วปุ่มเป็นพี่น้องของ .field
+       หรือปุ่มอยู่ใน .field เดียวกันเลย — เกินกว่านี้จะไปเจอปุ่มของก้อนอื่น) */
+    let box = el.parentElement, btn = null;
+    for (let i = 0; i < 2 && box && !btn; i++) {
+      btn = [...box.querySelectorAll('button[type="button"]')]
+        .find((b) => !b.closest('.tag') && !b.classList.contains('suggest-item')
+                  && !b.hasAttribute('hidden') && b.offsetParent !== null);
+      box = box.parentElement;
+    }
+    if (!btn) return;                                          /* ไม่มีปุ่มคู่ = ปล่อยตามมาตรฐาน HTML */
+    e.preventDefault();
+    btn.click();
+  });
+
   const nav = document.querySelector('.sidenav');
   if (!nav) return;
 
@@ -91,8 +123,11 @@
   }
 
   /* ── ย้ายของที่เหลือในแถบข้างออกมา ไม่ให้หายไปพร้อมแถบ ── */
-  const sidebar = document.querySelector('.sidebar');
-  const header = document.querySelector('.mobile-header');
+  /* 🔴 2026-09-10 — ตอนแปลง 9 หน้าเข้ามาตรฐาน หน้าเปลี่ยนมาใช้ .stepindex (สารบัญขั้นตอน)
+     กับ .topbar (แถบบนของกลาง) ตาม STANDARD -> ต้องรับทั้งชื่อเก่าและใหม่
+     ไม่งั้นลิงก์ "กลับ…" กับของในแถบข้างจะหายไปพร้อมแถบ */
+  const sidebar = document.querySelector('.sidebar, .stepindex');
+  const header = document.querySelector('.mobile-header, .topbar');
   if (sidebar) {
     /* ปุ่ม "กลับ…" ในแถบข้าง = ทางออกของหน้า ห้ามให้หายไปกับแถบ -> ย้ายขึ้นแถบบน
        ⚠️ หลายหน้ามีปุ่มนี้ "สองตัว" อยู่แล้ว (ตัวหนึ่งในแถบข้างสำหรับจอกว้าง

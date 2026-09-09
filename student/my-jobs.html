@@ -41,6 +41,7 @@
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
 <link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
 <link rel="stylesheet" href="../shared/v4-jobrow.css">
 <style>
 /* Hallmark · macrostructure: Ecosystem Index · genre: modern-minimal · design-system: design.md
@@ -84,15 +85,15 @@ img{max-width:100%;display:block}
   border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
   display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
 }
-.sidebar{display:none}
+.stepindex{display:none}
 @media (min-width:900px){
   .mobile-header{display:none}
-  .sidebar{
+  .stepindex{
     display:flex;flex-direction:column;width:264px;flex:0 0 264px;
     position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
     padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
   }
-  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .stepindex .logo{height:auto;margin-bottom:var(--space-2)}
 }
 .sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-8)}
 .sidenav a{
@@ -123,7 +124,6 @@ img{max-width:100%;display:block}
 .quota.is-hot{background:var(--color-accent-soft);border-color:var(--color-accent-deep)}
 
 /* ── หัวหน้า ─────────────────────────────────────────────────── */
-.hero-band{background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
 .intro{padding:var(--space-12) 0 var(--space-8)}
 .intro .eyebrow{
   display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
@@ -407,12 +407,12 @@ img{max-width:100%;display:block}
 <body data-require="learner">
 <div class="page-shell">
 
-  <header class="mobile-header">
+  <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <span class="quota" id="quota-mobile">รอคุณตัดสินใจ <span class="q-num">0</span></span>
   </header>
 
-  <aside class="sidebar">
+  <aside class="stepindex">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-search.html">ค้นหาครู</a>
     <nav class="sidenav" aria-label="หมวดการจองของฉัน">
@@ -432,7 +432,7 @@ img{max-width:100%;display:block}
 
   <div class="content-col">
 
-    <div class="hero-band">
+    <div class="page-head">
       <div class="wrap">
         <div class="intro">
           <span class="eyebrow">สำหรับผู้เรียน · การจองของฉัน</span>

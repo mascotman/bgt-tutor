@@ -76,15 +76,15 @@ img{max-width:100%;display:block}
   border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
   display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
 }
-.sidebar{display:none}
+.stepindex{display:none}
 @media (min-width:900px){
   .mobile-header{display:none}
-  .sidebar{
+  .stepindex{
     display:flex;flex-direction:column;width:264px;flex:0 0 264px;
     position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
     padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
   }
-  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .stepindex .logo{height:auto;margin-bottom:var(--space-2)}
 }
 .sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
 .sidenav a{
@@ -103,7 +103,6 @@ img{max-width:100%;display:block}
 }
 .side-note strong{display:block;font-family:var(--font-display);color:var(--color-ink);margin-bottom:4px}
 
-.hero-band{position:relative;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
 .intro{padding:var(--space-16) 0 var(--space-12)}
 .intro .eyebrow{
   display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
@@ -366,12 +365,12 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
 <body data-require="learner">
 <div class="page-shell">
 
-  <header class="mobile-header">
+  <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-search.html">ค้นหาครู</a>
   </header>
 
-  <aside class="sidebar">
+  <aside class="stepindex">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-search.html">ค้นหาครู</a>
     <nav class="sidenav" aria-label="ขั้นตอนการตั้งโพสต์">
@@ -386,7 +385,7 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   </aside>
 
   <div class="content-col">
-    <div class="hero-band">
+    <div class="page-head">
       <div class="wrap">
         <div class="intro">
           <span class="eyebrow">สำหรับผู้เรียน / ผู้ปกครอง · 3 ขั้นตอน ราว 3 นาที</span>
@@ -1302,7 +1301,7 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
     /* ย้ายการ์ดตัวอย่างไปโชว์ในหน้าสำเร็จ (ของชิ้นเดียวกัน ไม่ต้องวาดใหม่) */
     $('success-card-slot').appendChild($('preview-card'));
     form.hidden = true;
-    document.querySelector('.hero-band').hidden = true;
+    document.querySelector('.page-head').hidden = true;
     $('success').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -1311,7 +1310,7 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
     document.querySelector('#sec3 .preview-frame').appendChild($('preview-card'));
     $('success').style.display = 'none';
     form.hidden = false;
-    document.querySelector('.hero-band').hidden = false;
+    document.querySelector('.page-head').hidden = false;
     document.querySelector('#sec3').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 

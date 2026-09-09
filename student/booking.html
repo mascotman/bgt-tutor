@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="../shared/theme-v3.css">
 <!-- 🆕 v4: วิธีจัดหน้าแบบจอจำลองใน index-v3 (Owner สั่ง 2026-08-31) -->
 <link rel="stylesheet" href="../shared/v4-stepflow.css">
+<link rel="stylesheet" href="../shared/v4-rows.css">
 <style>
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
  * macrostructure: Narrative Workflow (design.md ล็อกไว้สำหรับขั้น 6) · genre: modern-minimal · designed-as-app
@@ -74,15 +75,15 @@ img{max-width:100%;display:block}
   border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
   display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
 }
-.sidebar{display:none}
+.stepindex{display:none}
 @media (min-width:900px){
   .mobile-header{display:none}
-  .sidebar{
+  .stepindex{
     display:flex;flex-direction:column;width:264px;flex:0 0 264px;
     position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
     padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
   }
-  .sidebar .logo{height:auto;margin-bottom:var(--space-2)}
+  .stepindex .logo{height:auto;margin-bottom:var(--space-2)}
 }
 .sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
 .sidenav a{
@@ -104,7 +105,6 @@ img{max-width:100%;display:block}
 .side-sum strong{display:block;font-family:var(--font-display);color:var(--color-ink);margin-bottom:4px}
 .side-sum .sum-total{font-family:var(--font-display);font-weight:700;font-size:var(--text-lg);color:var(--color-ink);display:block;margin-top:6px}
 
-.hero-band{position:relative;background:var(--color-paper);border-bottom:1px solid var(--color-rule)}
 .intro{padding:var(--space-16) 0 var(--space-12)}
 .intro .eyebrow{
   display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);
@@ -400,12 +400,12 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
 <body data-require="learner">
 <div class="page-shell">
 
-  <header class="mobile-header">
+  <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-profile.html">กลับไปหน้าครู</a>
   </header>
 
-  <aside class="sidebar">
+  <aside class="stepindex">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
     <a class="back-link" href="teacher-profile.html">กลับไปหน้าครู</a>
     <nav class="sidenav" aria-label="ขั้นตอนการขอจอง">
@@ -423,7 +423,7 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   </aside>
 
   <div class="content-col">
-    <div class="hero-band">
+    <div class="page-head">
       <div class="wrap">
         <div class="intro">
           <span class="eyebrow">ขอจองคาบเรียน · 5 ขั้นตอน</span>
