@@ -163,10 +163,41 @@
     return write({ prov: provName, learners: arr, activeId: arr[0].id, email: email || sessionEmail() });
   }
 
+  /* ══════════════════════════════════════════════════════════════════
+     🔴 2026-09-10 (Owner ทัก) — เมนู "โปรไฟล์ผู้เรียน" ต้องพาไปหน้าที่ถูกกับคนที่ใช้อยู่
+
+     ปัญหา: เมนูบนทุกหน้าชี้ไป signup-parent.html ตายตัว
+     -> ผู้เรียนอายุ 16+ ที่สมัครเอง กดแล้วไปโผล่ "ฟอร์มผู้ปกครอง" ซึ่งไม่ใช่ของเขา
+
+     ตัวแยกนี้ไม่ใช่ของใหม่ — post-job.html ใช้อยู่ก่อนแล้ว (ค้น isSelf)
+     ยกขึ้นมาไว้ที่ชุดกลาง เพื่อให้ทุกหน้าได้พร้อมกัน ไม่ต้องไล่แก้ทีละหน้า
+
+     🔴 เกณฑ์: หน้าสมัครของผู้เรียน 16+ บันทึกผู้เรียนคนเดียวที่ id = "me"
+        (signup-student.html ค้น id: "me") -> เจอแบบนั้นเมื่อไร = เขาสมัครเอง
+     ══════════════════════════════════════════════════════════════════ */
+  function isSelf() {
+    var l = list();
+    return l.length === 1 && l[0].id === 'me';
+  }
+  function fixProfileLinks() {
+    if (!isSelf()) return;                                  /* ผู้ปกครอง = ของเดิมถูกอยู่แล้ว */
+    var here = (location.pathname.split('/').pop() || '').toLowerCase();
+    if (here === 'signup-parent.html') return;         /* อยู่หน้านั้นเองอยู่แล้ว ไม่ต้องเปลี่ยน */
+    [].forEach.call(document.querySelectorAll('a[href="signup-parent.html"]'), function (a) {
+      a.setAttribute('href', 'signup-student.html');
+      var t = (a.textContent || '').trim();
+      if (t.indexOf('โปรไฟล์ผู้เรียน') > -1) {
+        a.textContent = t.replace('โปรไฟล์ผู้เรียน', 'โปรไฟล์ของฉัน');
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fixProfileLinks);
+  else fixProfileLinks();
+
   window.BGT_LEARNER = {
     KEY: KEY, MODE_CODES: MODE_CODES, SLOT_CODES: SLOT_CODES, GOAL_CODES: GOAL_CODES,
     read: read, write: write, reset: reset, save: save,
     list: list, prov: prov, byId: byId, has: has,
-    active: active, setActive: setActive
+    active: active, setActive: setActive, isSelf: isSelf, fixProfileLinks: fixProfileLinks
   };
 })();

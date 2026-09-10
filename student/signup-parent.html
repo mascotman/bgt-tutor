@@ -788,6 +788,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       input.setAttribute('aria-expanded','true');
     }
     function addSubject(x){ picked.push(x); renderTags(); input.value = ''; open(''); }
+    /* เปิดทางให้โหมดแก้โปรไฟล์เติมวิชาเดิมกลับเข้ามาทางเดียวกับที่คนกดเลือกเอง */
+    card.__addSubject = addSubject;
     function close(){ panel.hidden = true; input.setAttribute('aria-expanded','false'); }
     input.addEventListener('focus', () => open(input.value));
     input.addEventListener('input', () => open(input.value));
@@ -904,6 +906,9 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   }
 
   addBtn.addEventListener('click', add);
+  /* 🔴 2026-09-10 — เปิดทางให้โหมดแก้โปรไฟล์เรียกใช้ตัวสร้างการ์ดตัวเดิมได้
+     (ห้ามให้ข้างนอกสร้าง HTML การ์ดเอง ไม่งั้นมี 2 ที่ที่ต้องแก้ให้ตรงกันตลอดไป) */
+  window.__addLearnerCard = add;
   add();
 })();
 
@@ -1258,5 +1263,105 @@ function handoffToSearch(){
 </script>
 <script src="../shared/google-signup.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     🔴 2026-09-10 (Owner ทัก) — "โหมดแก้โปรไฟล์" ฝั่งผู้ปกครอง
+     ท่าเดียวกับ signup-student.html เป๊ะ — แก้ที่ไหนต้องแก้ให้ตรงกันทั้ง 2 หน้า
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+function bgtFillParentProfile() {
+  var L = window.BGT_LEARNER;
+  if (!L || window.__bgtFilled) return;
+  var d = L.read();
+  var kids = (d.learners || []).filter(function (x) { return x.id !== 'me'; });
+  if (!kids.length) return;                 /* ยังไม่เคยกรอก = โหมดสมัครตามปกติ */
+  window.__bgtFilled = true;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function setVal(id, v) {
+    var e = $(id);
+    if (!e || v == null || v === '') return;
+    e.value = v;
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function setIn(card, name, v) {
+    if (v == null || v === '') return;
+    var e = card.querySelector('[name="' + name + '"]');
+    if (!e) return;
+    e.value = v;
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function tickIn(card, prefix, values) {
+    (values || []).forEach(function (v) {
+      var e = card.querySelector('input[name^="' + prefix + '"][value="' + v + '"]');
+      if (e && !e.checked) { e.checked = true; e.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
+  }
+
+  /* ── คำพูดของหน้า: สมัคร -> แก้ไข ── */
+  var eyebrow = document.querySelector('.page-head .eyebrow');
+  var h1 = document.querySelector('.page-head h1');
+  var lede = document.querySelector('.page-head p');
+  if (eyebrow) eyebrow.textContent = 'โปรไฟล์ผู้เรียน · แก้ได้ทุกอย่าง แล้วกดบันทึก';
+  if (h1) h1.textContent = 'โปรไฟล์ผู้เรียนของคุณ';
+  if (lede) lede.textContent = 'ข้อมูลที่เคยกรอกไว้ถูกเติมกลับให้แล้ว — แก้เฉพาะส่วนที่อยากเปลี่ยน เพิ่มลูกได้ แล้วกดบันทึกด้านล่าง';
+  var submit = document.querySelector('form button[type=submit]');
+  if (submit) submit.textContent = 'บันทึกการแก้ไข';
+  document.title = 'โปรไฟล์ผู้เรียน — BGT Tutor';
+
+  /* ของสำหรับ "คนสมัครใหม่" ไม่ควรโผล่ในโหมดแก้โปรไฟล์ — ซ่อน ไม่ลบ (กด Back กลับมายังต้องใช้ได้) */
+  ['.who', '.social-signup'].forEach(function (sel) {
+    var box = document.querySelector(sel);
+    if (box) box.hidden = true;
+  });
+
+  setVal('zone', d.prov);
+  setVal('p-email', d.email);
+
+  /* ── การ์ดผู้เรียน: ใบแรกใช้ที่หน้าสร้างไว้ให้แล้ว ที่เหลือกดเพิ่มด้วยตัวเดิมของหน้า ── */
+  var cards = document.querySelectorAll('#learners .learner');
+  kids.forEach(function (kid, i) {
+    var card = cards[i];
+    if (!card && window.__addLearnerCard) card = window.__addLearnerCard();
+    if (!card) return;
+    setIn(card, 'learner_id', kid.id);
+    setIn(card, 'learner_nick', kid.nick);
+    setIn(card, 'learner_age', kid.age);
+    setIn(card, 'learner_grade', kid.grade);
+    setIn(card, 'learner_curriculum', kid.curriculum);
+    setIn(card, 'learner_budget', kid.budget);
+    setIn(card, 'learner_session_len', kid.sesLen);
+    tickIn(card, 'goal_l', kid.goal ? [kid.goal] : []);
+    tickIn(card, 'place_l', kid.mode);
+    if (card.__addSubject) (kid.subj || []).forEach(function (x) { card.__addSubject(x); });
+  });
+
+  /* 🔴 เบราว์เซอร์คืนค่าฟอร์มที่จำไว้ทับหลัง load — ยืนยันซ้ำสั้น ๆ
+     (พิสูจน์แล้วที่ signup-student.html 2026-09-10: <select> จังหวัดโดนล้างหลังเติม)
+     หยุดทันทีถ้าผู้ใช้แตะช่องเอง */
+  var reassert = [['zone', d.prov], ['p-email', d.email]];
+  var touched = false;
+  reassert.forEach(function (p) { var e = $(p[0]); if (e) e.addEventListener('input', function () { touched = true; }); });
+  [120, 350, 800].forEach(function (ms) {
+    setTimeout(function () {
+      if (touched) return;
+      reassert.forEach(function (p) {
+        var e = $(p[0]);
+        if (e && p[1] && e.value !== p[1]) { e.value = p[1]; e.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
+      document.querySelectorAll('#learners .learner').forEach(function (card, i) {
+        var kid = kids[i];
+        if (!kid) return;
+        [['learner_grade', kid.grade], ['learner_curriculum', kid.curriculum]].forEach(function (p) {
+          var e = card.querySelector('[name="' + p[0] + '"]');
+          if (e && p[1] && e.value !== p[1]) { e.value = p[1]; e.dispatchEvent(new Event('change', { bubbles: true })); }
+        });
+      });
+    }, ms);
+  });
+}
+if (document.readyState === "complete") setTimeout(bgtFillParentProfile, 0);
+else window.addEventListener("load", function () { setTimeout(bgtFillParentProfile, 0); });
+</script>
 </body>
 </html>

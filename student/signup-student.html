@@ -756,6 +756,9 @@ fill('s-grade', GRADES); fill('s-cur', CURRICULA); fill('zone', ZONES);
     }
   });
   window.__pickedSubjects = picked;
+  /* 🔴 2026-09-10 — เปิดทางให้ "โหมดแก้โปรไฟล์" เติมวิชาเดิมกลับเข้ามาได้
+     ต้องใช้ทางเดียวกับตอนคนกดเลือกเอง ไม่ใช่ยัด array ตรง ๆ ไม่งั้นแท็กไม่ขึ้นและช่องซ่อนไม่ถูกอัปเดต */
+  window.__addSubject = addSubject;
 })();
 
 /* OTP ทางอีเมล (จำลอง) — ของตัวเอง + ของผู้ปกครอง (เฉพาะอายุ 16-19)
@@ -965,5 +968,124 @@ function handoffToSearch(){
 </script>
 <script src="../shared/google-signup.js"></script>
 <script src="../shared/v4-stepflow.js"></script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     🔴 2026-09-10 (Owner ทัก) — "โหมดแก้โปรไฟล์"
+
+     ปัญหาเดิม: เมนู "โปรไฟล์ของฉัน" พามาที่หน้านี้ แต่หน้ายังพูดเหมือนสมัครใหม่
+     ("5 ขั้นตอน ราว 4 นาที" · ปุ่ม "ส่งใบสมัคร") และ **ไม่เติมข้อมูลเดิมกลับเลย**
+     -> คนที่สมัครไปแล้วต้องกรอกใหม่ทั้งใบ
+
+     ก้อนนี้ทำ 2 อย่าง: เปลี่ยนคำพูดของหน้า + เติมค่าที่เก็บไว้กลับเข้าช่อง
+     🔴 ไม่แตะ logic ตรวจฟอร์ม/ส่งฟอร์มเดิมสักบรรทัด
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+/* 🔴 ต้องรอให้สคริปต์ของหน้าเดิมตั้งค่าเสร็จก่อน แล้วค่อยเติมทับ
+   (เจอจริงตอนทดสอบ: เติมทันทีตอนแปลงหน้า -> ช่องจังหวัดถูกของหน้าเดิมเคลียร์ทีหลัง) */
+function bgtFillProfile() {
+  var L = window.BGT_LEARNER;
+  if (!L || window.__bgtFilled) return;
+  window.__bgtFilled = true;
+  var d = L.read();
+  var me = (d.learners || []).filter(function (x) { return x.id === 'me'; })[0];
+  if (!me) return;                       /* ยังไม่เคยกรอก = โหมดสมัครตามปกติ */
+
+  var $ = function (id) { return document.getElementById(id); };
+  /* 🔴 ตั้งค่าแล้วต้องยืนยันว่า "ติดจริง" — บาง <select> ถูกของอื่นในหน้าเคลียร์ทีหลัง
+     (เจอจริง 2026-09-10: ช่องจังหวัดโดนล้างหลังเราเติม ทุกช่องอื่นติดหมด)
+     ลองซ้ำสั้น ๆ ไม่เกิน 10 ครั้ง แล้วเลิก ไม่วนไม่รู้จบ */
+  function setVal(id, v, tries) {
+    var e = $(id);
+    if (!e || v == null || v === '') return;
+    e.value = v;
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    if (String(e.value) !== String(v) && (tries || 0) < 10) {
+      setTimeout(function () { setVal(id, v, (tries || 0) + 1); }, 60);
+    }
+  }
+  function tick(name, values) {
+    (values || []).forEach(function (v) {
+      var e = document.querySelector('input[name="' + name + '"][value="' + v + '"]');
+      if (e && !e.checked) { e.checked = true; e.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
+  }
+
+  /* ── คำพูดของหน้า: สมัคร -> แก้ไข ── */
+  var eyebrow = document.querySelector('.page-head .eyebrow');
+  var h1 = document.querySelector('.page-head h1');
+  var lede = document.querySelector('.page-head p');
+  if (eyebrow) eyebrow.textContent = 'โปรไฟล์ของฉัน · แก้ได้ทุกอย่าง แล้วกดบันทึก';
+  if (h1) h1.textContent = 'โปรไฟล์ของ' + (me.nick || 'คุณ');
+  if (lede) lede.textContent = 'ข้อมูลที่เคยกรอกไว้ถูกเติมกลับให้แล้ว — แก้เฉพาะส่วนที่อยากเปลี่ยน แล้วกดบันทึกด้านล่าง';
+  var submit = document.querySelector('form button[type=submit]');
+  if (submit) submit.textContent = 'บันทึกการแก้ไข';
+  document.title = 'โปรไฟล์ของฉัน — BGT Tutor';
+
+  /* ของสำหรับ "คนสมัครใหม่" ไม่ควรโผล่ในโหมดแก้โปรไฟล์ — ซ่อน ไม่ลบ (กด Back กลับมายังต้องใช้ได้) */
+  ['.who', '.social-signup'].forEach(function (sel) {
+    var box = document.querySelector(sel);
+    if (box) box.hidden = true;
+  });
+
+  /* ── เติมค่าเดิมกลับ ── */
+  setVal('s-nick', me.nick);
+  setVal('s-age', me.age);
+  setVal('s-grade', me.grade);
+  setVal('s-cur', me.curriculum);
+  setVal('budget', me.budget);
+  setVal('seslen', me.sesLen);
+  setVal('zone', d.prov);
+  setVal('s-email', d.email);
+  tick('goal', me.goal ? [me.goal] : []);
+  tick('place', me.mode);
+  if (window.__addSubject) (me.subj || []).forEach(function (x) { window.__addSubject(x); });
+
+  /* 🔴 เบราว์เซอร์ "คืนค่าฟอร์มที่จำไว้" หลัง load เสร็จ แล้วทับค่าที่เราเพิ่งเติม
+     พิสูจน์แล้ว 2026-09-10: ตอนเติมค่าติดจริง (วัดทันทีได้ "เชียงใหม่") แต่อีกครู่กลายเป็นว่าง
+     -> ยืนยันซ้ำอีก 3 จังหวะสั้น ๆ และ **หยุดทันทีถ้าผู้ใช้แตะช่องนั้นเอง** (ห้ามแย่งมือผู้ใช้) */
+  var reassert = [['zone', d.prov], ['s-grade', me.grade], ['s-cur', me.curriculum]];
+  var userTouched = false;
+  reassert.forEach(function (p) {
+    var e = $(p[0]);
+    if (e) e.addEventListener('input', function () { userTouched = true; });
+  });
+  [120, 350, 800].forEach(function (ms) {
+    setTimeout(function () {
+      if (userTouched) return;
+      reassert.forEach(function (p) {
+        var e = $(p[0]);
+        if (e && p[1] && e.value !== p[1]) { e.value = p[1]; e.dispatchEvent(new Event('change', { bubbles: true })); }
+      });
+    }, ms);
+  });
+
+  /* 🔴 ตารางเวลาเติมกลับไม่ได้ — ของกลางเก็บไว้เป็น "ช่วงกว้าง" (เย็น/ค่ำ) ไม่ได้เก็บรายวัน
+     ถ้าเดาเป็นรายวันให้ = แต่งข้อมูลที่ผู้ใช้ไม่ได้เลือก -> บอกตรง ๆ ดีกว่า
+     (จดไว้ในเซฟเกมแล้วว่าเป็นข้อจำกัดของโครงข้อมูล ต้องแก้ตอนทำก้อน H) */
+  if ((me.time || []).length) {
+    var grid = document.querySelector('.timegrid');
+    if (grid && !document.getElementById('time-note')) {
+      var LABEL = { morning: 'เช้า', afternoon: 'บ่าย', evening: 'เย็น', night: 'ค่ำ' };
+      var note = document.createElement('p');
+      note.id = 'time-note';
+      note.className = 'helper';
+      note.style.marginBottom = 'var(--space-3)';
+      note.textContent = 'เดิมคุณเลือกไว้ช่วง ' +
+        (me.time || []).map(function (t) { return LABEL[t] || t; }).join(' / ') +
+        ' — ตารางนี้เก็บเป็นรายวัน จึงต้องติ๊กวันที่สะดวกอีกครั้ง';
+      grid.parentNode.insertBefore(note, grid);
+    }
+  }
+}
+/* 🔴 ต้องรอ window load ไม่ใช่แค่ DOMContentLoaded
+   ช่อง "จังหวัด" ของหน้านี้สร้างตัวเลือกด้วย JS (ค้น function fill) ถ้าเติมเร็วไปค่าจะหลุด
+   (เจอจริงตอนทดสอบ 2026-09-10: ทุกช่องเติมติด ยกเว้นจังหวัด) */
+/* 🔴 ต้องรอ "หลัง" window load อีกจังหวะหนึ่ง
+   เบราว์เซอร์คืนค่าฟอร์มที่จำไว้ (form restoration) หลัง load เสร็จ ถ้าเติมก่อนหน้านั้นจะถูกทับ
+   เจอจริง 2026-09-10: ทุกช่องเติมติด ยกเว้น <select> จังหวัดที่เคยถูกจำว่าว่าง */
+function bgtFillLater(){ setTimeout(bgtFillProfile, 0); }
+if (document.readyState === "complete") bgtFillLater();
+else window.addEventListener("load", bgtFillLater);
+</script>
 </body>
 </html>
