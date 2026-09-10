@@ -184,7 +184,10 @@ img{max-width:100%;display:block}
    (Owner ทัก 2026-08-14 รอบ 3 · เช็คลิสต์ข้อ 8ค) */
 .jobs-list{display:grid;gap:var(--space-5);grid-template-columns:minmax(0,1fr);align-items:start}
 /* การ์ดของหน้านี้กางแผงข้อเสนอออกมาในตัว = สูงมาก -> 1 คอลัมน์จนกว่าจะกว้างจริง */
-@container (min-width:1000px){.jobs-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 🔴 2026-09-10 — เดิมตั้งไว้ 1000px ตอนที่ยังมีแถบเมนูข้างกินที่ 264px
+   พอถอดแถบข้างออก คอลัมน์เนื้อหากว้างขึ้น -> แบ่ง 2 คอลัมน์เร็วเกินไป การ์ดเหลือใบละ ~490px
+   ซึ่งแคบเกินสำหรับโครงการ์ด (ซ้าย=เนื้อหา ขวา=ราคา+ปุ่ม) -> ขยับเกณฑ์ให้การ์ดได้ใบละ ~570px ขึ้นไป */
+@container (min-width:1180px){.jobs-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .empty-state{
   border:1px dashed var(--color-rule-2);border-radius:var(--radius-lg);background:var(--color-paper-2);
   padding:var(--space-10) var(--space-6);text-align:center;color:var(--color-ink-2);

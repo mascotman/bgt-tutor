@@ -27,7 +27,11 @@
   padding: var(--space-5) 2px;
   /* ซ้าย = เนื้อหา · ขวา = ราคา + ปุ่ม (ตำแหน่งเดียวกันทุกแถว) */
   display: grid;
-  grid-template-columns: minmax(0,1fr) minmax(170px, auto);
+  /* 🔴 2026-09-10 — เดิมซ้ายเป็น minmax(0,1fr) = "หดได้ถึง 0"
+     พอการ์ดแคบลง (เช่นรายการแบ่ง 2 คอลัมน์) ช่องขวาที่เป็น auto จะโตตามเนื้อหาจนกินหมด
+     -> ช่องซ้ายเหลือ 0 ชื่องานเลยขึ้นบรรทัดละตัวอักษร (Owner เจอจริงที่หน้า my-jobs)
+     ใส่พื้นขั้นต่ำ 220px ให้ซ้าย = ขวาต้องยอมหดก่อน */
+  grid-template-columns: minmax(220px,1fr) minmax(170px, auto);
   column-gap: var(--space-6);
   align-items: start;
 }
