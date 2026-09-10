@@ -188,7 +188,10 @@
 
 @media (max-width: 900px){
   .v4 .v4-card{ padding:18px; border-radius:var(--radius-lg) }
-  .v4-steps{ flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:4px }
+  /* 🔴 2026-09-10 — ต้องมี max-width:100% + min-width:0 ไม่งั้นกล่องแถบแท็บเองกว้างเกินพ่อ
+     แล้วยื่นตกขอบจอ (เจอจริงตอนเพิ่มแท็บที่ 4 ในหน้า my-jobs: จอ 375 แต่กล่องกว้าง 395)
+     ข้างในยังเลื่อนแนวนอนได้เหมือนเดิม — ที่แก้คือ "ตัวกล่อง" ไม่ใช่ "เนื้อใน" */
+  .v4-steps{ flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:4px; max-width:100%; min-width:0 }
   .v4-step{ flex:none }
 }
 
