@@ -182,12 +182,16 @@ img{max-width:100%;display:block}
 .jobs .wrap{container-type:inline-size}
 /* 🔴 align-items:start — ค่าเริ่มต้น stretch ทำให้การ์ดที่เนื้อหาสั้นถูกยืดจนมีช่องว่างค้าง
    (Owner ทัก 2026-08-14 รอบ 3 · เช็คลิสต์ข้อ 8ค) */
-.jobs-list{display:grid;gap:var(--space-5);grid-template-columns:minmax(0,1fr);align-items:start}
-/* การ์ดของหน้านี้กางแผงข้อเสนอออกมาในตัว = สูงมาก -> 1 คอลัมน์จนกว่าจะกว้างจริง */
-/* 🔴 2026-09-10 — เดิมตั้งไว้ 1000px ตอนที่ยังมีแถบเมนูข้างกินที่ 264px
-   พอถอดแถบข้างออก คอลัมน์เนื้อหากว้างขึ้น -> แบ่ง 2 คอลัมน์เร็วเกินไป การ์ดเหลือใบละ ~490px
-   ซึ่งแคบเกินสำหรับโครงการ์ด (ซ้าย=เนื้อหา ขวา=ราคา+ปุ่ม) -> ขยับเกณฑ์ให้การ์ดได้ใบละ ~570px ขึ้นไป */
-@container (min-width:1180px){.jobs-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 🔴 2026-09-10 (จอ ⑦) — เดิมเป็นกริดการ์ดใหญ่ 1-2 คอลัมน์
+   จอ ⑦ ในหน้า landing สั่งว่า "1 เรื่อง = 1 แถว" เหมือนฝั่งครู -> ใช้ชุดแถวกลาง .jrow
+   ไม่ต้องมี container query อีกแล้ว เพราะแถวเต็มความกว้างเสมอ (และนั่นคือต้นเหตุที่การ์ดเคยถูกบีบ) */
+.jobs-list{display:block}
+.jobs-list > .jrow:first-child{border-top:0}
+/* จอ ⑧ — แถบ "ค่าเรียนพักไว้กับคนกลาง" (จอจำลองใช้ .mbar) */
+.hold-bar{display:block;flex:1 1 120px;max-width:220px;height:8px;border-radius:999px;background:var(--color-paper-2);overflow:hidden}
+.hold-bar > i{display:block;height:100%;background:var(--color-amber)}
+.lesson-h{font-family:var(--font-display);font-weight:700;font-size:var(--text-base);margin:var(--space-6) 0 0}
+.lesson-h:first-child{margin-top:0}
 .empty-state{
   border:1px dashed var(--color-rule-2);border-radius:var(--radius-lg);background:var(--color-paper-2);
   padding:var(--space-10) var(--space-6);text-align:center;color:var(--color-ink-2);
@@ -430,6 +434,9 @@ img{max-width:100%;display:block}
       <a href="#need-you"><span class="sidenav-num" id="nav-n-need">0</span>รอคุณตัดสินใจ</a>
       <a href="#running"><span class="sidenav-num" id="nav-n-run">0</span>กำลังดำเนินอยู่</a>
       <a href="#closed"><span class="sidenav-num" id="nav-n-closed">0</span>ปิดแล้ว</a>
+      <!-- 🔴 จอ ⑧ (2026-09-10) — "หลังเรียน · ยืนยันว่าเรียนจริง แล้วเงินถึงครู"
+           แยกเป็นแท็บของตัวเองตามจอในหน้า landing ไม่ใช่แถบเตือนลอย ๆ เหมือนเดิม -->
+      <a href="#lessons"><span class="sidenav-num" id="nav-n-lesson">0</span>คาบเรียน</a>
     </nav>
     <div class="side-cta">
       <span class="quota" id="quota-side">รอคุณตัดสินใจ <span class="q-num">0</span></span>
@@ -497,6 +504,24 @@ img{max-width:100%;display:block}
         </div>
         <p class="jobs-why">เรียนจบแล้ว ถอนเอง หรือหมดเวลาไปแล้ว — เก็บไว้ให้ย้อนดูได้</p>
         <div class="jobs-list" id="list-closed"></div>
+      </div>
+    </section>
+
+    <!-- ═══ จอ ⑧ · คาบเรียน — อ่านจาก #s4 ในหน้า landing ตรง ๆ ═══
+         แท็บ 2 อัน: รอยืนยัน · เรียนจบแล้ว
+         รอยืนยัน = คาบล่าสุด + เหลือเวลายืนยัน + ค่าเรียนที่พักไว้กับคนกลาง -->
+    <section class="jobs" id="lessons" aria-labelledby="h-lesson">
+      <div class="wrap">
+        <div class="jobs-head">
+          <h2 id="h-lesson">คาบเรียน</h2>
+          <span class="jobs-count" id="count-lesson">— คาบ</span>
+        </div>
+        <p class="jobs-why">หลังเรียนจบ ครูจะกด "จบคาบ" แล้วคุณกดยืนยันว่าเรียนจริง ค่าเรียนถึงจะถึงมือครู · ถ้าคาบมีปัญหา แจ้งได้ที่นี่ ยอดจะพักไว้ก่อน</p>
+        <div class="jb-tabs" role="tablist" aria-label="สถานะคาบเรียน">
+          <button class="jb-tab is-on" type="button" data-ltab="wait" role="tab" aria-selected="true">รอยืนยัน <span class="jb-n" id="ln-wait">0</span></button>
+          <button class="jb-tab" type="button" data-ltab="done" role="tab" aria-selected="false">เรียนจบแล้ว <span class="jb-n" id="ln-done">0</span></button>
+        </div>
+        <div class="jobs-list" id="list-lesson"></div>
       </div>
     </section>
 
@@ -1034,13 +1059,96 @@ img{max-width:100%;display:block}
     return (list || []).map(function (c) { return SLOT_LABEL[c] || c; }).join(' / ');
   }
 
-  function buildCard(j) {
+  /* ── ⑦ หน้าตาแถว: ครูคนไหน · เรื่องอะไร · ต้องทำอะไร ──
+     อ่านจากจอ ⑦ ในหน้า landing ตรง ๆ (ข้อตกลงที่ล็อกไว้ข้อ 1: จอจำลอง = สเปกของหน้าจริง)
+       พ | ครูพลอย ยื่นข้อเสนอ / คณิต ม.3 · เสาร์ 10:00 · ฿380/ชม. | [รับข้อเสนอ]
+       อ | ครูอ้อม เสนอเวลาอื่น / ขอเลื่อนเป็น อาทิตย์ 13:00      | [ตอบกลับ]
+       ม | ครูมิ้นท์ / ส่งคำขอไปแล้ว · รอครูตอบ                    | [รอครู]
+     🔴 1 แถว = 1 ใบงาน (ไม่ใช่ 1 ข้อเสนอ) เพราะโพสต์ใบเดียวมีครูยื่นได้หลายคน
+        และหน้านี้สัญญาไว้เองว่า "เทียบข้อเสนอได้ในที่เดียว" -> ข้อเสนอทุกใบอยู่ในแผงที่กางออกมา */
+  function rowFace(j) {
+    var w = winnerOf(j);                       /* ครูที่ได้งานแล้ว (ถ้ามี) */
+    var live = liveOffers(j);
+    var pl = pendingLesson(j);
+    var who = w || (live.length === 1 ? live[0] : null);
+    var name = who ? who.name : null;
+    /* 🔴 จองตรงที่ยังรอครูตอบ ยังไม่มีผู้ชนะ -> ชื่อครูอยู่ในใบคำขอ
+       (จอ ⑦ แถวที่ 3 ต้องขึ้นว่า "ครูมิ้นท์" ไม่ใช่ "ส่งคำขอถึงครูแล้ว") */
+    if (!name && j.kind === 'direct') {
+      var ts = (j.tickets || []).filter(function (t) { return t.status === 'pending'; });
+      if (!ts.length) ts = j.tickets || [];
+      var names = ts.map(function (t) { return (TEACHERS[t.tid] || {}).name; }).filter(Boolean);
+      if (names.length === 1) name = names[0];
+      else if (names.length > 1) name = names[0] + ' และอีก ' + (names.length - 1) + ' คน';
+    }
+    var title, sub, act;
+
+    if (pl) {                                   /* ⑧ ก็โผล่ที่นี่ได้ ถ้าคาบรอยืนยัน */
+      title = (name || 'ครู') + ' แจ้งว่าสอนจบคาบแล้ว';
+      sub = [j.subjects.join(' + '), kidGrade(j.kidId), pl.when || ''].filter(Boolean).join(' · ');
+      act = { text: 'ยืนยันว่าเรียนแล้ว', tone: 'go' };
+    } else if (j.status === 'counter_offered') {
+      title = (name || 'ครู') + ' เสนอเวลาอื่น';
+      sub = counterWhenText(j) || 'ขอเลื่อนเวลา';
+      act = { text: 'ตอบกลับ', tone: 'go' };
+    } else if (j.kind === 'post' && live.length) {
+      title = live.length === 1
+        ? name + ' ยื่นข้อเสนอ'
+        : 'มีข้อเสนอ ' + live.length + ' ใบ — รอคุณเลือก';
+      sub = [j.subjects.join(' + '), kidGrade(j.kidId), j.when, (priceOf(j) !== null ? baht(priceOf(j)) : baht(j.budget)) + '/ชม.'].filter(Boolean).join(' · ');
+      act = { text: 'รับข้อเสนอ', tone: 'go' };
+    } else if (j.kind === 'direct' && j.status === 'pending') {
+      title = name || 'ส่งคำขอถึงครูแล้ว';
+      sub = [j.subjects.join(' + '), kidGrade(j.kidId), j.when, 'ส่งคำขอไปแล้ว · รอครูตอบ'].filter(Boolean).join(' · ');
+      act = { text: 'รอครู', tone: 'wait' };
+    } else {
+      title = (j.kind === 'direct' ? 'ขอจอง' : 'หาครู') + j.subjects.join(' + ') + 'ให้' + kidNick(j.kidId);
+      sub = [kidGrade(j.kidId), placeText(j), j.when || slotsText(j.slots)].filter(Boolean).join(' · ');
+      act = { text: statusText(j), tone: statusTone(j) === 'ok' ? 'off' : (statusTone(j) === 'act' ? 'go' : 'wait') };
+    }
+    return { name: name, title: title, sub: sub, act: act };
+  }
+
+  /* แถว 1 บรรทัด — กดแล้วกางรายละเอียดของเดิมทั้งหมดออกมา (ท่าเดียวกับฝั่งครู .jrow/.jdet) */
+  function buildRow(j) {
+    var closed = !needsYou(j) && (isClosed(j) || j.status === 'expired' || j.status === 'payment_timeout');
+    var face = rowFace(j);
+    var row = el('article', 'jrow' + (closed ? ' is-closed' : ''));
+    row.id = 'card-' + j.id;                   /* 🔴 id เดิม — มีที่อื่นเลื่อนมาหาแถวนี้ ห้ามเปลี่ยน */
+
+    var main = el('button', 'jrow-main');
+    main.type = 'button';
+    main.setAttribute('aria-expanded', 'false');
+    main.setAttribute('aria-controls', 'det-' + j.id);
+    var av = el('span', 'jav', (face.name || kidNick(j.kidId) || '?').trim().slice(0, 1));
+    av.setAttribute('aria-hidden', 'true');
+    main.appendChild(av);
+    var txt = el('span', 'jtxt');
+    txt.appendChild(el('b', null, face.title));
+    txt.appendChild(el('small', null, face.sub));
+    main.appendChild(txt);
+    row.appendChild(main);
+
+    var actBox = el('span', 'jact');
+    var badge = el('button', 'jbadge is-' + face.act.tone, face.act.text);
+    badge.type = 'button';
+    badge.setAttribute('data-open-row', j.id);
+    badge.setAttribute('aria-label', face.act.text + ' — งาน ' + j.id);
+    actBox.appendChild(badge);
+    row.appendChild(actBox);
+
+    var det = el('div', 'jdet');
+    det.id = 'det-' + j.id;
+    det.hidden = true;
+    buildDetail(j, det);
+    row.appendChild(det);
+    return row;
+  }
+
+  /* เนื้อในเดิมของการ์ด — ยกมาทั้งดุ้น ไม่ตัดอะไรทิ้งสักบรรทัด */
+  function buildDetail(j, card) {
     /* 🔴 'จาง' = จบแล้วไม่ต้องทำอะไรต่อ · ถ้ายังมีสิ่งที่ผู้เรียนต้องตัดสินใจ ห้ามทำให้จาง
        (ผลตรวจ logic 2026-08-23: การ์ดที่มีปุ่มให้กด 2 ปุ่ม กลับถูกวาดจางเหมือนงานที่ปิดแล้ว) */
-    var closed = !needsYou(j) && (isClosed(j) || j.status === 'expired' || j.status === 'payment_timeout');
-    var card = el('article', 'j-card' + (closed ? ' is-closed' : ''));
-    card.id = 'card-' + j.id;
-
     var top = el('div', 'j-top');
     top.appendChild(el('h3', 'j-title',
       (j.kind === 'direct' ? 'ขอจอง' : 'หาครู') + j.subjects.join(' + ') + 'ให้' + kidNick(j.kidId)));
@@ -1087,7 +1195,6 @@ img{max-width:100%;display:block}
     if (j.kind === 'post' && (j.offers || []).length) card.appendChild(buildOffersPanel(j));
     if (j.status === 'counter_offered') card.appendChild(buildCounterPanel(j));
     card.appendChild(buildActions(j));
-    return card;
   }
 
   /* ── แถบท้ายการ์ด: ซ้าย = สถานะ 1 ป้าย · ขวา = ปุ่มหลัก 1 ปุ่ม ── */
@@ -1667,6 +1774,142 @@ img{max-width:100%;display:block}
       empty: { head: 'ยังไม่มีงานที่ปิดไปแล้ว', body: 'งานที่เรียนจบ ถอนเอง หรือหมดเวลา จะถูกเก็บไว้ตรงนี้ให้ย้อนดู', href: '', cta: '' } }
   ];
 
+  /* ══════════════════════════════════════════════════════════════════
+     จอ ⑧ · คาบเรียน — "หลังเรียน ยืนยันว่าเรียนจริง แล้วเงินถึงครู"
+     🔴 ไม่ได้เขียน logic ใหม่สักบรรทัด — ใช้ตัวเดิมทั้งหมด
+        (lessonsOf · pendingLesson · lessonLeftText · claimLesson · openIssue)
+        ก้อนนี้ทำหน้าที่ "จัดหน้าจอ" ให้ตรงจอ ⑧ เท่านั้น
+     ══════════════════════════════════════════════════════════════════ */
+  var lessonTab = 'wait';
+  function clockText(ts) {
+    var d = new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  /* แถวอ่านอย่างเดียว (ไม่มีอะไรให้กด) — จอ ⑧ มีแบบนี้ 2 แถว */
+  function staticRow(title, sub, badgeText, tone, extra) {
+    var row = el('article', 'jrow jrow-static');
+    var main = el('span', 'jrow-main');
+    var txt = el('span', 'jtxt');
+    txt.appendChild(el('b', null, title));
+    if (sub) txt.appendChild(el('small', null, sub));
+    main.appendChild(txt);
+    row.appendChild(main);
+    var act = el('span', 'jact');
+    if (extra) act.appendChild(extra);
+    if (badgeText) act.appendChild(el('span', 'jbadge is-' + tone, badgeText));
+    row.appendChild(act);
+    return row;
+  }
+
+  function paintLessons(rows) {
+    var box = $('list-lesson');
+    if (!box) return;
+    box.innerHTML = '';
+
+    var waiting = [], done = [];
+    rows.forEach(function (j) {
+      var w = winnerOf(j);
+      var pl = pendingLesson(j);
+      if (pl) waiting.push({ j: j, L: pl, who: w });
+      lessonsOf(j).forEach(function (e) {
+        if (e.status === 'completed') done.push({ j: j, L: e, who: w });
+      });
+    });
+    waiting.sort(function (a, b) { return a.L.taughtAt - b.L.taughtAt; });
+    done.sort(function (a, b) { return (b.L.taughtAt || 0) - (a.L.taughtAt || 0); });
+
+    $('ln-wait').textContent = String(waiting.length);
+    $('ln-done').textContent = String(done.length);
+    $('nav-n-lesson').textContent = String(waiting.length);
+    $('count-lesson').textContent = (lessonTab === 'wait' ? waiting.length : done.length) + ' คาบ';
+
+    var list = (lessonTab === 'wait') ? waiting : done;
+    if (!list.length) {
+      var e0 = el('div', 'empty-state');
+      e0.appendChild(el('strong', null, lessonTab === 'wait' ? 'ยังไม่มีคาบรอคุณยืนยัน' : 'ยังไม่มีคาบที่เรียนจบแล้ว'));
+      e0.appendChild(el('span', null, lessonTab === 'wait'
+        ? 'พอครูกด "จบคาบ" คาบนั้นจะมารออยู่ตรงนี้ ให้คุณกดยืนยันภายใน ' + CONFIRM_H + ' ชั่วโมง'
+        : 'คาบที่คุณยืนยันแล้ว (หรือระบบยืนยันให้เมื่อครบเวลา) จะถูกเก็บไว้ตรงนี้'));
+      box.appendChild(e0);
+      return;
+    }
+
+    if (lessonTab === 'wait') {
+      var top = list[0];
+      var name = top.who ? top.who.name : 'ครู';
+      var subject = [top.L.subject || top.j.subjects.join(' + '), kidGrade(top.j.kidId)].filter(Boolean).join(' ');
+
+      box.appendChild(el('h4', 'lesson-h', 'คาบล่าสุด'));
+
+      var r1 = el('article', 'jrow');
+      var m1 = el('span', 'jrow-main');
+      var av = el('span', 'jav', name.trim().slice(0, 1));
+      av.setAttribute('aria-hidden', 'true');
+      m1.appendChild(av);
+      var t1 = el('span', 'jtxt');
+      t1.appendChild(el('b', null, name + ' · ' + subject));
+      t1.appendChild(el('small', null, 'ครูกดจบคาบแล้ว เมื่อ ' + clockText(top.L.taughtAt)
+        + (top.L.when ? ' · ' + top.L.when : '')));
+      m1.appendChild(t1);
+      r1.appendChild(m1);
+      var a1 = el('span', 'jact');
+      var bad = el('button', 'jbadge is-off', 'ครูไม่มา / มีปัญหา');
+      bad.type = 'button';
+      bad.setAttribute('data-lesson-bad', top.L.id);
+      var ok = el('button', 'jbadge is-go', 'ยืนยันว่าเรียนแล้ว');
+      ok.type = 'button';
+      ok.setAttribute('data-lesson-ok', top.L.id);
+      a1.appendChild(bad); a1.appendChild(ok);
+      r1.appendChild(a1);
+      box.appendChild(r1);
+
+      var left = lessonLeftText(top.L.taughtAt).replace('เหลือ ', '');
+      box.appendChild(staticRow('เหลือเวลายืนยัน', 'ครบแล้วระบบยืนยันให้เอง', left, 'wait'));
+
+      box.appendChild(el('h4', 'lesson-h', 'ค่าเรียนคาบนี้'));
+      var bar = el('span', 'hold-bar');
+      bar.appendChild(el('i', null, ''));
+      bar.setAttribute('aria-hidden', 'true');
+      box.appendChild(staticRow('พักไว้กับคนกลาง',
+        'ยังไม่ถึงมือครู จนกว่าคุณจะยืนยัน หรือครบ ' + CONFIRM_H + ' ชั่วโมง', 'รอยืนยัน', 'wait', bar));
+
+      if (list.length > 1) {
+        box.appendChild(el('h4', 'lesson-h', 'คาบอื่นที่รอคุณยืนยัน (' + (list.length - 1) + ')'));
+        list.slice(1).forEach(function (it) {
+          var nm = it.who ? it.who.name : 'ครู';
+          var r = el('article', 'jrow');
+          var m = el('span', 'jrow-main');
+          var a2 = el('span', 'jav', nm.trim().slice(0, 1));
+          a2.setAttribute('aria-hidden', 'true');
+          m.appendChild(a2);
+          var t = el('span', 'jtxt');
+          t.appendChild(el('b', null, nm + ' · ' + (it.L.subject || it.j.subjects.join(' + '))));
+          t.appendChild(el('small', null, 'ครูกดจบคาบแล้ว เมื่อ ' + clockText(it.L.taughtAt)
+            + ' · ' + lessonLeftText(it.L.taughtAt)));
+          m.appendChild(t);
+          r.appendChild(m);
+          var ac = el('span', 'jact');
+          var ok2 = el('button', 'jbadge is-go', 'ยืนยันว่าเรียนแล้ว');
+          ok2.type = 'button';
+          ok2.setAttribute('data-lesson-ok', it.L.id);
+          ac.appendChild(ok2);
+          r.appendChild(ac);
+          box.appendChild(r);
+        });
+      }
+      return;
+    }
+
+    list.forEach(function (it) {
+      var nm = it.who ? it.who.name : 'ครู';
+      box.appendChild(staticRow(
+        nm + ' · ' + (it.L.subject || it.j.subjects.join(' + ')),
+        (it.L.closedBy === 'auto' ? 'ระบบยืนยันให้เองเมื่อครบเวลา' : 'คุณยืนยันแล้ว')
+          + (it.L.taughtAt ? ' · จบคาบ ' + clockText(it.L.taughtAt) : ''),
+        'เรียนแล้ว', 'off'));
+    });
+  }
+
   function paint() {
     lessonCache = undefined;   /* ⭐ ก้อน D — อ่านสถานะคาบใหม่ครั้งเดียวต่อรอบวาด แล้วให้ทุกจุดใช้ค่าเดียวกัน
                                   (ไม่งั้นแต่ละจุดอ่านเวลาคนละมิลลิวินาที → ตรงเส้น 48 ชม. การ์ดกับปุ่มไม่ตรงกัน) */
@@ -1690,7 +1933,7 @@ img{max-width:100%;display:block}
         box.appendChild(e);
         return;
       }
-      mine.forEach(function (j) { box.appendChild(buildCard(j)); });
+      mine.forEach(function (j) { box.appendChild(buildRow(j)); });
       applyClamp(box);   /* ต้องเรียกหลังการ์ดเข้า DOM แล้ว ไม่งั้นวัดความสูงไม่ได้ */
     });
 
@@ -1702,7 +1945,8 @@ img{max-width:100%;display:block}
       b.classList.toggle('is-hot', need > 0);
     });
     paintLearnerChips();
-    paintLessonAlert(rows);
+    paintLessons(rows);        /* จอ ⑧ */
+    paintLessonAlert(rows);    /* แถบเตือนหัวหน้า — เก็บไว้ เพราะคาบมีนาฬิกาเดิน ห้ามให้พลาด */
   }
 
   /* ⭐ แถบเตือน "มีคาบรอคุณยืนยัน" บนหัวหน้า (เพิ่ม 2026-08-25)
@@ -1800,9 +2044,60 @@ img{max-width:100%;display:block}
     return o ? { job: j, offer: o } : null;
   }
 
+  /* ── ⑦ กางแถว ── ท่าเดียวกับฝั่งครู: กดที่แถวหรือกดที่ป้ายขวาสุด = กางรายละเอียด
+     🔴 ป้ายขวาสุดไม่ได้ทำงานซ้ำกับปุ่มข้างใน — มันแค่พาไปที่ปุ่มจริง
+        (จะได้ไม่มี logic 2 ชุดที่ต้องคอยแก้ให้ตรงกัน) */
+  function toggleRow(row, open) {
+    var main = row.querySelector('.jrow-main');
+    var det = row.querySelector('.jdet');
+    if (!main || !det) return;
+    var willOpen = (open === undefined) ? det.hidden : open;
+    det.hidden = !willOpen;
+    main.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    row.classList.toggle('is-open', willOpen);
+    if (willOpen) reclamp();
+    return willOpen;
+  }
+
   document.addEventListener('click', function (e) {
     var t = e.target;
     if (!t || !t.getAttribute) return;
+
+    /* กดป้ายขวาสุดของแถว = กางแล้วพาไปที่ปุ่มจริงในแผง */
+    var openBtn = t.closest ? t.closest('[data-open-row]') : null;
+    if (openBtn) {
+      var row0 = openBtn.closest('.jrow');
+      if (row0) {
+        toggleRow(row0, true);
+        /* ต้องพาไปที่ปุ่มหลักก่อนเสมอ — querySelector ที่ใส่ 2 ตัวเลือกรวมกันจะได้ตัวที่มาก่อนในหน้า
+           ซึ่งอาจเป็นปุ่ม "ปฏิเสธ" (เจอจริงตอนทดสอบ 2026-09-10) */
+        var first = row0.querySelector('.jdet .btn-primary') || row0.querySelector('.jdet .btn');
+        if (first) first.focus();
+        else row0.scrollIntoView({ block: 'center' });
+      }
+      return;
+    }
+
+    /* กดตัวแถว = กาง/พับ */
+    var rowMain = t.closest ? t.closest('.jrow-main') : null;
+    if (rowMain) {
+      var row1 = rowMain.closest('.jrow');
+      if (row1) toggleRow(row1);
+      return;
+    }
+
+    /* จอ ⑧ — สลับแท็บคาบเรียน */
+    var ltab = t.closest ? t.closest('[data-ltab]') : null;
+    if (ltab) {
+      lessonTab = ltab.getAttribute('data-ltab');
+      [].forEach.call(document.querySelectorAll('[data-ltab]'), function (b) {
+        var on = b === ltab;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      paint();
+      return;
+    }
 
     /* สลับลูก */
     var kidBtn = t.closest ? t.closest('[data-kid]') : null;
