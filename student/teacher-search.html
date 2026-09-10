@@ -388,7 +388,14 @@ body.sheet-open{overflow:hidden}
 
   <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark" aria-hidden="true">B</span><span class="logo-text">BGT Tutor</span></a>
-    <a class="back-link" href="../index.html">← กลับหน้าแรก</a>
+    <!-- 🔴 เมนูบนฝั่งผู้เรียน — ต้องเหมือนกันทั้ง 5 หน้า (เทียบเท่า .topnav ของฝั่งครู)
+         เพิ่ม/ลบเมนู = แก้ให้ครบทุกหน้า · หน้าที่เปิดอยู่ต้องมี aria-current="page" -->
+    <nav class="topnav" aria-label="เมนูผู้เรียน">
+      <a href="teacher-search.html" aria-current="page" class="is-here">ค้นหาครู</a>
+      <a href="post-job.html">โพสต์หาครู</a>
+      <a href="my-jobs.html">การจองของฉัน</a>
+      <a href="signup-parent.html">โปรไฟล์ผู้เรียน</a>
+    </nav>
     <button class="btn btn-secondary filter-open sheet-only" type="button" id="sheetOpenTop" aria-expanded="false" aria-controls="filterPanel">
       ตัวกรอง <span class="fcount" id="fcountTop" hidden>0</span>
     </button>

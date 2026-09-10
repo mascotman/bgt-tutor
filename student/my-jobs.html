@@ -409,6 +409,14 @@ img{max-width:100%;display:block}
 
   <header class="topbar">
     <a class="logo" href="../index.html"><span class="logo-mark">B</span><span class="logo-text">BGT Tutor</span></a>
+    <!-- 🔴 เมนูบนฝั่งผู้เรียน — ต้องเหมือนกันทั้ง 5 หน้า (เทียบเท่า .topnav ของฝั่งครู)
+         เพิ่ม/ลบเมนู = แก้ให้ครบทุกหน้า · หน้าที่เปิดอยู่ต้องมี aria-current="page" -->
+    <nav class="topnav" aria-label="เมนูผู้เรียน">
+      <a href="teacher-search.html">ค้นหาครู</a>
+      <a href="post-job.html">โพสต์หาครู</a>
+      <a href="my-jobs.html" aria-current="page" class="is-here">การจองของฉัน</a>
+      <a href="signup-parent.html">โปรไฟล์ผู้เรียน</a>
+    </nav>
     <span class="quota" id="quota-mobile">รอคุณตัดสินใจ <span class="q-num">0</span></span>
   </header>
 

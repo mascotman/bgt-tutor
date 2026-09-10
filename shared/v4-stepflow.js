@@ -160,7 +160,17 @@
       }
     }
   }
-  if (header) awayLinks.forEach((a) => { a.classList.add('back-link'); header.appendChild(a); });
+  /* 🔴 2026-09-10 — ตั้งแต่ฝั่งผู้เรียนมีเมนูบนชุดเดียวกัน (.topnav) แล้ว
+     ลิงก์ในสารบัญที่ชี้ออกไปหน้าอื่นมักเป็นปลายทางเดียวกับเมนูบน -> ถ้าย้ายดื้อ ๆ จะได้ปุ่มซ้ำสองอัน
+     เทียบจาก href ไม่ใช่ข้อความ เพราะข้อความอาจเขียนต่างกัน ("ค้นหาครู" กับ "← กลับ") */
+  if (header) {
+    const inHeaderHref = new Set([...header.querySelectorAll('a')].map((a) => a.getAttribute('href')));
+    awayLinks.forEach((a) => {
+      if (inHeaderHref.has(a.getAttribute('href'))) { a.remove(); return; }
+      a.classList.add('back-link');
+      header.appendChild(a);
+    });
+  }
 
   /* ── โหมดฟอร์ม: "ก้อนนี้กรอกครบหรือยัง" ──
         อ่านจากช่องในก้อนนั้นตรง ๆ ไม่เรียกตัวตรวจของหน้าเดิม
