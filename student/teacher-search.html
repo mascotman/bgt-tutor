@@ -74,7 +74,7 @@ img{max-width:100%;display:block}
 .page-shell{display:flex;flex-direction:column;min-height:100vh}
 .content-col{flex:1;min-width:0;display:flex;flex-direction:column}
 /* 🔴 เลิกเรียงแนวนอน 2026-09-06: ไม่มีคอลัมน์ซ้ายแล้ว
-   ถ้าปล่อยไว้ แถบบน (.mobile-header) จะกลายเป็นคอลัมน์ซ้ายแทน — บั๊กเดียวกับที่แก้ไปรอบ 7 */
+   ถ้าปล่อยไว้ แถบบนจะกลายเป็นคอลัมน์ซ้ายแทน — บั๊กเดียวกับที่แก้ไปรอบ 7 */
 
 .back-link{
   min-height:44px;box-sizing:border-box;
@@ -84,15 +84,6 @@ img{max-width:100%;display:block}
 }
 .back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
 .back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
-
-.mobile-header{
-  position:sticky;top:0;z-index:var(--z-sticky);
-  background:var(--color-paper);
-  border-bottom:1px solid var(--color-rule);
-  padding:var(--space-3) var(--space-5);
-  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
-}
-.mobile-header .logo{height:40px}
 
 /* ---- sidebar = แผงตัวกรอง ----
    จอเล็ก: แผงเดียวกันนี้กลายเป็น "ชั้นเต็มจอ" (Baymard: ห้ามยัด sidebar ลงมือถือ)
@@ -1372,6 +1363,15 @@ body.sheet-open{overflow:hidden}
     render();
   });
   qInput.addEventListener('search', render);   /* กดกากบาทในช่อง search */
+  /* 🔴 2026-09-13 — กด Enter ในช่องค้นหา = เท่ากับกดปุ่ม "ค้นหา"
+     ปกติ HTML ส่งฟอร์มให้เองอยู่แล้ว (implicit submission) แต่ไม่ใช่ทุกที่:
+     วัดจริงแล้วมีสภาพแวดล้อมที่ Enter ไม่กลายเป็น submit เลย (ฟอร์มมาตรฐานเปล่า ๆ ก็ไม่ส่ง)
+     -> ดักเองตรงนี้ให้จบ ผู้ใช้กด Enter แล้วต้องเห็นผลกรองทุกที่ */
+  qInput.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    e.preventDefault();
+    render();
+  });
 
   [].forEach.call(document.querySelectorAll('[data-quick]'), function (btn) {
     btn.addEventListener('click', function () {

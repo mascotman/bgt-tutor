@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!--
   PROTOTYPE (ทาง A) — ยังไม่มี backend จริง ไม่มีการบันทึกข้อมูล ไม่มีการจ่ายเงิน
   ขั้น 6 · section 3 — "หน้าจอง" (ทาง 3: ปฏิทินจริงเป็นต้นทางเดียว · Owner เคาะ 2026-08-15)
@@ -60,7 +60,6 @@ img{max-width:100%;display:block}
 
 .page-shell{display:flex;flex-direction:column;min-height:100vh}
 .content-col{flex:1;min-width:0}
-@media (min-width:900px){.page-shell{flex-direction:row;align-items:flex-start}}
 
 .back-link{
   min-height:44px;box-sizing:border-box;font-size:var(--text-sm);font-weight:600;line-height:1;
@@ -70,21 +69,7 @@ img{max-width:100%;display:block}
 .back-link:hover{background:var(--color-paper-2);color:var(--color-ink)}
 .back-link:focus-visible,.logo:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:var(--radius-sm)}
 
-.mobile-header{
-  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
-  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
-  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
-}
 .stepindex{display:none}
-@media (min-width:900px){
-  .mobile-header{display:none}
-  .stepindex{
-    display:flex;flex-direction:column;width:264px;flex:0 0 264px;
-    position:sticky;inset:auto;top:0;height:100vh;overflow-y:auto;
-    padding:var(--space-8) var(--space-6);border-right:1px solid var(--color-rule);background:var(--color-paper);
-  }
-  .stepindex .logo{height:auto;margin-bottom:var(--space-2)}
-}
 .sidenav{display:flex;flex-direction:column;gap:1px;margin-top:var(--space-10)}
 .sidenav a{
   display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--radius-sm);

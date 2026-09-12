@@ -94,7 +94,7 @@
   }
 
   /* ── แถบบัญชี + ปุ่มออกจากระบบ (Owner สั่ง 2026-09-06) ──────────────
-     หน้าฝั่งครูกับฝั่งผู้เรียนโครงแถบบนคนละแบบ (topnav / sidebar / mobile-header)
+     หน้าฝั่งครูกับฝั่งผู้เรียนวางเมนูคนละที่ (topnav ในแถบบน / แถบบนเปล่า ๆ)
      -> ไม่ไล่แก้ทีละหน้า แต่ให้ไฟล์นี้เสียบเข้าไปเองในที่ที่มีอยู่แล้วของแต่ละหน้า
         (แก้ทีละหน้า = พลาดง่ายและ session หน้าตามไม่ทัน — บทเรียนแถบบน 4 หน้าคนละชุด 2026-09-01)
      หน้าไหนไม่อยากได้ ใส่ <body data-no-session-bar> */
@@ -105,9 +105,7 @@
           + '.bgt-acct .bgt-out{font:inherit;font-weight:600;color:var(--color-accent-deep);background:none;'
           + 'border:0;padding:6px 4px;min-height:32px;cursor:pointer;text-decoration:underline}'
           + '.bgt-acct .bgt-out:hover{color:var(--color-ink)}'
-          + '.bgt-acct a{color:var(--color-accent-deep);font-weight:600}'
-          + '.sidebar .bgt-acct{display:flex;flex-wrap:wrap;margin-top:var(--space-5);'
-          + 'padding-top:var(--space-4);border-top:1px solid var(--color-rule)}';
+          + '.bgt-acct a{color:var(--color-accent-deep);font-weight:600}';
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -155,8 +153,6 @@
     /* เสียบเข้าไปในของที่หน้านั้นมีอยู่แล้ว — ได้หลายจุดก็เสียบหลายจุด (จอเล็กกับจอใหญ่คนละที่) */
     var spots = [
       document.querySelector('nav.topnav'),                    /* ฝั่งครู 4 หน้า */
-      document.querySelector('aside.sidebar'),                 /* ฝั่งผู้เรียนที่มีเมนูข้าง */
-      document.querySelector('header.mobile-header'),          /* แถบบนตอนจอแคบ */
       document.querySelector('header.topbar')                  /* กันไว้เผื่อหน้าที่ไม่มี topnav */
     ].filter(Boolean);
 

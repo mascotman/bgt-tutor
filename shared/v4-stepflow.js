@@ -127,7 +127,7 @@
      กับ .topbar (แถบบนของกลาง) ตาม STANDARD -> ต้องรับทั้งชื่อเก่าและใหม่
      ไม่งั้นลิงก์ "กลับ…" กับของในแถบข้างจะหายไปพร้อมแถบ */
   const sidebar = document.querySelector('.sidebar, .stepindex');
-  const header = document.querySelector('.mobile-header, .topbar');
+  const header = document.querySelector('.topbar');
   if (sidebar) {
     /* ปุ่ม "กลับ…" ในแถบข้าง = ทางออกของหน้า ห้ามให้หายไปกับแถบ -> ย้ายขึ้นแถบบน
        ⚠️ หลายหน้ามีปุ่มนี้ "สองตัว" อยู่แล้ว (ตัวหนึ่งในแถบข้างสำหรับจอกว้าง

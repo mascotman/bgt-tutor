@@ -42,18 +42,13 @@ body{background:var(--color-paper);color:var(--color-ink);font-family:var(--font
 a{color:inherit}
 :focus-visible{outline:2px solid var(--color-focus);outline-offset:3px;border-radius:var(--radius-sm)}
 
-/* โครงหน้า — ชุดเดียวกับหน้าอื่น (v4 จะซ่อน .stepindex แล้วดัน .mobile-header ขึ้นมาแทน) */
+/* โครงหน้า — ชุดเดียวกับหน้าอื่น (.stepindex ถูกซ่อนโดยชุดกลาง แล้วใช้ .topbar เป็นแถบบนแทน) */
 /* 🔴 2026-09-01 — เดิมเป็น flex แนวนอนเพื่อวางแถบเมนูข้าง
    พอเอา sidebar ออกแล้วเอา .topbar มาไว้ข้างใน แถบบนเลยกลายเป็น "คอลัมน์ซ้าย" กินที่ 661px
    -> เนื้อหาเบี้ยวไปทางขวาทั้งหน้า (Owner เห็นจากภาพ 2026-09-01)
    แก้เป็น block ให้เหมือนหน้าครูอื่นที่ใช้ .topbar */
 .page-shell{display:block;min-height:100vh}
 .content-col{flex:1;min-width:0;display:flex;flex-direction:column}
-.mobile-header{
-  position:sticky;top:0;z-index:var(--z-sticky);background:var(--color-paper);
-  border-bottom:1px solid var(--color-rule);padding:var(--space-3) var(--space-5);
-  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
-}
 .stepindex{display:none}   /* 🔴 ถอดเมนูข้างแล้ว (Owner สั่ง) — ห้ามเอากลับมาโผล่ตอนจอกว้าง */
 .back-link{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-3);
   border-radius:var(--radius-sm);color:var(--color-ink-2);text-decoration:none;font-size:var(--text-sm)}
