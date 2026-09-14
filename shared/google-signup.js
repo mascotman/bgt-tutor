@@ -113,12 +113,16 @@
       mail.parentElement.appendChild(badge);
     }
 
-    /* เติมชื่อจากโปรไฟล์ Google ให้ ถ้าช่องยังว่าง (แก้ได้) */
+    /* เติม "ชื่อจริง" จากโปรไฟล์ Google ให้ ถ้าช่องยังว่าง (แก้ได้)
+       🔴 2026-09-14 ห้ามเติมช่อง "ชื่อเล่น" เด็ดขาด — ชื่อเล่นคือชื่อที่คนอื่นเห็น
+          (ผู้เรียน: ครูเห็นในใบคำขอ · ครู: โชว์บนหน้าค้นหาสาธารณะ)
+          เจอจริงบนเว็บจริง: Owner สมัครแล้ว display_name ในฐานข้อมูลเป็นชื่อ-นามสกุลจริงจาก Google
+          เพราะรอบก่อนเติมชื่อเต็มลงช่องชื่อเล่นให้ แล้วผู้ใช้กดส่งโดยไม่ได้แก้
+       ช่อง "ชื่อจริง" เป็นข้อมูลส่วนตัว (คนอื่นเห็นหลังจ่ายเงินเท่านั้น) → เติมได้ แต่ใช้แค่คำแรก ไม่ใส่นามสกุลลงช่องชื่อ */
     if (name) {
-      var nick = document.getElementById('nickname') || document.getElementById('s-nick');
-      if (nick && !nick.value) nick.value = name;
+      var firstWord = String(name).trim().split(/\s+/)[0] || '';
       var first = document.getElementById('firstname') || document.getElementById('s-first') || document.getElementById('p-first');
-      if (first && !first.value) first.value = name;
+      if (first && !first.value && firstWord) first.value = firstWord;
     }
   }
 
