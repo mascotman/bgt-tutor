@@ -833,7 +833,15 @@ document.getElementById('student-form').addEventListener('submit', e => {
   }
 
   if (problems.length) {
-    errBox.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด — เลื่อนไปดูช่องที่มีข้อความสีแดง';
+    /* 🔴 2026-09-14 Owner ทักบนเว็บจริง: "ทำไมบอกกรอกไม่ครบ ทั้ง ๆ ที่อีเมลขึ้นอยู่แล้ว"
+       ต้นเหตุ = ช่อง "อีเมลผู้ปกครอง" (อายุ 16-19) อยู่ต่ำลงไปใต้แถบเขียว มองไม่เห็น แต่ข้อความบอกแค่ "1 จุด"
+       -> บอกชื่อช่องที่ขาดตรง ๆ ไม่ให้ผู้ใช้ต้องเดา */
+    const fieldName = el => {
+      const lab = el.id ? document.querySelector('label[for="' + el.id + '"]') : null;
+      return ((lab && lab.textContent) || el.getAttribute('aria-label') || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+    };
+    const names = [...new Set(problems.map(fieldName).filter(Boolean))];
+    errBox.textContent = 'ยังกรอกไม่ครบ ' + problems.length + ' จุด' + (names.length ? ': ' + names.join(' · ') : '') + ' — เลื่อนไปดูช่องที่มีข้อความสีแดง';
     problems[0].scrollIntoView({block:'center', behavior:'smooth'});
     if (problems[0].focus) problems[0].focus({preventScroll:true});
     return;

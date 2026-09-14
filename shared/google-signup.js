@@ -89,11 +89,20 @@
       var row = otpInput.closest('.otp-row') || otpInput.closest('.field');
       if (row) row.style.display = 'none';
     }
-    var whyBox = document.querySelector('.badge-note .badge-icon');
-    if (whyBox && /รหัส 6 หลัก/.test(whyBox.parentElement.textContent)) whyBox.parentElement.style.display = 'none';
+    /* กล่อง "ทำไมต้องมีรหัส 6 หลัก?" — ซ่อน "ทุกกล่อง" ที่พูดถึงรหัส
+       🔴 2026-09-14 เดิมหาแค่กล่องแรกของหน้า → หน้านักเรียนกล่องนี้ยังโผล่ใต้แถบเขียว (Owner เห็นบนเว็บจริง) */
+    [].forEach.call(document.querySelectorAll('.badge-note'), function (box) {
+      if (/รหัส 6 หลัก/.test(box.textContent)) box.style.display = 'none';
+    });
 
     var socialBox = document.querySelector('.social-signup');
     if (socialBox) socialBox.style.display = 'none';
+
+    /* การ์ด "ใครเป็นคนสมัคร?" — เลือกฝั่งมาแล้วจากหน้าล็อกอิน ไม่ต้องถามซ้ำ
+       Owner ทัก 2026-09-14: "คุณถามมาตั้งแต่แรกแล้วนะ แล้วทุกๆหน้ายังมีการ์ดใครเป็นคนสมัคร? อยู่อีก มันไม่สมควร"
+       🔴 ซ่อนด้วยสคริปต์เฉพาะตอนเข้าด้วย Google จริง — คนที่เปิดหน้าสมัครตรง ๆ ยังต้องใช้การ์ดนี้สลับหน้า */
+    var who = document.querySelector('.who');
+    if (who) who.style.display = 'none';
 
     if (!document.querySelector('.gs-ok')) {
       var badge = document.createElement('div');
