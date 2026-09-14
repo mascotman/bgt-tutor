@@ -1,47 +1,85 @@
-/* google-signup.js — โฟลว์ "สมัครด้วย Google" ฝั่งหน้าจอ
- * สร้าง 2026-09-06 · Owner เคาะ: เอา Google อย่างเดียว ตัด Apple ทิ้ง
+/* google-signup.js — "สมัครด้วย Google" บนหน้าสมัคร 3 หน้า
+ * สร้าง 2026-09-06 (หน้าจอตัวอย่าง) · 🔴 เปลี่ยนเป็นของจริง 2026-09-14 (ก้อน H · ต่อ Supabase)
  *
- * 🔴 คำตอบของคำถาม Owner: "ต้องมีอีก workflow นึงไหม หรือไม่ควรมีเลย"
- *    -> ไม่ต้องมีใบสมัครใบที่สอง · Google แทนได้แค่ 2 อย่างเท่านั้น:
- *         1) ช่องกรอกอีเมล      2) ขั้นยืนยันรหัส 6 หลัก (Google ยืนยันอีเมลมาให้แล้ว)
- *       ส่วนที่เหลือ (ชื่อเล่น อายุ ระดับชั้น วิชา ราคา ตารางว่าง ฯลฯ) Google ไม่รู้ ยังไงก็ต้องกรอกเหมือนเดิม
- *    -> เพราะงั้น "ขั้นยืนยันอีเมล" มี 2 หน้าตาในใบสมัครใบเดียวกัน:
- *         ปกติ      = กรอกอีเมล -> ส่งรหัส -> กรอกรหัส 6 หลัก
- *         มาจาก Google = แถบเขียว "ยืนยันแล้วด้วยบัญชี Google" อ่านอย่างเดียว ไม่มีรหัสให้กรอก
+ * Owner เคาะ 2026-09-14: "บังคับล็อคอินผ่าน google"
  *
- * 🔴 ตอนนี้ยังไม่ได้ต่อ Google จริง (ต้องมีระบบหลังบ้าน = งาน B)
- *    หน้านี้เข้าโหมดนั้นได้ทาง ?via=google เพื่อ "ดูโฟลว์" เท่านั้น และต้องมีป้ายบอกเสมอว่าเป็นตัวอย่าง
- *    ห้ามเอาป้ายออกจนกว่าจะต่อของจริง (กฎเหล็กข้อ 1)
+ * 🔴 Google แทนได้แค่ 2 อย่างในใบสมัคร: ① ช่องอีเมล  ② ขั้นยืนยันรหัส 6 หลัก
+ *    ที่เหลือ (ชื่อเล่น อายุ ระดับชั้น วิชา ราคา ตารางว่าง ฯลฯ) Google ไม่รู้ ต้องกรอกในใบเดิม — ไม่มีใบสมัครใบที่สอง
+ *
+ * ทำอะไร
+ *   1. เปิดปุ่ม "สมัครด้วย Google" เฉพาะเมื่อโหลดตัวต่อหลังบ้าน (shared/auth.js) ได้จริง — ไม่งั้นปิดค้างตามที่เขียนใน HTML
+ *   2. กดปุ่ม → ไปเลือกบัญชี Google → เด้งกลับมาหน้าเดิมพร้อม ?via=google
+ *   3. กลับมาแล้วล็อกอินอยู่จริง → ล็อกช่องอีเมลเป็น Gmail จริง + แถบเขียว "ยืนยันแล้วด้วย Google" + ข้ามขั้นรหัส 6 หลัก
+ *      กดส่งใบสมัคร → accounts.js ลงทะเบียนฝั่งที่ฐานข้อมูลให้เอง (ค้น registerInCloud)
+ *   4. มี ?via=google แต่ไม่ได้ล็อกอินอยู่ → บอกตรง ๆ ว่ายังไม่ได้เข้าสู่ระบบด้วย Google (ห้ามแกล้งทำเป็นยืนยันแล้ว)
  */
 (function () {
   'use strict';
 
   var q = new URLSearchParams(location.search);
-  if (q.get('via') !== 'google') return;
-
-  var demoEmail = q.get('email') || 'you@gmail.com';
-  var demoName  = q.get('name')  || '';
 
   function ready(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
     else fn();
   }
 
-  ready(function () {
-    /* ช่องอีเมลของหน้านี้ชื่อไม่เหมือนกันทุกหน้า -> หาเอาจากช่องที่มีจริง */
-    var mail = document.getElementById('email')      /* หน้าครู */
-            || document.getElementById('s-email')    /* หน้านักเรียน */
-            || document.getElementById('p-email');   /* หน้าผู้ปกครอง */
-    if (!mail) return;
+  function css() {
+    if (document.getElementById('gs-css')) return;
+    var el = document.createElement('style');
+    el.id = 'gs-css';
+    el.textContent =
+      '.gs-ok{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:12px 14px;' +
+      'background:var(--color-ok-soft);border-radius:var(--radius-md);font-size:var(--text-sm);' +
+      'line-height:1.6;color:var(--color-ink)}' +
+      '.gs-ok-ic{width:24px;height:24px;flex-shrink:0;border-radius:50%;background:var(--color-ok);' +
+      'color:var(--color-surface);display:grid;place-items:center;font-weight:700}' +
+      '.gs-mail{font-weight:600}' +
+      '.gs-note{background:var(--color-level-soft);color:var(--color-level);text-align:center;' +
+      'font-size:var(--text-sm);font-weight:600;padding:10px 16px}' +
+      '.gs-err{color:var(--color-error);font-weight:600}';
+    document.head.appendChild(el);
+  }
 
-    mail.value = demoEmail;
+  /* ช่องอีเมลของแต่ละหน้าชื่อไม่เหมือนกัน → หาจากช่องที่มีจริง */
+  function mailInput() {
+    return document.getElementById('email')        /* หน้าครู */
+        || document.getElementById('s-email')      /* หน้านักเรียน */
+        || document.getElementById('p-email');     /* หน้าผู้ปกครอง */
+  }
+
+  function enableButtons(auth) {
+    var btns = document.querySelectorAll('.social-signup .btn-social');
+    if (!btns.length) return;
+    var why = document.querySelector('.social-signup .social-why');
+    [].forEach.call(btns, function (b) {
+      b.disabled = false;
+      var soon = b.querySelector('.soon');
+      if (soon) soon.parentNode.removeChild(soon);
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        auth.signInWithGoogle(location.origin + location.pathname + '?via=google').catch(function (err) {
+          b.disabled = false;
+          if (why) { why.textContent = auth.explain(err); why.classList.add('gs-err'); }
+        });
+      });
+    });
+    if (why) {
+      why.innerHTML = 'กดแล้วเลือกบัญชี Google — <b>ไม่ต้องกรอกอีเมลและรหัส 6 หลัก</b> · '
+                    + 'ส่วนที่เหลือ (ชื่อเล่น ระดับชั้น ฯลฯ) ยังกรอกในใบนี้เหมือนเดิม';
+    }
+  }
+
+  /* เข้ามาด้วย Google จริงแล้ว → แทนขั้นอีเมล + รหัส 6 หลัก ด้วยแถบเขียว */
+  function applyVerified(email, name) {
+    var mail = mailInput();
+    if (!mail) return;
+    mail.value = email;
     mail.readOnly = true;
 
-    /* ธงยืนยันอีเมลของแต่ละหน้า — ใส่ให้ครบทั้ง 2 ชื่อ หน้าไหนใช้ตัวไหนก็ผ่าน */
+    /* ธงยืนยันอีเมลของแต่ละหน้า — ใส่ครบทั้ง 2 ชื่อ หน้าไหนใช้ตัวไหนก็ผ่าน */
     document.body.dataset.emailVerified = '1';
     document.body.dataset.otpVerified = '1';
 
-    /* ซ่อนของที่ไม่ต้องใช้แล้ว: ปุ่มส่งรหัส + กล่องกรอกรหัส + กล่องอธิบายว่าทำไมต้องมีรหัส */
     ['send-otp', 'otp-box', 'otp-field', 'otp-ok'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) { el.hidden = true; el.style.display = 'none'; }
@@ -52,49 +90,58 @@
       if (row) row.style.display = 'none';
     }
     var whyBox = document.querySelector('.badge-note .badge-icon');
-    if (whyBox && /รหัส 6 หลัก/.test(whyBox.parentElement.textContent)) {
-      whyBox.parentElement.style.display = 'none';
-    }
+    if (whyBox && /รหัส 6 หลัก/.test(whyBox.parentElement.textContent)) whyBox.parentElement.style.display = 'none';
 
-    /* กล่องปุ่ม "สมัครด้วย Google" ไม่ต้องโชว์แล้ว เพราะเข้ามาทางนั้นอยู่ */
     var socialBox = document.querySelector('.social-signup');
     if (socialBox) socialBox.style.display = 'none';
 
-    /* แถบเขียว "ยืนยันแล้วด้วย Google" วางแทนที่ช่องรหัส */
-    var badge = document.createElement('div');
-    badge.className = 'gs-ok';
-    badge.innerHTML =
-      '<span class="gs-ok-ic" aria-hidden="true">✓</span>' +
-      '<span><b>ยืนยันอีเมลแล้วด้วยบัญชี Google</b><br>' +
-      '<span class="gs-mail"></span> — ไม่ต้องกรอกรหัส 6 หลัก</span>';
-    badge.querySelector('.gs-mail').textContent = demoEmail;
-    mail.parentElement.appendChild(badge);
-
-    /* เติมชื่อให้ถ้า Google ส่งมา (ของจริงจะได้ชื่อมาจากโปรไฟล์ Google) */
-    if (demoName) {
-      var nick = document.getElementById('nickname') || document.getElementById('s-nick');
-      if (nick && !nick.value) nick.value = demoName;
-      var first = document.getElementById('firstname') || document.getElementById('s-first')
-               || document.getElementById('p-first');
-      if (first && !first.value) first.value = demoName;
+    if (!document.querySelector('.gs-ok')) {
+      var badge = document.createElement('div');
+      badge.className = 'gs-ok';
+      badge.innerHTML = '<span class="gs-ok-ic" aria-hidden="true">✓</span>'
+        + '<span><b>ยืนยันอีเมลแล้วด้วยบัญชี Google</b><br><span class="gs-mail"></span> — ไม่ต้องกรอกรหัส 6 หลัก</span>';
+      badge.querySelector('.gs-mail').textContent = email;
+      mail.parentElement.appendChild(badge);
     }
 
-    /* 🔴 ป้ายบอกว่านี่เป็นแค่ตัวอย่างโฟลว์ ยังไม่ได้ต่อ Google จริง */
-    var ribbon = document.createElement('div');
-    ribbon.className = 'gs-demo';
-    ribbon.textContent = 'โหมดดูตัวอย่าง: สมมติว่าเข้าด้วยบัญชี Google มาแล้ว — ยังไม่ได้ต่อ Google จริง (งาน B)';
-    document.body.insertBefore(ribbon, document.body.firstChild);
+    /* เติมชื่อจากโปรไฟล์ Google ให้ ถ้าช่องยังว่าง (แก้ได้) */
+    if (name) {
+      var nick = document.getElementById('nickname') || document.getElementById('s-nick');
+      if (nick && !nick.value) nick.value = name;
+      var first = document.getElementById('firstname') || document.getElementById('s-first') || document.getElementById('p-first');
+      if (first && !first.value) first.value = name;
+    }
+  }
 
-    var css = document.createElement('style');
-    css.textContent =
-      '.gs-ok{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:12px 14px;' +
-      'background:var(--color-ok-soft);border-radius:var(--radius-md);font-size:var(--text-sm);' +
-      'line-height:1.6;color:var(--color-ink)}' +
-      '.gs-ok-ic{width:24px;height:24px;flex-shrink:0;border-radius:50%;background:var(--color-ok);' +
-      'color:var(--color-surface);display:grid;place-items:center;font-weight:700}' +
-      '.gs-mail{font-weight:600}' +
-      '.gs-demo{background:var(--color-level-soft);color:var(--color-level);text-align:center;' +
-      'font-size:var(--text-sm);font-weight:600;padding:10px 16px}';
-    document.head.appendChild(css);
+  function notice(text) {
+    var bar = document.createElement('div');
+    bar.className = 'gs-note';
+    bar.setAttribute('role', 'status');
+    bar.textContent = text;
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
+
+  ready(function () {
+    css();
+    var auth = window.BGTAuth;
+    if (auth && auth.available) enableButtons(auth);
+
+    var err = auth ? auth.urlError() : '';
+    if (err) notice('เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ' + err);
+
+    if (q.get('via') !== 'google') return;
+
+    if (!auth || !auth.available) {
+      notice((auth && auth.loadError) || 'โหลดระบบเข้าสู่ระบบไม่สำเร็จ — ลองรีเฟรชหน้า');
+      return;
+    }
+    auth.ready().then(function (session) {
+      auth.cleanUrl();
+      if (session && session.user && session.user.email) {
+        applyVerified(session.user.email, auth.googleName(session));
+      } else if (!err) {
+        notice('ยังไม่ได้เข้าสู่ระบบด้วย Google — กดปุ่ม "สมัครด้วย Google" ในใบสมัครก่อน');
+      }
+    });
   });
 })();

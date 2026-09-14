@@ -61,7 +61,31 @@
     if (!e) return false;
     var list = read().filter(function (a) { return norm(a.email) !== e; });
     list.push({ email: e, role: role === 'teacher' ? 'teacher' : 'learner', name: name || '', ts: Date.now() });
-    return write(list);
+    var saved = write(list);
+    registerInCloud(e, role === 'teacher' ? 'teacher' : 'learner', name || '');
+    return saved;
+  }
+
+  /* 🔴 ก้อน H: สมัครด้วย Google จริง → บันทึกฝั่งลงฐานข้อมูล แล้วค่อยให้สถานะในเครื่องเป็นของจริง
+     ไม่ได้เข้าด้วย Google (หรืออีเมลไม่ตรงกับบัญชี Google) = ข้าม ไม่ส่งอะไรขึ้นเซิร์ฟเวอร์
+     ล้มเหลว = ขึ้นแถบแดงบอกตรง ๆ ห้ามเงียบ (หน้าสมัครโชว์ "สำเร็จ" ไปแล้ว ผู้ใช้ต้องรู้ว่ายังไม่ถึงเซิร์ฟเวอร์) */
+  function registerInCloud(email, role, name) {
+    if (!window.BGTAuth || !BGTAuth.available) return;
+    BGTAuth.ready().then(function (session) {
+      if (!session || norm(session.user.email) !== email) return null;
+      return BGTAuth.register(role, name || BGTAuth.googleName(session) || email).then(function () {
+        loginFromCloud(email, role, name);
+      });
+    }).catch(function (err) { cloudBanner(BGTAuth.explain(err)); });
+  }
+
+  function cloudBanner(msg) {
+    var box = document.createElement('div');
+    box.setAttribute('role', 'alert');
+    box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px 16px;'
+      + 'border-radius:10px;background:var(--color-error,#b42318);color:#fff;font-weight:600;line-height:1.5';
+    box.textContent = 'บันทึกขึ้นเซิร์ฟเวอร์ไม่สำเร็จ — ' + msg;
+    document.body.appendChild(box);
   }
 
   function session() {
@@ -85,7 +109,30 @@
     return acc;
   }
 
-  function logout() { try { localStorage.removeItem(SKEY); } catch (e) {} }
+  /* ออกจากระบบ = ล้างทั้งสถานะในเครื่อง + การล็อกอิน Google ที่ Supabase เก็บไว้ (ก้อน H 2026-09-14)
+     🔴 ลบกุญแจของ Supabase ในเครื่องทันทีแบบไม่ต้องรอเน็ต — ปุ่มออกจากระบบเปลี่ยนหน้าต่อทันที
+        ถ้ารอให้ Supabase ตอบก่อน หน้าจะเปลี่ยนไปก่อนแล้วบัญชียังค้างอยู่ในเครื่อง */
+  /* ล็อกอินด้วย Google ผ่านแล้ว + ฐานข้อมูลบอกว่าเป็นฝั่งไหน → เขียนสถานะเดิมให้ทุกหน้าใช้ต่อได้ทันที
+     (หน้าอื่นยังอ่าน session() แบบเดิม ไม่ต้องแก้ทีละหน้า) */
+  function loginFromCloud(email, role, name) {
+    var e = norm(email);
+    if (!e || (role !== "teacher" && role !== "learner")) return null;
+    var list = read().filter(function (a) { return norm(a.email) !== e; });
+    list.push({ email: e, role: role, name: name || "", ts: Date.now() });
+    write(list);
+    try {
+      localStorage.setItem(SKEY, JSON.stringify({ v: 1, ts: Date.now(), email: e, role: role, name: name || "", cloud: true }));
+    } catch (err) {}
+    return { email: e, role: role, name: name || "" };
+  }
+
+  function logout() {
+    try { localStorage.removeItem(SKEY); } catch (e) {}
+    try {
+      Object.keys(localStorage).forEach(function (k) { if (/^sb-[a-z0-9]+-auth-token/.test(k)) localStorage.removeItem(k); });
+    } catch (e) {}
+    if (window.BGTAuth) BGTAuth.signOut();
+  }
 
   /* หน้าแรกของแต่ละฝั่ง — ที่เดียวที่กำหนดว่าล็อกอินแล้วไปไหน */
   function homeFor(role, prefix) {
@@ -230,7 +277,7 @@
 
   window.BGTAccounts = {
     all: all, find: find, save: save,
-    login: login, logout: logout, session: session,
+    login: login, logout: logout, session: session, loginFromCloud: loginFromCloud,
     homeFor: homeFor, normalize: norm, applyGate: applyGate,
     mountSessionBar: mountSessionBar
   };
