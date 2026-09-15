@@ -36,7 +36,14 @@
       '.gs-mail{font-weight:600}' +
       '.gs-note{background:var(--color-level-soft);color:var(--color-level);text-align:center;' +
       'font-size:var(--text-sm);font-weight:600;padding:10px 16px}' +
-      '.gs-err{color:var(--color-error);font-weight:600}';
+      '.gs-err{color:var(--color-error);font-weight:600}' +
+      /* ล็อกใบสมัคร (2026-09-15) — เห็นได้ แต่จางลงและกรอกไม่ได้ */
+      '.gs-locked{opacity:.45;filter:grayscale(.3);user-select:none}' +
+      '.gs-gate{outline:2px solid var(--color-accent);outline-offset:4px;border-radius:var(--radius-md)}' +
+      '.gs-lockbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 var(--space-6);' +
+      'padding:14px 16px;background:var(--color-level-soft);border-radius:var(--radius-md);' +
+      'font-size:var(--text-sm);line-height:1.6;color:var(--color-ink)}' +
+      '.gs-lockbar>span:nth-child(2){flex:1;min-width:200px}';
     document.head.appendChild(el);
   }
 
@@ -134,6 +141,80 @@
     document.body.insertBefore(bar, document.body.firstChild);
   }
 
+  /* ── 🔴 2026-09-15 ล็อกใบสมัครจนกว่าจะเข้าด้วย Google ──────────────────────────
+     Owner: "เพื่อนผมไปกดสมัครเป็นครู ด้านล่างครับ ไม่ได้กดเข้าด้วย google" · "ติดที่ต้องได้อีเมลจากเรา"
+     ต้นเหตุ = คนที่เปิดหน้าสมัครตรง ๆ (ไม่ผ่านปุ่ม Google) ยังเจอขั้น "ส่งรหัสไปที่อีเมล" ของต้นแบบ
+       ซึ่งไม่เคยส่งอีเมลจริง → รอเก้อ · และต่อให้กรอกจบ ใบสมัครก็อยู่แค่ในเครื่อง ไม่ถึงฐานข้อมูล
+     ข้อตกลง Owner 2026-09-14: สมัครด้วย Google อย่างเดียว (LOG "ตัดขั้นกรอกอีเมล + รหัส 6 หลักออกจากทางหลัก")
+     ท่าที่เลือก: ให้เห็นใบสมัครได้ (รู้ว่าต้องกรอกอะไร) แต่ "กรอกไม่ได้" จนกว่าจะกด Google
+       → ไม่มีใครกรอกยาวครบทุกขั้นแล้วต้องเด้งไป Google จนข้อมูลที่พิมพ์หายหมด
+     ข้อยกเว้น: มีบัญชีในเครื่องล็อกอินอยู่แล้ว (บัญชีตัวอย่าง / โหมดแก้โปรไฟล์) = ปล่อยทำงานแบบเดิม */
+  var locked = false;
+
+  function hideOtpUi() {
+    ['send-otp', 'otp-box', 'otp-field', 'otp-ok'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.hidden = true; el.style.display = 'none'; }
+    });
+    [].forEach.call(document.querySelectorAll('.badge-note'), function (box) {
+      if (/รหัส 6 หลัก/.test(box.textContent)) box.style.display = 'none';
+    });
+  }
+
+  function lockForm(msg) {
+    var form = document.querySelector('form');
+    if (!form) return;
+    locked = true;
+    hideOtpUi();
+    [].forEach.call(form.querySelectorAll('.section'), function (s) {
+      s.inert = true;
+      s.classList.add('gs-locked');
+    });
+    var submit = form.querySelector('button[type=submit]');
+    if (submit) { submit.disabled = true; submit.dataset.gsLocked = '1'; }
+
+    var box = document.querySelector('.social-signup');
+    if (box) {
+      box.classList.add('gs-gate');
+      var qEl = box.querySelector('.social-q');
+      if (qEl) qEl.textContent = 'ขั้นแรก: เข้าสู่ระบบด้วย Google';
+      var why = box.querySelector('.social-why');
+      if (why && msg) { why.textContent = msg; why.classList.add('gs-err'); }
+    }
+
+    /* ป้ายเหนือขั้นแรก — คนที่เลื่อนผ่านกล่อง Google ไปแล้วจะได้รู้ว่าทำไมกรอกไม่ได้ */
+    var first = form.querySelector('.section');
+    if (first && !document.getElementById('gs-lockbar')) {
+      var bar = document.createElement('div');
+      bar.id = 'gs-lockbar';
+      bar.className = 'gs-lockbar';
+      bar.setAttribute('role', 'note');
+      bar.innerHTML = '<span aria-hidden="true">🔒</span><span><b>กรอกได้หลังเข้าสู่ระบบด้วย Google</b> — '
+        + 'อีเมลจะมาจากบัญชี Google เลย ไม่ต้องรอรหัสทางอีเมล</span>'
+        + '<button type="button" class="btn btn-secondary">ไปที่ปุ่ม Google</button>';
+      bar.querySelector('button').addEventListener('click', function () {
+        var b = document.querySelector('.social-signup .btn-social');
+        if (!b) return;
+        b.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (!b.disabled) b.focus({ preventScroll: true });
+      });
+      first.parentNode.insertBefore(bar, first);
+    }
+  }
+
+  function unlockForm() {
+    if (!locked) return;
+    locked = false;
+    [].forEach.call(document.querySelectorAll('.gs-locked'), function (s) {
+      s.inert = false;
+      s.classList.remove('gs-locked');
+    });
+    var submit = document.querySelector('form button[type=submit][data-gs-locked]');
+    if (submit) { submit.disabled = false; delete submit.dataset.gsLocked; }
+    var bar = document.getElementById('gs-lockbar');
+    if (bar) bar.parentNode.removeChild(bar);
+  }
+
   ready(function () {
     css();
     var auth = window.BGTAuth;
@@ -142,17 +223,19 @@
     var err = auth ? auth.urlError() : '';
     if (err) notice('เข้าสู่ระบบด้วย Google ไม่สำเร็จ — ' + err);
 
-    if (q.get('via') !== 'google') return;
-
-    if (!auth || !auth.available) {
-      notice((auth && auth.loadError) || 'โหลดระบบเข้าสู่ระบบไม่สำเร็จ — ลองรีเฟรชหน้า');
-      return;
+    var localSession = window.BGTAccounts && BGTAccounts.session && BGTAccounts.session();
+    if (!localSession) {
+      lockForm(auth && auth.available ? '' : ((auth && auth.loadError) || 'โหลดระบบเข้าสู่ระบบไม่สำเร็จ — ลองรีเฟรชหน้า'));
     }
+    if (!auth || !auth.available) return;
+
     auth.ready().then(function (session) {
-      auth.cleanUrl();
+      if (q.get('via') === 'google') auth.cleanUrl();
       if (session && session.user && session.user.email) {
+        /* ล็อกอิน Google อยู่แล้ว (มาจากปุ่ม หรือเปิดหน้านี้ทีหลังก็ตาม) = ใช้อีเมล Google + ปลดล็อก */
+        unlockForm();
         applyVerified(session.user.email, auth.googleName(session));
-      } else if (!err) {
+      } else if (q.get('via') === 'google' && !err) {
         notice('ยังไม่ได้เข้าสู่ระบบด้วย Google — กดปุ่ม "สมัครด้วย Google" ในใบสมัครก่อน');
       }
     });
